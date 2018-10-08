@@ -29,13 +29,13 @@ const (
 	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
 )
 
+// Unformated consumption data returned by Prometheus.
 type workloadResourceConsumption struct {
 	WorkloadName       string
 	ClusterConsumption float64
 }
 
-// Report contains the whole of instance data summary to be sent in
-// Weekly Summary emails.
+// Report contains all the raw summary data for the weekly emails.
 type Report struct {
 	Organization             *users.Organization
 	GeneratedAt              time.Time
@@ -95,7 +95,7 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 		workloadsVector = workloadsVector[:resourceWorkloadsMaxShown]
 	}
 
-	// ... and format their name and resource consumption as rounded percentage.
+	// ... and store that data, together with the workload names.
 	topWorkloads := []workloadResourceConsumption{}
 	for _, workload := range workloadsVector {
 		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
@@ -117,7 +117,7 @@ func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
 	return v1.NewAPI(client), nil
 }
 
-// GenerateReport returns the weekly summary report in the format directly consumable by email templates.
+// GenerateReport returns the raw weekly report data for the organization.
 func GenerateReport(org *users.Organization, endAt time.Time) (*Report, error) {
 	endAt = endAt.UTC().Truncate(24 * time.Hour) // We round down the timestamp to a day to stop at the end of previous day.
 	startAt := endAt.AddDate(0, 0, -7)           // The report will consist of full 7 days of data.

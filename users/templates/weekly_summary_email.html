@@ -1,13 +1,18 @@
 <p>Hi,</p>
 
-<p>Here is an overview of your instance <b>{{.OrganizationName}}</b> this past week.</p>
-
 {{with .Report}}
+  {{if .OrganizationCreationDay}}
+    <p style="line-height: 20px;">
+      You created <b>{{.OrganizationName}}</b> on {{.OrganizationCreationDay}}.<br>
+      Here is an overview of that instance this past week.
+    </p>
+  {{else}}
+    <p>Here is an overview of <b>{{.OrganizationName}}</b> this past week.</p>
+  {{end}}
+
   <div style="margin-bottom: 60px;">
     <h2 style="color: #888; font-size: 18px; font-weight: normal; margin: 30px 0 5px;">Deployments</h2>
-    {{if .InstanceCreationDay}}
-      <p style="color: #888; font-size: 12px; margin: 0 0 5px;">Only shows data after your instance was created on <b>{{.InstanceCreationDay}}</b></p>
-    {{end}}
+    <p style="color: #888; font-size: 12px; margin: 0 0 5px;">Days are counted in the <b>UTC</b> timezone</p>
   
     <div style="margin-top: 10px; height: 200px; width: 100%;">
       {{range .Deployments}}
@@ -40,7 +45,7 @@
             <div style="color: #1a1a1a; margin-top: 20px;">
               <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{.WorkloadName}}</div>
               <div style="margin-top: 5px;">
-                <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPerc}}%;"></span>
+                <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPercent}}%;"></span>
                 <span style="color: hsl(191,100%,30%); display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
               </div>
             </div>

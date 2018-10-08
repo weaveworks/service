@@ -2,6 +2,7 @@ package weeklysummary
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -9,11 +10,10 @@ import (
 const (
 	dayOfWeekFormat = "Mon"
 	dateShortFormat = "Jan 2"
-	dateLongFormat  = "Jan 2, 2006"
+	dateLongFormat  = "October 2nd, 2006"
 )
 
-// WorkloadDeploymentsBar consists of a formatted Date and the total
-// number of workload releases on that day.
+// WorkloadDeploymentsBar contains info for rendering a deployments count vertical bar.
 type WorkloadDeploymentsBar struct {
 	LinkTo      string
 	DayOfWeek   string
@@ -21,28 +21,27 @@ type WorkloadDeploymentsBar struct {
 	BarHeightPx int
 }
 
-// WorkloadResourceConsumptionInfo consists of the workload name and the
-// formatted percentage average cluster consumption of that workload.
+// WorkloadResourceConsumptionInfo contains info for rendering a single resource consumption horizontal bar.
 type WorkloadResourceConsumptionInfo struct {
-	LinkTo         string
-	WorkloadName   string
-	ClusterPercent string
-	BarWidthPerc   float64
+	LinkTo          string
+	WorkloadName    string
+	ClusterPercent  string
+	BarWidthPercent float64
 }
 
-// WorkloadResourceStats blu.
+// WorkloadResourceStats describes a list of top consuming workloads for a fixed resource.
 type WorkloadResourceStats struct {
 	Label        string
 	TopConsumers []WorkloadResourceConsumptionInfo
 }
 
-// EmailSummary contains the whole of instance data summary to be sent in
-// Weekly Summary emails.
+// EmailSummary contains all the data for rendering the weekly summary report in the email.
 type EmailSummary struct {
-	DateInterval        string
-	InstanceCreationDay string
-	Deployments         []WorkloadDeploymentsBar
-	Resources           []WorkloadResourceStats
+	DateInterval            string
+	OrganizationName        string
+	OrganizationCreationDay string
+	Deployments             []WorkloadDeploymentsBar
+	Resources               []WorkloadResourceStats
 }
 
 func getDeployHistoryLink(organizationURL string, endAt time.Time, timeRange string) string {
@@ -51,10 +50,12 @@ func getDeployHistoryLink(organizationURL string, endAt time.Time, timeRange str
 }
 
 func getWorkloadSummaryLink(organizationURL string, workloadName string) string {
-	return fmt.Sprintf("%s/workloads/%s/summary", organizationURL, workloadName)
+	return fmt.Sprintf("%s/workloads/%s/summary", organizationURL, url.QueryEscape(workloadName))
 }
 
 func generateDeploymentsHistogram(report *Report, organizationURL string) []WorkloadDeploymentsBar {
+	// To normalize the deployments bars to a fixed height, we need to divide them by the highest bar - here
+	// we cap it from below at 1 to avoid division by zero in case of no deployments for a whole week.
 	maxDeploymentsCount := 1
 	for _, deploymentsCount := range report.DeploymentsPerDay {
 		if deploymentsCount > maxDeploymentsCount {
@@ -62,17 +63,17 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 		}
 	}
 
-	report.Organization.CreatedAt = report.StartAt.AddDate(0, 0, 3)
-
 	releasesHistogram := []WorkloadDeploymentsBar{}
 	for dayIndex, totalCount := range report.DeploymentsPerDay {
 		dayBegin := report.StartAt.AddDate(0, 0, dayIndex)
 		dayEnd := dayBegin.AddDate(0, 0, 1)
 
-		linkTo := getDeployHistoryLink(organizationURL, dayEnd, "24h")
+		// Render a very thin bar for 0 deployments; max bar height will be 150px, the rest linearly proportional.
 		barHeightPx := 2 + (150.0 * totalCount / maxDeploymentsCount)
+		linkTo := getDeployHistoryLink(organizationURL, dayEnd, "24h")
 		totalCount := fmt.Sprintf("%d", totalCount)
 
+		// Render an empty bar if the organization wasn't created at that day yet.
 		if dayEnd.Before(report.Organization.CreatedAt) {
 			linkTo = ""
 			totalCount = "-"
@@ -91,37 +92,43 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 }
 
 func generateResourceBars(workloads []workloadResourceConsumption, organizationURL string) []WorkloadResourceConsumptionInfo {
-	maxConsumptionValue := 0.0
+	// To normalize the resource consumption bars to a fixed width, we need to divide them by the longest bar.
+	// The initial value is set just above 0 to avoid division by zero in case it happens to be nil for all workloads.
+	maxConsumptionValue := 0.00001
 	for _, workload := range workloads {
 		if float64(workload.ClusterConsumption) > maxConsumptionValue {
 			maxConsumptionValue = float64(workload.ClusterConsumption)
 		}
 	}
 
-	// ... and format their name and resource consumption as rounded percentage.
 	topWorkloads := []WorkloadResourceConsumptionInfo{}
 	for _, workload := range workloads {
+		// Render a very thin bar for min resource usage; max bar width will be 75%, the rest linearly proportional.
+		barWidthPercent := 1 + (75 * float64(workload.ClusterConsumption) / maxConsumptionValue)
+		clusterPercent := fmt.Sprintf("%2.2f%%", 100*float64(workload.ClusterConsumption))
+
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionInfo{
-			WorkloadName:   workload.WorkloadName,
-			LinkTo:         getWorkloadSummaryLink(organizationURL, workload.WorkloadName),
-			ClusterPercent: fmt.Sprintf("%2.2f%%", 100*float64(workload.ClusterConsumption)),
-			BarWidthPerc:   1 + (75 * float64(workload.ClusterConsumption) / maxConsumptionValue),
+			WorkloadName:    workload.WorkloadName,
+			LinkTo:          getWorkloadSummaryLink(organizationURL, workload.WorkloadName),
+			ClusterPercent:  clusterPercent,
+			BarWidthPercent: barWidthPercent,
 		})
 	}
 	return topWorkloads
 }
 
 func getReportInterval(report *Report) string {
-	lastDay := report.EndAt.AddDate(0, 0, -1).Format(dateShortFormat) // Format the last day nicely (go back a day for inclusive interval).
-	firstDay := report.StartAt.Format(dateShortFormat)                // Format the first day nicely.
+	// Format the last day nicely (go back a day for inclusive interval).
+	lastDay := report.EndAt.AddDate(0, 0, -1).Format(dateShortFormat)
+	firstDay := report.StartAt.Format(dateShortFormat)
 	return fmt.Sprintf("%s - %s", firstDay, lastDay)
 }
 
-func getInstanceCreationDayIfRecent(report *Report) string {
-	instanceCreatedAt := report.Organization.CreatedAt.UTC()
-	// Return instance creation date only if it falls in this report's interval.
-	if instanceCreatedAt.After(report.StartAt) {
-		return instanceCreatedAt.Format(dateLongFormat)
+func getOrganizationCreationDayIfRecent(report *Report) string {
+	organizationCreatedAt := report.Organization.CreatedAt.UTC()
+	// Return organization creation date only if it falls in this report's interval.
+	if organizationCreatedAt.After(report.StartAt) {
+		return organizationCreatedAt.Format(dateLongFormat)
 	}
 	return ""
 }
@@ -129,9 +136,10 @@ func getInstanceCreationDayIfRecent(report *Report) string {
 // EmailSummaryFromReport returns the weekly summary report in the format directly consumable by email templates.
 func EmailSummaryFromReport(report *Report, organizationURL string) *EmailSummary {
 	return &EmailSummary{
-		DateInterval:        getReportInterval(report),
-		InstanceCreationDay: getInstanceCreationDayIfRecent(report),
-		Deployments:         generateDeploymentsHistogram(report, organizationURL),
+		DateInterval:            getReportInterval(report),
+		OrganizationName:        report.Organization.Name,
+		OrganizationCreationDay: getOrganizationCreationDayIfRecent(report),
+		Deployments:             generateDeploymentsHistogram(report, organizationURL),
 		Resources: []WorkloadResourceStats{
 			WorkloadResourceStats{
 				Label:        "CPU",
