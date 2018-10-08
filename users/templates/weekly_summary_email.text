@@ -1,21 +1,21 @@
 Hi,
-
-Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:
-
 {{with .Report}}
-    Number of releases per day:
-    {{range .WorkloadReleasesCounts}}
-        * {{.Day}} - {{.Total}}{{end}}
+    {{if .OrganizationCreationDay}}
+    You created `{{.OrganizationName}}` on {{.OrganizationCreationDay}}.
+    Here is an overview of that instance this past week.
+    {{else}}
+    Here is an overview of `{{.OrganizationName}}` this past week.
+    {{end}}
+    Deployment counts (UTC timezone):
+    {{range .Deployments}}
+        * {{.DayOfWeek}} - {{.TotalCount}}{{end}}
 
-    Most resource-intense workloads:
-   
-    CPU (average cluster consumption)
-    {{range .CPUIntensiveWorkloads}}
-        * {{.Name}} - {{.Value}}{{end}}
-
-    Memory (average cluster consumption)
-    {{range .MemoryIntensiveWorkloads}}
-        * {{.Name}} - {{.Value}}{{end}}
+    Resource Consumption (% of total cluster capacity):
+    {{range .Resources}}
+        {{.Label}}
+        {{range .TopConsumers}}
+            * {{.WorkloadName}} - {{.ClusterPercent}}{{end}}
+    {{end}}
 {{end}}
 
 Thanks,

@@ -1,35 +1,59 @@
 <p>Hi,</p>
 
-<p>Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:</p>
-
-
 {{with .Report}}
-  <p>Number of releases per day:</p>
-  <ul>
-    {{range .WorkloadReleasesCounts}}
-      <li><i>{{.Day}}</i> - <b>{{.Total}}</b></li>
-    {{end}}
-  </ul>
+  {{if .OrganizationCreationDay}}
+    <p style="line-height: 20px;">
+      You created <b>{{.OrganizationName}}</b> on {{.OrganizationCreationDay}}.<br>
+      Here is an overview of that instance this past week.
+    </p>
+  {{else}}
+    <p>Here is an overview of <b>{{.OrganizationName}}</b> this past week.</p>
+  {{end}}
 
-  <p>Most resource-intense workloads:</p>
-  <ul>
-    <li>
-      <span>CPU (average cluster consumption):</span>
-      <ul>
-        {{range .CPUIntensiveWorkloads}}
-          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
+  <div style="margin-bottom: 60px;">
+    <h2 style="color: #888; font-size: 18px; font-weight: normal; margin: 30px 0 5px;">Deployments</h2>
+    <p style="color: #888; font-size: 12px; margin: 0 0 5px;">Days are counted in the <b>UTC</b> timezone</p>
+  
+    <div style="margin-top: 10px; height: 200px; width: 100%;">
+      {{range .Deployments}}
+        <div style="display: inline-block; height: 100%; margin-right: 4%; position: relative; width: 9.5%;">
+          {{if .LinkTo}}
+            <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+          {{end}}
+            <div style="bottom: 0; color: #1a1a1a; position: absolute; text-align: center; width: 100%;">
+              <span style="color: hsl(191,100%,30%); display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
+              <div style="background: hsl(191,100%,45%); border-radius: 2px; height: {{.BarHeightPx}}px; width: 100%;"></div>
+              <span style="color: #888; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
+            </div>
+          {{if .LinkTo}}
+            </a>
+          {{end}}
+        </div>
+      {{end}}
+    </div>
+  </div>
+
+  <div style="margin-bottom: 30px;">
+    <h2 style="color: #888; font-size: 18px; font-weight: normal; margin-bottom: 5px;">Resource Consumption</h2>
+    <p style="color: #888; font-size: 12px; margin: 0 0 15px;">Showing workloads consuming most resources (% of total cluster capacity)</p>
+
+    {{range .Resources}}
+      <div style="display: inline-block; margin-bottom: 30px; margin-right: 4.5%; width: 45%;">
+        <h3 style="color: #888; font-size: 14px; font-weight: bold; margin-bottom: 20px;">{{.Label}}</h3>
+        {{range .TopConsumers}}
+          <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+            <div style="color: #1a1a1a; margin-top: 20px;">
+              <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{.WorkloadName}}</div>
+              <div style="margin-top: 5px;">
+                <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPercent}}%;"></span>
+                <span style="color: hsl(191,100%,30%); display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
+              </div>
+            </div>
+          </a>
         {{end}}
-      </ul>
-    </li>
-    <li>
-      <span>Memory (average cluster consumption):</span>
-      <ul>
-        {{range .MemoryIntensiveWorkloads}}
-          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
-        {{end}}
-      </ul>
-    </li>
-  </ul>
+      </div>
+    {{end}}
+  </div>
 {{end}}
 
 <p>Thanks,<br />

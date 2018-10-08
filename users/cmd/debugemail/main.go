@@ -46,64 +46,41 @@ func main() {
 		Email: "inviter@weave.works.example",
 	}
 	weeklyReport := &weeklysummary.Report{
-		FirstDay: "Sep 17",
-		LastDay:  "Sep 23",
-		WorkloadReleasesCounts: []weeklysummary.WorkloadReleasesCount{
+		GeneratedAt: time.Now(),
+		StartAt:     time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -7),
+		EndAt:       time.Now().UTC().Truncate(24 * time.Hour),
+		Organization: &users.Organization{
+			Name:       "Sample Org 99",
+			ExternalID: "sample-org-99",
+			CreatedAt:  time.Now().AddDate(0, 0, -6), // Simulate instance creation after first day of the report.
+		},
+		DeploymentsPerDay: []int{12, 43, 18, 23, 4, 0, 1},
+		CPUIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumptionRaw{
 			{
-				Day:   "Sep 17 (Mon)",
-				Total: 12,
+				WorkloadName:       "cortex:deployment/ingester",
+				ClusterConsumption: 0.134,
 			},
 			{
-				Day:   "Sep 18 (Tue)",
-				Total: 43,
+				WorkloadName:       "cortex:deployment/distributor",
+				ClusterConsumption: 0.0312,
 			},
 			{
-				Day:   "Sep 19 (Wed)",
-				Total: 18,
-			},
-			{
-				Day:   "Sep 20 (Thu)",
-				Total: 23,
-			},
-			{
-				Day:   "Sep 21 (Fri)",
-				Total: 4,
-			},
-			{
-				Day:   "Sep 22 (Sat)",
-				Total: 0,
-			},
-			{
-				Day:   "Sep 23 (Sun)",
-				Total: 1,
+				WorkloadName:       "monitoring:daemonset/fluentd-loggly",
+				ClusterConsumption: 0.0103,
 			},
 		},
-		CPUIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumption{
+		MemoryIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumptionRaw{
 			{
-				Name:  "cortex:deployment/ingester",
-				Value: "10.34%",
+				WorkloadName:       "monitoring:deployment/prometheus",
+				ClusterConsumption: 0.2095,
 			},
 			{
-				Name:  "cortex:deployment/distributor",
-				Value: "3.12%",
+				WorkloadName:       "cortex:deployment/ingester",
+				ClusterConsumption: 0.1310,
 			},
 			{
-				Name:  "monitoring:daemonset/fluentd-loggly",
-				Value: "1.03%",
-			},
-		},
-		MemoryIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumption{
-			{
-				Name:  "monitoring:deployment/prometheus",
-				Value: "20.95%",
-			},
-			{
-				Name:  "cortex:deployment/ingester",
-				Value: "13.10%",
-			},
-			{
-				Name:  "monitoring:daemonset/fluentd-loggly",
-				Value: "3.45%",
+				WorkloadName:       "monitoring:daemonset/fluentd-loggly",
+				ClusterConsumption: 0.0345,
 			},
 		},
 	}
@@ -130,7 +107,7 @@ func main() {
 			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
 		},
 		"weekly": func() error {
-			return em.WeeklySummaryEmail(dst, orgExternalID, orgName, weeklyReport)
+			return em.WeeklySummaryEmail(dst, weeklyReport)
 		},
 	}
 
