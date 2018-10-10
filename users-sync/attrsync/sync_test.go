@@ -2,6 +2,7 @@ package attrsync
 
 import (
 	"context"
+	"github.com/weaveworks/service/users/marketing"
 	"testing"
 	"time"
 
@@ -46,8 +47,9 @@ func setup(t *testing.T) (testFixtures, *AttributeSyncer) {
 	ctrl := gomock.NewController(t)
 	billingClient := billing_grpc.NewMockBillingClient(ctrl)
 	mockSegment := MockSegment{}
+	noopMarketo := marketing.NoopMarketoClient{}
 
-	attrSync := New(logger, db, billingClient, &mockSegment)
+	attrSync := New(logger, db, billingClient, &mockSegment, &noopMarketo)
 
 	return testFixtures{billingClient, ctrl, ctx, db, &mockSegment}, attrSync
 }

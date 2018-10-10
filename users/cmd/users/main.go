@@ -60,10 +60,6 @@ func main() {
 		cortexStatsAPI = flag.String("cortex-stats-api", "", "Hostname and port for cortex stats. e.g. http://querier.cortex.svc.cluster.local:80/api/prom/user_stats")
 		netPeersAPI    = flag.String("net-peers-api", "", "Hostname and port for peer discovery. e.g. http://discovery.service-net.svc.cluster.local:80/api/net/peers")
 
-		marketoClientID    = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
-		marketoSecret      = flag.String("marketo-secret", "", "Secret for Marketo account.")
-		marketoEndpoint    = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
-		marketoProgram     = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
 		marketoMunchkinKey = flag.String("marketo-munchkin-key", "", "Secret key for Marketo munchkin.")
 		intercomHashKey    = flag.String("intercom-hash-key", "", "Secret key for Intercom user hash.")
 		mixpanelToken      = flag.String("mixpanel-token", "", "Mixpanel project API token")
@@ -87,6 +83,7 @@ func main() {
 		partnerCfg   partner.Config
 		billingCfg   billing_grpc.Config
 		usersSyncCfg users_sync.Config
+		marketoCfg   marketing.MarketoConfig
 
 		cleanupURLs common.ArrayFlags
 
@@ -106,6 +103,7 @@ func main() {
 	partnerCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
 	usersSyncCfg.RegisterFlags(flag.CommandLine)
+	marketoCfg.RegisterFlags(flag.CommandLine)
 
 	partnerAccess := partner.NewAccess()
 	partnerAccess.Flags(flag.CommandLine)
@@ -134,12 +132,12 @@ func main() {
 	defer usersSyncClient.Close()
 
 	var marketingQueues marketing.Queues
-	if *marketoClientID != "" {
-		goketoClient, err := goketo.NewAuthClient(*marketoClientID, *marketoSecret, *marketoEndpoint)
+	if marketoCfg.ClientID != "" {
+		goketoClient, err := goketo.NewAuthClient(marketoCfg.ClientID, marketoCfg.Secret, marketoCfg.Endpoint)
 		if err != nil {
 			log.Warningf("Failed to initialise Marketo client: %v", err)
 		} else {
-			marketoClient := marketing.NewMarketoClient(goketoClient, *marketoProgram)
+			marketoClient := marketing.NewMarketoClient(goketoClient, marketoCfg.Program)
 			queue := marketing.NewQueue(marketoClient)
 			defer queue.Stop()
 			marketingQueues = append(marketingQueues, queue)

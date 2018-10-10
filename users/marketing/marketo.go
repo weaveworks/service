@@ -2,6 +2,7 @@ package marketing
 
 import (
 	"encoding/json"
+	"flag"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,6 +23,22 @@ func init() {
 	prometheus.MustRegister(marketoLeadsSkipped)
 }
 
+// MarketoConfig describes the config for a MarketoClient
+type MarketoConfig struct {
+	ClientID string
+	Secret   string
+	Endpoint string
+	Program  string
+}
+
+// RegisterFlags registers configuration variables with a flag set
+func (cfg *MarketoConfig) RegisterFlags(f *flag.FlagSet) {
+	f.StringVar(&cfg.ClientID, "marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
+	f.StringVar(&cfg.Secret, "marketo-secret", "", "Secret for Marketo account.")
+	f.StringVar(&cfg.Endpoint, "marketo-endpoint", "", "REST API endpoint for Marketo.")
+	f.StringVar(&cfg.Program, "marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
+}
+
 // GoketoClient is an interface augmenting goketo.Requester with goketo.Client#RefreshToken,
 // for better dependency injection of mocks/real implementations.
 type GoketoClient interface {
@@ -29,21 +46,30 @@ type GoketoClient interface {
 	RefreshToken() error
 }
 
+// MarketoClient is our client interface to marketo
+type MarketoClient interface {
+	BatchUpsertProspect(prospects []Prospect) error
+	UpsertProspect(email string, fields map[string]string) error
+	name() string
+}
+
 // MarketoClient is a client for marketo.
-type MarketoClient struct {
+type marketoClient struct {
 	client      GoketoClient
 	programName string
 }
 
+var _ MarketoClient = &marketoClient{}
+
 // NewMarketoClient makes a new marketo client.
-func NewMarketoClient(client GoketoClient, programName string) *MarketoClient {
-	return &MarketoClient{
+func NewMarketoClient(client GoketoClient, programName string) MarketoClient {
+	return &marketoClient{
 		client:      client,
 		programName: programName,
 	}
 }
 
-func (*MarketoClient) name() string {
+func (*marketoClient) name() string {
 	return "marketo"
 }
 
@@ -99,7 +125,7 @@ func nilTime(t time.Time) string {
 }
 
 // BatchUpsertProspect batches the provided prospects and insert/update them in Marketo.
-func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
+func (c *marketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	if err := c.client.RefreshToken(); err != nil {
 		return err
 	}
@@ -127,12 +153,12 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 			InstanceBillingConfiguredName:       p.OrganizationBillingConfiguredName,
 		})
 	}
-	req, err := json.Marshal(leads)
+	body, err := json.Marshal(leads)
 	if err != nil {
 		return err
 	}
-	log.Debugf("Marketo request: %s", string(req))
-	resp, err := c.client.Post("leads/push.json", req)
+	log.Debugf("Marketo request: %s", string(body))
+	resp, err := c.client.Post("leads/push.json", body)
 	if err != nil {
 		return err
 	}
@@ -154,4 +180,75 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 		return &marketoResponse
 	}
 	return nil
+}
+
+// UpsertProspect insert/updates an entry in Marketo.
+func (c *marketoClient) UpsertProspect(email string, fields map[string]string) error {
+	if err := c.client.RefreshToken(); err != nil {
+		return err
+	}
+
+	lead := map[string]string{
+		"email": email,
+	}
+	for k, v := range fields {
+		lead[k] = v
+	}
+
+	leads := struct {
+		ProgramName string              `json:"programName"`
+		LookupField string              `json:"lookupField"`
+		Input       []map[string]string `json:"input"`
+	}{
+		ProgramName: c.programName,
+		LookupField: "email",
+		Input:       []map[string]string{lead},
+	}
+
+	body, err := json.Marshal(leads)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Marketo request: %s", string(body))
+	resp, err := c.client.Post("leads/push.json", body)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Marketo response: %s", string(resp))
+
+	var marketoResponse marketoResponse
+	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
+		return err
+	}
+
+	for _, result := range marketoResponse.Results {
+		if result.Status == "skipped" {
+			marketoLeadsSkipped.Add(1)
+			log.Infof("Marketo skipped prospect %v: %v", result.ID, result.Reasons)
+		}
+	}
+
+	if !marketoResponse.Success {
+		return &marketoResponse
+	}
+	return nil
+}
+
+// NoopMarketoClient is a MarketoClient which does nothing
+type NoopMarketoClient struct{}
+
+var _ MarketoClient = &NoopMarketoClient{}
+
+// BatchUpsertProspect does nothing
+func (c *NoopMarketoClient) BatchUpsertProspect(prospects []Prospect) error {
+	return nil
+}
+
+// UpsertProspect does nothing
+func (c *NoopMarketoClient) UpsertProspect(email string, fields map[string]string) error {
+	return nil
+}
+
+func (c *NoopMarketoClient) name() string {
+	return "noop"
 }

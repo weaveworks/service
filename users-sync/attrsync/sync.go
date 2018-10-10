@@ -3,6 +3,7 @@ package attrsync
 import (
 	"context"
 	"github.com/opentracing/opentracing-go"
+	"github.com/weaveworks/service/users/marketing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,15 +43,17 @@ type AttributeSyncer struct {
 	db                db.DB
 	billingClient     billing_grpc.BillingClient
 	segmentClient     analytics.Client
+	marketoClient     marketing.MarketoClient
 }
 
 // New creates a attributeSyncer service
-func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, segmentClient analytics.Client) *AttributeSyncer {
+func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, segmentClient analytics.Client, marketoClient marketing.MarketoClient) *AttributeSyncer {
 	return &AttributeSyncer{
 		log:               log,
 		db:                db,
 		billingClient:     billingClient,
 		segmentClient:     segmentClient,
+		marketoClient:     marketoClient,
 		recentUsersTicker: time.NewTicker(3 * time.Hour),
 		staleUsersTicker:  time.NewTicker(3 * 24 * time.Hour),
 		work:              make(chan filter.User),
@@ -186,32 +189,45 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 		return err
 	}
 
-	traits := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
+	segmentTraits := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
+	mktoFields := map[string]string{}
 
 	// Since old users won't have this data, send it optionally
 	if user.Name != "" {
-		traits = traits.SetName(user.Name)
+		segmentTraits = segmentTraits.SetName(user.Name)
+		mktoFields["mktoName"] = user.Name
 	}
 	if user.GivenName != "" {
-		traits = traits.SetFirstName(user.GivenName)
+		segmentTraits = segmentTraits.SetFirstName(user.GivenName)
+		mktoFields["firstName"] = user.GivenName
 	}
 	if user.FamilyName != "" {
-		traits = traits.SetLastName(user.FamilyName)
+		segmentTraits = segmentTraits.SetLastName(user.FamilyName)
+		mktoFields["lastName"] = user.FamilyName
 	}
 	if user.Company != "" {
-		traits = traits.Set("company", map[string]string{"name": user.Company})
+		segmentTraits = segmentTraits.Set("company", map[string]string{"name": user.Company})
+		mktoFields["company"] = user.Company
 	}
 
 	for name, val := range attrs {
-		traits.Set(name, val)
+		// Don't copy these attributes to marketo as it doesn't know about them
+		// If we want to send them to marketo we should hook it up to segment.
+		segmentTraits.Set(name, val)
 	}
 
 	err = c.segmentClient.Enqueue(analytics.Identify{
 		UserId: user.Email,
-		Traits: traits,
+		Traits: segmentTraits,
 	})
 	if err != nil {
 		c.log.WithField("err", err).Errorln("Error enqueuing segment message")
+	}
+	if len(mktoFields) != 0 {
+		err = c.marketoClient.UpsertProspect(user.Email, mktoFields)
+		if err != nil {
+			c.log.WithField("err", err).Errorln("Error sending fields to marketo")
+		}
 	}
 	return nil
 }
