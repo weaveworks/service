@@ -8,6 +8,8 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+
+	httpUtil "github.com/weaveworks/service/common/http"
 	"github.com/weaveworks/service/users"
 )
 
@@ -42,7 +44,7 @@ func newLauncherServiceLogger(usersClient users.UsersClient) HTTPEventExtractor 
 			Product:        "launcher-service",
 			UserAgent:      r.UserAgent(),
 			OrganizationID: orgID,
-			IPAddress:      mustSplitHostname(r),
+			IPAddress:      httpUtil.HostFromRequest(r),
 		}
 		return event, true
 	}
@@ -62,7 +64,7 @@ func newProbeRequestLogger() HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			ClientID:       r.Header.Get(probeIDHeader),
 			OrganizationID: orgID,
-			IPAddress:      mustSplitHostname(r),
+			IPAddress:      httpUtil.HostFromRequest(r),
 		}
 		return event, true
 	}
@@ -85,7 +87,7 @@ func newUIRequestLogger(userIDHeader string) HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			OrganizationID: orgID,
 			UserID:         r.Header.Get(userIDHeader),
-			IPAddress:      mustSplitHostname(r),
+			IPAddress:      httpUtil.HostFromRequest(r),
 		}
 		return event, true
 	}
@@ -114,7 +116,7 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 			UserAgent: r.UserAgent(),
 			UserID:    r.Header.Get(userIDHeader),
 			Values:    string(values),
-			IPAddress: mustSplitHostname(r),
+			IPAddress: httpUtil.HostFromRequest(r),
 		}
 		return event, true
 	}
@@ -135,7 +137,7 @@ func newWebhooksLogger(webhooksIntegrationTypeHeader string) HTTPEventExtractor 
 			Product:        "webhooks",
 			UserAgent:      r.UserAgent(),
 			OrganizationID: orgID,
-			IPAddress:      mustSplitHostname(r),
+			IPAddress:      httpUtil.HostFromRequest(r),
 			Values:         integrationType,
 		}
 		return event, true
