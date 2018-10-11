@@ -26,19 +26,26 @@ def extract_creds(uri):
 
 
 class Zuora(object):
-    def __init__(self, uri):
+    def __init__(self, uri, rest_base_url='https://rest.zuora.com'):
         username, password, base_url = extract_creds(uri)
         self.base_url = base_url
+        self.rest_base_url = rest_base_url
         self.s = s = requests.Session()
         s.auth = (username, password)
 
-    def _req(self, method, path):
-        r = self.s.request(method=method, url=self.base_url + path)
+    def _req(self, method, base, path):
+        r = self.s.request(method=method, url=base + path)
         r.raise_for_status()
         return r.json()
 
+    def _normal_base_req(self, method, path):
+        return self._req(method, self.base_url, path)
+
+    def _rest_base_req(self, method, path):
+        return self._req(method, self.rest_base_url, path)
+
     def get(self, path):
-        return self._req('GET', path)
+        return self._normal_base_req('GET', path)
 
     @lru_cache()
     def _get_usage_assignment(self, account_id):
@@ -76,7 +83,7 @@ class Zuora(object):
                 url = f"{self.base_url}{next_page}"
 
     def delete_usage(self, row):
-        self._req('DELETE', f"/v1/object/usage/{row['id']}")
+        self._rest_base_req('DELETE', f"/v1/object/usage/{row['id']}")
 
     def upload_usage(self, usage):
         rows = [
