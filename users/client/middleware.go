@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
+	httpUtil "github.com/weaveworks/service/common/http"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -116,7 +117,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		logger := user.LogWith(ctx, logging.Global())
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			logger.Errorf("Unauthorised probe request, no token")
+			logger.WithField("host", httpUtil.HostFromRequest(r)).Errorf("Unauthorised probe request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -159,7 +160,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 		logger := user.LogWith(ctx, logging.Global())
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logger.Errorf("Unauthorised admin request, no auth cookie: %v", err)
+			logger.WithField("host", httpUtil.HostFromRequest(r)).Errorf("Unauthorised admin request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -193,7 +194,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 		ctx := r.Context()
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			user.LogWith(ctx, logging.Global()).Infof("Unauthorised user request, no auth cookie: %v", err)
+			user.LogWith(ctx, logging.Global()).WithField("host", httpUtil.HostFromRequest(r)).Infof("Unauthorised user request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -260,7 +261,7 @@ func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
 		secret := r.URL.Query().Get("secret")
 		// Deny access if no secret is configured or secret does not match
 		if a.Secret == "" || secret != a.Secret {
-			user.LogWith(r.Context(), logging.Global()).Infof("Unauthorised secret request, secret mismatch: %v", secret)
+			user.LogWith(r.Context(), logging.Global()).WithField("host", httpUtil.HostFromRequest(r)).Infof("Unauthorised secret request, secret mismatch: %v", secret)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
@@ -293,7 +294,7 @@ func (m GCPLoginSecretMiddleware) Tokenise(keyForSsoLogin, timestampInMillis str
 func (m GCPLoginSecretMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if status, err := m.validate(r); err != nil {
-			user.LogWith(r.Context(), logging.Global()).Warnf("Unauthorised request: %v", err)
+			user.LogWith(r.Context(), logging.Global()).WithField("host", httpUtil.HostFromRequest(r)).Warnf("Unauthorised request: %v", err)
 			http.Error(w, http.StatusText(status), status)
 			return
 		}

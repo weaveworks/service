@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"mime"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -62,14 +61,6 @@ func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middlewar
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 })
-
-func mustSplitHostname(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		user.LogWith(r.Context(), logging.Global()).Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
-	}
-	return host
-}
 
 func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
 	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger, webhooksLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
