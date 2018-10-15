@@ -10,6 +10,7 @@ ADD Pipfile Pipfile.lock /
 RUN apk add --no-cache postgresql-dev musl-dev gcc && pipenv install --system --deploy && apk del postgresql-dev musl-dev gcc
 
 ADD exporter /exporter
+ADD scripts /scripts
 CMD ["python", "-u", "-m", "exporter"]
 EXPOSE 8000
 

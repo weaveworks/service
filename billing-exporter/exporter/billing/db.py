@@ -1,17 +1,22 @@
 from .model import Org
 
 
-def get_org_details(conn, orgs):
-    if len(orgs) == 1:
-        # Hack to avoid invalid SQL: (foo)
-        orgs = list(orgs) + list(orgs)
-
+def get_org_details(conn, orgs=()):
     with conn.cursor() as cur:
-        cur.execute('''
-            SELECT external_id, id, trial_expires_at, zuora_account_number, gcp_account_id
-            FROM organizations WHERE external_id IN ({})'''.format(
+        select = 'SELECT external_id, id, trial_expires_at, zuora_account_number, gcp_account_id FROM organizations'
+        if orgs:
+            if len(orgs) == 1:
+                # Hack to avoid invalid SQL: (foo)
+                orgs = list(orgs) + list(orgs)
+
+            constraint = 'WHERE external_id IN ({})'.format(
                 ','.join('{!r}'.format(o) for o in orgs)
-            ))
+            )
+        else:
+            constraint = ''
+
+        cur.execute(f'{select} {constraint}')
+
         return [Org(row[0], str(row[1]), row[2], row[3], row[4]) for row in cur.fetchall()]
 
 

@@ -11,37 +11,10 @@ import click
 
 from .checks.access import AccessCheck
 from .checks.usage import UsageCheck
+from .billing.utils import UriParamType, inject_password_from_file
 
 
 _LOG = logging.getLogger(__name__)
-
-
-class UriParamType(click.ParamType):
-    name = 'uri'
-
-    def convert(self, value, param, ctx):
-        try:
-            return urlparse(value)
-        except ValueError as e:
-            self.fail(f'{value!r} is not a valid URL: {e}', param, ctx)
-
-
-def inject_password_from_file(name, uri, password_file):
-    if not password_file:
-        return uri
-
-    if uri.password:
-        _LOG.warn('Password for %s specified in both URI and password file', name)
-    with password_file as fh:
-        password = fh.read()
-
-    netloc = ''
-    if uri.username:
-        netloc += uri.username
-    netloc += f':{password}@{uri.hostname}'
-    if uri.port:
-        netloc += f':{uri.port}'
-    return uri._replace(netloc=netloc)
 
 
 def run_checker(checker, *args, **kwargs):

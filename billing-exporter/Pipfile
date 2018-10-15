@@ -8,6 +8,7 @@ prometheus-client = "*"
 google-cloud-bigquery = "*"
 "psycopg2-binary" = "*"
 click = "*"
+python-dateutil = "*"
 
 [dev-packages]
 

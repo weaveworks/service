@@ -63,8 +63,13 @@ class UsageCheck(object):
         self.usage_check_time_gauge.set(time.time())
 
 def get_zuora_aggregates(zuora_client, orgs, start, end):
+    def _maybe_to_int(f):
+        if f.is_integer():
+            return int(f)
+        return f
+
     return [
-        (org, date, 'node-seconds', sum(usage['quantity'] for usage in usage_by_day))
+        (org, date, 'node-seconds', _maybe_to_int(sum(usage['quantity'] for usage in usage_by_day)))
         for org in orgs
         for date, usage_by_day in groupby(
             (
