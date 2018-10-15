@@ -9,3 +9,5 @@ const = (
     fluxURI = "https://user:[TOKEN]@frontend.dev.weave.works/api/flux"
 )
 ```
+
+On top of that, `report.Organization.CreatedAt` in `generateDeploymentsHistogram` probably needs to be pushed a few days back to make sure the creation date of the local instance is not blocking the deployments histogram from being shown.
