@@ -23,10 +23,11 @@ type WorkloadDeploymentsBar struct {
 
 // WorkloadResourceConsumptionInfo contains info for rendering a single resource consumption horizontal bar.
 type WorkloadResourceConsumptionInfo struct {
-	LinkTo          string
-	WorkloadName    string
-	ClusterPercent  string
-	BarWidthPercent float64
+	LinkTo            string
+	WorkloadNameShort string
+	WorkloadNameFull  string
+	ClusterPercent    string
+	BarWidthPercent   float64
 }
 
 // WorkloadResourceStats describes a list of top consuming workloads for a fixed resource.
@@ -51,6 +52,13 @@ func getDeployHistoryLink(organizationURL string, endAt time.Time, timeRange str
 
 func getWorkloadSummaryLink(organizationURL string, workloadName string) string {
 	return fmt.Sprintf("%s/workloads/%s/summary", organizationURL, url.QueryEscape(workloadName))
+}
+
+func truncateString(s string, cap int) string {
+	if len(s) > cap {
+		s = s[:cap-3] + "..."
+	}
+	return s
 }
 
 func generateDeploymentsHistogram(report *Report, organizationURL string) []WorkloadDeploymentsBar {
@@ -108,10 +116,11 @@ func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizati
 		clusterPercent := fmt.Sprintf("%2.2f%%", 100*float64(workload.ClusterConsumption))
 
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionInfo{
-			WorkloadName:    workload.WorkloadName,
-			LinkTo:          getWorkloadSummaryLink(organizationURL, workload.WorkloadName),
-			ClusterPercent:  clusterPercent,
-			BarWidthPercent: barWidthPercent,
+			WorkloadNameFull:  workload.WorkloadName,
+			WorkloadNameShort: truncateString(workload.WorkloadName, 35),
+			LinkTo:            getWorkloadSummaryLink(organizationURL, workload.WorkloadName),
+			ClusterPercent:    clusterPercent,
+			BarWidthPercent:   barWidthPercent,
 		})
 	}
 	return topWorkloads

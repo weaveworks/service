@@ -41,7 +41,7 @@ users-sync/api/users-sync.pb.go
 vendor/github.com/ugorji/go/codec/codecgen/bin
 vendor/github.com/weaveworks/scope/report/report.codecgen.go
 
-# Templates, copied from common templates
+# Templates, copied from common/templates by the Makefile - do not remove
 notification-eventmanager/templates/wrapper.html
 notification-eventmanager/templates/wrapper.text
 users/templates/wrapper.html
