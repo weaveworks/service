@@ -14,7 +14,7 @@ Hi,
     {{range .Resources}}
         {{.Label}}
         {{range .TopConsumers}}
-            * {{.WorkloadName}} - {{.ClusterPercent}}{{end}}
+            * {{.WorkloadNameFull}} - {{.ClusterPercent}}{{end}}
     {{end}}
 {{end}}
 

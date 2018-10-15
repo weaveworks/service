@@ -16,15 +16,15 @@ import (
 
 const (
 	resourceWorkloadsMaxShown = 3
-	promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
-	fluxURI                   = "http://flux-api.flux.svc.cluster.local"
+	promURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom"
+	fluxURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"
 )
 
 // Queries for getting resource consumption data from Prometheus
 // TODO: Fix the memory query - it gives too big numbers over long time spans.
 const (
-	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
-	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
+	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
+	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
 )
 
 // WorkloadResourceConsumptionRaw has unformatted consumption data returned by Prometheus.

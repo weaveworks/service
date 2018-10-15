@@ -43,7 +43,7 @@
         {{range .TopConsumers}}
           <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
             <div style="color: #1a1a1a; margin-top: 20px;">
-              <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{.WorkloadName}}</div>
+              <span title="{{.WorkloadNameFull}}">{{.WorkloadNameShort}}</span>
               <div style="margin-top: 5px;">
                 <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPercent}}%;"></span>
                 <span style="color: hsl(191,100%,30%); display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
