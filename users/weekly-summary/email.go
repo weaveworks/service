@@ -82,7 +82,7 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 		totalCount := fmt.Sprintf("%d", totalCount)
 
 		// Render an empty bar if the organization wasn't created at that day yet.
-		if dayEnd.Before(report.Organization.CreatedAt.AddDate(0, 0, -8)) {
+		if dayEnd.Before(report.Organization.CreatedAt) {
 			linkTo = ""
 			totalCount = "-"
 			barHeightPx = 0
