@@ -21,11 +21,38 @@ const (
 )
 
 // Queries for getting resource consumption data from Prometheus
-// TODO: Fix the memory query - it gives too big numbers over long time spans.
 const (
-	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
-	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
+	// For the derivation of this query, see https://frontend.dev.weave.works/proud-wind-05/monitor/notebook/5ea020df-6220-405f-9f01-af0234a6744a
+	promTopMemoryWorkloadsQuery = `sum by (namespace, pod_name) (sum_over_time(container_memory_usage_bytes{image!=""}[1w])) / ignoring(namespace, pod_name) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
+	// CPU query seems to be more stable over longer time periods, so it's probably safe to assume it doesn't need the same kind of tweaking
+	promTopCPUWorkloadsQuery = `sum by (namespace, pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, pod_name) group_left count(node_cpu{mode='idle'})`
+	// Normalizes the service name labels to work on systems with different setups (adapted from https://github.com/weaveworks/service-ui/blob/19fcaed0ee4a1adc76cb6c9fb721a0b5559e961f/client/src/pages/prom/dashboards/workload-resources/layout.jsx#L11)
+	podsByWorkloadsQuery = `
+		max by (namespace, service, pod_name) (
+			label_replace(
+				label_replace(kube_pod_labels{label_name!=""}, "service", "$0", "label_name", ".*") or
+				label_replace(kube_pod_labels{label_k8s_app!=""}, "service", "$0", "label_k8s_app", ".*") or
+				label_replace(
+					label_replace(
+						kube_pod_labels{label_name="",label_k8s_app=""},
+						"service", "$1", "pod", "^(.*?)(?:(?:-[0-9]+)?-[0-9a-z]{5})?$"
+					),
+					"service", "$1", "service", "^(kube-.*)-(?:ip|gke)-.*$"
+				),
+			"pod_name", "$0", "pod", ".*")
+		)
+	`
 )
+
+func buildWorkloadsResourceConsumptionQuery(resourceQuery string) string {
+	return fmt.Sprintf(`
+		sort_desc(
+			sum by (namespace, service) (
+				%s * on (pod_name) group_left(namespace, service) (%s)
+			)
+		)
+	`, resourceQuery, podsByWorkloadsQuery)
+}
 
 // WorkloadResourceConsumptionRaw has unformatted consumption data returned by Prometheus.
 type WorkloadResourceConsumptionRaw struct {
@@ -80,9 +107,9 @@ func getWorkloadDeploymentsPerDay(ctx context.Context, org *users.Organization, 
 	return weeklyHistogram, nil
 }
 
-func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
+func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, resourceQuery string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
 	// Get the sorted list of workloads based on the query.
-	workloadsSeries, err := api.Query(ctx, query, EndAt)
+	workloadsSeries, err := api.Query(ctx, buildWorkloadsResourceConsumptionQuery(resourceQuery), EndAt)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +125,7 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 	for _, workload := range workloadsVector {
 		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
 		// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
-		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"])
+		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["service"])
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionRaw{
 			WorkloadName:       workloadName,
 			ClusterConsumption: float64(workload.Value),
