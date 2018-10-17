@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 import logging
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from dateutil import relativedelta
 import click
@@ -28,7 +28,7 @@ _LOG = logging.getLogger(__name__)
 @click.option('--bigquery-creds-file', type=click.Path())
 @click.option('--production', is_flag=True, flag_value=True, default=False)
 @click.option('--date-in-month', type=click.DateTime(formats=('%Y-%m-%d', )))
-def main(
+def discrepancy_report(
         billing_database_uri, billing_database_password_file, 
         users_database_uri, users_database_password_file,
         zuora_uri, zuora_password_file, bigquery_creds_file,
@@ -57,36 +57,51 @@ def main(
 
     bq_client = BigQueryClient(project='weaveworks-bi', credentials=bq_creds)
     zuora_client = zuora.Zuora(zuora_uri)
-    
-    print('Loading metadata for all instances')
 
+    print('Loading metadata for all instances')
+    orgs = load_orgs(users_db_uri)
+
+    print('Gathering usage data')
+    usage_by_platform = gather_usage(billing_db_uri, bq_client, zuora_client, orgs, start, end, production)
+
+    print('Checking for discrepancies')
+    discrepancies = find_discrepancies(orgs, usage_by_platform, start, end)
+
+    print_report(discrepancies)
+
+
+def load_orgs(users_db_uri):
     with psycopg2.connect(dsn=users_db_uri) as users_conn:
-        orgs = [
+        return [
             o
             for o in db.get_org_details(users_conn)
             if o.zuora_account_number
         ]
 
-    print('Gathering usage data')
 
+def gather_usage(billing_db_uri, bq_client, zuora_client, orgs, start, end, production):
     with psycopg2.connect(dsn=billing_db_uri) as billing_conn:
-        aggregates_by_source = {
+        return {
             'bigquery': bigquery.get_daily_aggregates(bq_client, production, orgs, start, end),
             'db': db.get_daily_aggregates(billing_conn, orgs, start, end),
             'zuora': get_zuora_aggregates(zuora_client, orgs, start, end),
         }
-    
-    print('Checking for discrepancies')
+
+
+DiscrepancyReport = namedtuple('DiscrepancyReport', ('org', 'days', 'total'))
+
+
+def find_discrepancies(orgs, usage_by_platform, start, end):
     sources = ('bigquery', 'db', 'zuora')
 
     aggs_index = defaultdict(lambda: defaultdict(dict))
-    for source, aggregates in aggregates_by_source.items():
+    for source, aggregates in usage_by_platform.items():
         for org, day, unit, value in aggregates:
             if unit == 'node-seconds':
                 aggs_index[org][day][source] = value
 
-    discrepancies = defaultdict(dict)
     for org in orgs:
+        discrepancies = []
         totals = defaultdict(int)
         for d in daterange(start, end):
             day_data = aggs_index[org][d]
@@ -96,11 +111,15 @@ def main(
             for source, value in day_data.items():
                 totals[source] += value
             if not all_equal(day_data.get(s, 0) for s in sources):
-                discrepancies[org][d] = day_data
+                discrepancies.append((d, day_data))
 
-        if totals and (discrepancies[org] or not all_equal(totals.get(s, 0) for s in sources)):
-            discrepancies[org][None] = totals
+        if discrepancies:
+            yield DiscrepancyReport(
+                org, tuple(discrepancies), dict(totals)
+            )
 
+
+def print_report(discrepancies):
     def fmtDelta(amounts, k1, k2, includeZeros=False):
         i = amounts.get(k2, 0) - amounts.get(k1, 0)
         if i > 0:
@@ -113,25 +132,13 @@ def main(
     print('NB: Trial start date and instance deletion are not yet fully accounted for')
     print()
     print('instance    \tdate      \tbigquery  \t   +/-    \t    db    \t   +/-    \t   zuora  ')
-    for org, org_disc in discrepancies.items():
-        if not org_disc:
-            continue
-
-        rest = dict(org_disc)
-        try:
-            totals = rest.pop(None)
-        except KeyError:
-            total_item = []
-        else:
-            total_item = [(None, totals)]
-        items = list(sorted(rest.items())) + total_item
-
+    for disc_report in discrepancies.items():
         rjust = lambda i: str(i).rjust(9)
 
-        for d, amounts in items:
+        for d, amounts in disc_report.days + (None, disc_report.total):
             print(
                 '\t'.join((
-                    org.external_id,
+                    disc_report.org.external_id,
                     ('total' if d is None else str(d.date())).ljust(10),
                     rjust(amounts.get('bigquery', 0)),
                     rjust(fmtDelta(amounts, 'bigquery', 'db', includeZeros=d is None)),
@@ -145,4 +152,4 @@ def main(
 
 
 if __name__ == '__main__':
-    main()
+    discrepancy_report()

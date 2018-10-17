@@ -64,6 +64,8 @@ class UsageCheck(object):
 
 def get_zuora_aggregates(zuora_client, orgs, start, end):
     def _maybe_to_int(f):
+        # Convert numbers to integers where possible to make reports easier to read
+        # our usage is (currently) all integer-based
         if f.is_integer():
             return int(f)
         return f
