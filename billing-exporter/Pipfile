@@ -9,8 +9,11 @@ google-cloud-bigquery = "*"
 "psycopg2-binary" = "*"
 click = "*"
 python-dateutil = "*"
+flask = "*"
 
 [dev-packages]
+pylint = "*"
+yapf = "*"
 
 [requires]
 python_version = "3.7"

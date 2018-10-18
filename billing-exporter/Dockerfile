@@ -11,7 +11,7 @@ RUN apk add --no-cache postgresql-dev musl-dev gcc && pipenv install --system --
 
 ADD exporter /exporter
 ADD scripts /scripts
-CMD ["python", "-u", "-m", "exporter"]
+CMD ["python", "-u", "-m", "exporter.server"]
 EXPOSE 8000
 
 ARG revision
