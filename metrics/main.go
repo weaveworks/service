@@ -37,9 +37,13 @@ func init() {
 }
 
 type bqUser struct {
-	ID        string
-	Email     string
-	CreatedAt time.Time
+	ID         string
+	Email      string
+	CreatedAt  time.Time
+	GivenName  string
+	FamilyName string
+	Name       string
+	Company    string
 }
 
 type bqInstance struct {
@@ -144,9 +148,13 @@ func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
 	results := []interface{}{}
 	for _, user := range users {
 		result := bqUser{
-			ID:        user.ID,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
+			ID:         user.ID,
+			Email:      user.Email,
+			CreatedAt:  user.CreatedAt,
+			GivenName:  user.GivenName,
+			FamilyName: user.FamilyName,
+			Name:       user.Name,
+			Company:    user.Company,
 		}
 		results = append(results, result)
 	}
