@@ -18,6 +18,10 @@ def hello_world():
 <body>
 <h1>Billing Exporter</h1>
 <h2>Discrepancy Report</h2>
+<p>
+    Compare usage recorded in bigquery, billing db and zuora, highlighting any discrepancies.<br />
+    Queries all instances. Does not fully accoutn for trial start/end dates and instance deletion.
+</p>
 <form action="/discrepancies" method="post">
     <label for="date">Date in month</label>
     <input name="date" id="date" value="{today.isoformat()}">
