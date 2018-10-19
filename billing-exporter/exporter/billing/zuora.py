@@ -63,6 +63,9 @@ class Zuora(object):
 
             j = r.json()
             if not j['success']:
+                if len(j['reasons']) == 1 and j['reasons'][0]['code'] == 50000040:
+                    # Account not found in zuora
+                    break
                 raise Exception(j)
 
             for row in j['usage']:
