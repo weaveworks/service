@@ -298,7 +298,7 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS) $(CODECGEN_TARGETS)
-	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
+	/bin/bash -c "go test -tags 'netgo integration' -timeout 2m $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
 # These packages must currently be tested in series because
