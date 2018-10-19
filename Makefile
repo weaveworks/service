@@ -224,7 +224,6 @@ $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		-e ZUORA_USERNAME=$(ZUORA_USERNAME) -e ZUORA_PASSWORD=$(ZUORA_PASSWORD) -e ZUORA_SUBSCRIPTIONPLANID=$(ZUORA_SUBSCRIPTIONPLANID) \
 		-e TESTDIRS=${TESTDIRS} \
 		$(IMAGE_PREFIX)/build $@
 
@@ -235,6 +234,7 @@ billing-integration-test: build/$(UPTODATE)
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/billing-api/db/migrations:/migrations \
+		-e ZUORA_USERNAME=$(ZUORA_USERNAME) -e ZUORA_PASSWORD=$(ZUORA_PASSWORD) -e ZUORA_SUBSCRIPTIONPLANID=$(ZUORA_SUBSCRIPTIONPLANID) \
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$DB_CONTAINER":billing-db.weave.local \
 		$(IMAGE_PREFIX)/build $@; \
@@ -298,7 +298,7 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS) $(CODECGEN_TARGETS)
-	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
+	/bin/bash -c "go test -tags 'netgo integration' -timeout 2m $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
 # These packages must currently be tested in series because
