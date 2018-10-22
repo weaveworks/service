@@ -50,6 +50,9 @@ service Users {
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 
+    // SendOutWeeklyReport sends weekly report emails to all the users of the organization.
+    rpc SendOutWeeklyReport(SendOutWeeklyReportRequest) returns (SendOutWeeklyReportResponse) {};
+
     // NotifyTrialPendingExpiry sends a "Trial expiring soon" notification
     // to this user and records the date sent.
     rpc NotifyTrialPendingExpiry(NotifyTrialPendingExpiryRequest) returns (NotifyTrialPendingExpiryResponse) {};
@@ -217,6 +220,8 @@ message Organization {
     google.protobuf.Timestamp FirstSeenScopeConnectedAt = 25 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // Replacing the default data refusal reason
     string RefuseDataReason = 26;
+    // Keeping track of when Weekly Report email was last sent for the instance
+    google.protobuf.Timestamp LastSentWeeklyReportAt = 27 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
 }
 
 message GoogleCloudPlatform {
@@ -275,6 +280,13 @@ message GetUserRequest {
 
 message GetUserResponse {
     User User = 1 [(gogoproto.nullable) = false];
+}
+
+message SendOutWeeklyReportRequest {
+    string ExternalID = 1;
+}
+
+message SendOutWeeklyReportResponse {
 }
 
 message User {

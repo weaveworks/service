@@ -1,7 +1,8 @@
 package server
 
 import (
-	"context"
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/service/users-sync/attrsync"
 
 	"github.com/weaveworks/common/logging"

@@ -623,6 +623,14 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
+// SetLastSentWeeklyReportAt sets the last time weekly report email was sent for the instance
+func (d *DB) SetLastSentWeeklyReportAt(_ context.Context, externalID string, sentAt *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.LastSentWeeklyReportAt = sentAt
+		return nil
+	})
+}
+
 // CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
 func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization

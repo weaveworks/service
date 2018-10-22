@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
+	weeklysummary "github.com/weaveworks/service/users/weekly-summary"
 )
 
 // usersServer implements users.UsersServer
@@ -339,6 +340,40 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	_, err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
 
 	return &users.NotifyTrialExpiredResponse{}, err
+}
+
+func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOutWeeklyReportRequest) (*users.SendOutWeeklyReportResponse, error) {
+	// Make sure the organization exists
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate the weekly report for the organization
+	now := time.Now()
+	weeklyReport, err := weeklysummary.GenerateReport(org, now)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all users belonging to the organization
+	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate through the users and send emails to all of them
+	for _, user := range members {
+		a.emailer.WeeklySummaryEmail(user, weeklyReport)
+	}
+
+	// Persist weekly report timestamp in the db
+	err = a.db.SetLastSentWeeklyReportAt(ctx, req.ExternalID, &now)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.SendOutWeeklyReportResponse{}, err
 }
 
 func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.NotifyRefuseDataUploadRequest) (*users.NotifyRefuseDataUploadResponse, error) {
