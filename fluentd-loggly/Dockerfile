@@ -1,4 +1,4 @@
-FROM fluent/fluentd:v0.14.20-debian
+FROM fluent/fluentd:v1.2.6-debian
 USER root
 RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool libltdl-dev" \
  && apt-get update \
