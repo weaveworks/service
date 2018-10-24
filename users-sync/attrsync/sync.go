@@ -195,7 +195,6 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 	// Since old users won't have this data, send it optionally
 	if user.Name != "" {
 		segmentTraits = segmentTraits.SetName(user.Name)
-		mktoFields["mktoName"] = user.Name
 	}
 	if user.GivenName != "" {
 		segmentTraits = segmentTraits.SetFirstName(user.GivenName)
