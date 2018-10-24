@@ -20,7 +20,7 @@ RUN go get -tags netgo \
 		github.com/mjibson/esc \
 		github.com/client9/misspell/cmd/misspell && \
 	rm -rf /go/pkg/ /go/src/
-RUN pip install attrs pyhcl yapf==0.16.2 flake8==3.3.0
+RUN pip install attrs pyhcl yapf==0.16.2 flake8==3.3.0 urllib3==1.23
 RUN curl -fsSLO https://github.com/gogo/protobuf/archive/v0.5.tar.gz && \
 	echo "38a9888ae3f2117ce4678209baf04ee75c7b9c04dd9f79990f1b7da802e41157  v0.5.tar.gz" | sha256sum -c && \
 	mkdir -p /go/src/github.com/gogo/protobuf && \
