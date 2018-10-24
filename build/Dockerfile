@@ -14,7 +14,7 @@ RUN go clean -i net && \
 	go install -race -tags netgo std sync/atomic
 RUN go get -tags netgo \
 		github.com/fzipp/gocyclo \
-		github.com/golang/lint/golint \
+		golang.org/x/lint/golint \
 		github.com/kisielk/errcheck \
 		github.com/mjibson/esc \
 		github.com/client9/misspell/cmd/misspell && \
