@@ -42,6 +42,9 @@ PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 MOCK_USERS := users/mock_users/mock_usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
+# copied from tools/test, but additionally excluding e2e dirs
+TESTDIRS := "$(shell git ls-files -- '*_test.go' | grep -vE '^(vendor|experimental|.*\/e2e)/' | xargs -n1 dirname | sort -u | sed -e 's|^|./|')"
+
 BILLING_DB := billing-api/db
 BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./billing" | xargs -n1 dirname | sort -u)
 
