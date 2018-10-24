@@ -161,13 +161,17 @@ func (s Server) listServicesWithOptions(w http.ResponseWriter, r *http.Request) 
 	queryValues := r.URL.Query()
 
 	opts.Namespace = queryValues.Get("namespace")
-	for _, svc := range strings.Split(queryValues.Get("services"), ",") {
-		id, err := flux.ParseResourceID(svc)
-		if err != nil {
-			transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", svc))
-			return
+
+	services := queryValues.Get("services")
+	if services != "" {
+		for _, svc := range strings.Split(services, ",") {
+			id, err := flux.ParseResourceID(svc)
+			if err != nil {
+				transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", svc))
+				return
+			}
+			opts.Services = append(opts.Services, id)
 		}
-		opts.Services = append(opts.Services, id)
 	}
 
 	res, err := s.daemonProxy.ListServicesWithOptions(ctx, opts)
