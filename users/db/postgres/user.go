@@ -16,7 +16,7 @@ import (
 )
 
 // CreateUser creates a new user with the given email.
-func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
+func (d DB) CreateUser(ctx context.Context, email string, details *users.UserUpdate) (*users.User, error) {
 	u := &users.User{
 		Email:      email,
 		Company:    "",
@@ -25,7 +25,18 @@ func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
 		FamilyName: "",
 		CreatedAt:  d.Now(),
 	}
-	err := d.QueryRowContext(ctx, "insert into users (email, approved_at, created_at, company, name) values (lower($1), $2, $2, $3, $4) returning id", email, u.CreatedAt, u.Company, u.Name).Scan(&u.ID)
+	if details != nil {
+		u.Name = details.Name
+		u.GivenName = details.GivenName
+		u.FamilyName = details.FamilyName
+		u.Company = details.Company
+	}
+	query := d.Insert("users").
+		Columns("email", "approved_at", "created_at", "company", "name", "given_name", "family_name").
+		Values(squirrel.Expr("lower(?)", email), u.CreatedAt, u.CreatedAt, u.Company, u.Name, u.GivenName, u.FamilyName).
+		Suffix("RETURNING \"id\"")
+	err := query.QueryRow().Scan(&u.ID)
+
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -231,7 +242,7 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 
 		u, err = tx.FindUserByEmail(ctx, email)
 		if err == users.ErrNotFound {
-			u, err = tx.CreateUser(ctx, email)
+			u, err = tx.CreateUser(ctx, email, nil)
 			userCreated = true
 		}
 		if err != nil {

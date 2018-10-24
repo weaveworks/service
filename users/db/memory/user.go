@@ -16,10 +16,10 @@ import (
 )
 
 // CreateUser creates a new user with the given email.
-func (d *DB) CreateUser(_ context.Context, email string) (*users.User, error) {
+func (d *DB) CreateUser(_ context.Context, email string, details *users.UserUpdate) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	return d.createUser(email)
+	return d.createUser(email, details)
 }
 
 // UpdateUser applies a UserUpdate to an existing user
@@ -74,7 +74,7 @@ func (d DB) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (d *DB) createUser(email string) (*users.User, error) {
+func (d *DB) createUser(email string, details *users.UserUpdate) (*users.User, error) {
 	u := &users.User{
 		ID:         fmt.Sprint(len(d.users)),
 		Email:      strings.ToLower(email),
@@ -83,6 +83,12 @@ func (d *DB) createUser(email string) (*users.User, error) {
 		FamilyName: "",
 		Company:    "",
 		CreatedAt:  time.Now().UTC(),
+	}
+	if details != nil {
+		u.Name = details.Name
+		u.GivenName = details.GivenName
+		u.FamilyName = details.FamilyName
+		u.Company = details.Company
 	}
 	d.users[u.ID] = u
 	return u, nil
@@ -149,7 +155,7 @@ func (d *DB) InviteUser(ctx context.Context, email, orgExternalID string) (*user
 
 	u, err := d.findUserByEmail(email)
 	if err == users.ErrNotFound {
-		u, err = d.createUser(email)
+		u, err = d.createUser(email, nil)
 		created = true
 	}
 	if err != nil {

@@ -172,7 +172,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		// No matching user found, this must be a first-time-login with this
 		// provider, so we'll create an account for them.
 		view.UserCreated = true
-		u, err = a.db.CreateUser(ctx, email)
+		u, err = a.db.CreateUser(ctx, email, nil)
 		if err != nil {
 			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
@@ -269,7 +269,10 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 
 // SignupRequest is the message sent to initiate a signup request
 type SignupRequest struct {
-	Email string `json:"email,omitempty"`
+	Email      string `json:"email,omitempty"`
+	GivenName  string `json:"givenName,omitempty"`
+	FamilyName string `json:"familyName,omitempty"`
+	Company    string `json:"company,omitempty"`
 	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
@@ -311,7 +314,12 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		if !validation.ValidateEmail(email) {
 			return nil, nil, users.ValidationErrorf("Please provide a valid email")
 		}
-		user, err = a.db.CreateUser(ctx, email)
+		user, err = a.db.CreateUser(ctx, email, &users.UserUpdate{
+			Name:       fmt.Sprintf("%s %s", req.GivenName, req.FamilyName),
+			GivenName:  req.GivenName,
+			FamilyName: req.FamilyName,
+			Company:    req.Company,
+		})
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt, req.QueryParams)
 			if a.mixpanel != nil {

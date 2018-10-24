@@ -29,7 +29,7 @@ func GetUser(t *testing.T, db db.DB) *users.User {
 // GetUserWithDomain makes a randomly named user with an address email finishing with the provided domain
 func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
 	email := fmt.Sprintf("%d@%v", rand.Int63(), domain)
-	user, err := db.CreateUser(context.Background(), email)
+	user, err := db.CreateUser(context.Background(), email, nil)
 	require.NoError(t, err)
 	return user
 }

@@ -24,9 +24,9 @@ func (t traced) trace(name string, args ...interface{}) {
 	log.Debugf("%s: %#v", name, args)
 }
 
-func (t traced) CreateUser(ctx context.Context, email string) (u *users.User, err error) {
+func (t traced) CreateUser(ctx context.Context, email string, details *users.UserUpdate) (u *users.User, err error) {
 	defer t.trace("CreateUser", email, u, err)
-	return t.d.CreateUser(ctx, email)
+	return t.d.CreateUser(ctx, email, details)
 }
 
 func (t traced) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (user *users.User, err error) {

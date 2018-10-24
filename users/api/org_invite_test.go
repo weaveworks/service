@@ -132,7 +132,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	fran, err := database.CreateUser(context.Background(), "fran@weave.works")
+	fran, err := database.CreateUser(context.Background(), "fran@weave.works", nil)
 	require.NoError(t, err)
 	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID)
 	require.NoError(t, err)
