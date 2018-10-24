@@ -26,7 +26,7 @@ var (
 // DB is the interface for the database.
 type DB interface {
 	// Create a user. The driver should set ID to some default only when it is "".
-	CreateUser(ctx context.Context, email string) (*users.User, error)
+	CreateUser(ctx context.Context, email string, details *users.UserUpdate) (*users.User, error)
 	UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error)
 	DeleteUser(ctx context.Context, userID string) error
 

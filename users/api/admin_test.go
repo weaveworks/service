@@ -104,7 +104,7 @@ func TestAPI_adminGetUserToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	usr, _ := database.CreateUser(ctx, "test@test")
+	usr, _ := database.CreateUser(ctx, "test@test", nil)
 	database.AddLoginToUser(ctx, usr.ID, "github", "12345", ghSession)
 
 	w := httptest.NewRecorder()
@@ -135,7 +135,7 @@ func TestAPI_adminGetUserToken_NoToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	usr, _ := database.CreateUser(ctx, "test@test")
+	usr, _ := database.CreateUser(ctx, "test@test", nil)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, usr, "GET",

@@ -159,7 +159,7 @@ func TestDB_FindOrganizationByInternalID(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 
 	if err != nil {
 		t.Fatal(err)
@@ -189,7 +189,7 @@ func TestDB_FindGCP(t *testing.T) {
 	ctx := context.Background()
 
 	externalAccountID := "E-XTERNAL-ACC-ID"
-	u, err := db.CreateUser(ctx, "joe@weave.test")
+	u, err := db.CreateUser(ctx, "joe@weave.test", nil)
 	assert.NoError(t, err)
 	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID, u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -217,7 +217,7 @@ func TestDB_LastLoginTimestamp(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "james@weave.test")
+	u, err := db.CreateUser(ctx, "james@weave.test", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, u.FirstLoginAt.IsZero(), true)
 	assert.Equal(t, u.LastLoginAt.IsZero(), true)
@@ -306,7 +306,7 @@ func TestDB_ListOrganizationWebhooks(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -328,7 +328,7 @@ func TestDB_CreateOrganizationWebhook(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -359,7 +359,7 @@ func TestDB_DeleteOrganizationWebhook(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -384,7 +384,7 @@ func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -410,7 +410,7 @@ func TestDB_SetOrganizationWebhookFirstSeenAt(t *testing.T) {
 
 	ctx := context.Background()
 
-	u, err := db.CreateUser(ctx, "joe@email.com")
+	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
@@ -435,7 +435,7 @@ func TestDB_UpdateUser(t *testing.T) {
 	ctx := context.Background()
 
 	{ // full update
-		u, err := db.CreateUser(ctx, "joe@email.com")
+		u, err := db.CreateUser(ctx, "joe@email.com", nil)
 		assert.NoError(t, err)
 
 		update := users.UserUpdate{Company: "Wayne Enterprises", Name: "Dave"}
@@ -447,7 +447,7 @@ func TestDB_UpdateUser(t *testing.T) {
 	}
 
 	{ // single field update
-		u, err := db.CreateUser(ctx, "bloggs@email.com")
+		u, err := db.CreateUser(ctx, "bloggs@email.com", nil)
 		assert.NoError(t, err)
 
 		update := users.UserUpdate{Company: "Bane Enterprises"}

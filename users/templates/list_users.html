@@ -63,6 +63,7 @@
         <tr>
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Email</th>
+            <th class="mdl-data-table__cell--non-numeric">Name (Company)</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstLoginAt</th>
             <th class="mdl-data-table__cell--non-numeric">LastLoginAt</th>
@@ -75,6 +76,9 @@
         <td class="mdl-data-table__cell--non-numeric">
             <div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Email}}</div>
             <a href="users/{{.ID}}/organizations">Organizations</a>
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
+            <div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Name}} ({{.Company}})</div>
         </td>
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>

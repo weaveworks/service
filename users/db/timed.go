@@ -41,9 +41,9 @@ func (t timed) timeRequest(ctx context.Context, method string, f func(context.Co
 	return instrument.TimeRequestHistogramStatus(ctx, method, t.Duration, t.errorCode, f)
 }
 
-func (t timed) CreateUser(ctx context.Context, email string) (u *users.User, err error) {
+func (t timed) CreateUser(ctx context.Context, email string, details *users.UserUpdate) (u *users.User, err error) {
 	t.timeRequest(ctx, "CreateUser", func(ctx context.Context) error {
-		u, err = t.d.CreateUser(ctx, email)
+		u, err = t.d.CreateUser(ctx, email, details)
 		return err
 	})
 	return
