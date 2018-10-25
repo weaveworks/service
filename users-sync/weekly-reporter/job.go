@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	cronSchedule = "0 0 2 * * Mon" // Every Monday at 2:00 AM UTC.
+	cronSchedule = "0 0 8 * * 1" // Every Monday at 8:00 AM (UTC).
 )
 
 // Job for weekly reporting.
@@ -54,8 +54,8 @@ func (j *Job) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
 	for _, organization := range resp.Organizations {
 		request := users.SendOutWeeklyReportRequest{ExternalID: organization.ExternalID}
 		if _, err := j.users.SendOutWeeklyReport(ctx, &request); err != nil {
-			j.log.Errorf("WeeklyReports: error sending reports to members of '%s': %v", organization.ExternalID, err)
-			return err
+			// Only log the error and move to the next instance if sending out weekly report fails.
+			j.log.Errorf("WeeklyReports: error sending report for '%s': %v", organization.ExternalID, err)
 		}
 	}
 

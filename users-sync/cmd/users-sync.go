@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 
-	"github.com/weaveworks/billing/users"
+	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/users/marketing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,7 +70,6 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed creating users client: %v", err)
 	}
-	defer usersClient.Close()
 
 	billingClient, err := billing_grpc.NewClient(billingCfg)
 	if err != nil {
