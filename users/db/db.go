@@ -93,7 +93,7 @@ type DB interface {
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
-	DeleteOrganization(ctx context.Context, externalID string) error
+	DeleteOrganization(ctx context.Context, externalID string, userID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
 	SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error

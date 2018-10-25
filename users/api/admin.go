@@ -414,7 +414,16 @@ func (a *API) adminDeleteOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.db.DeleteOrganization(r.Context(), externalID); err != nil {
+	session, err := a.sessions.Get(r)
+	if err != nil {
+		return
+	}
+	userID := session.ImpersonatingUserID
+	if userID == "" {
+		userID = session.UserID
+	}
+
+	if err := a.db.DeleteOrganization(r.Context(), externalID, userID); err != nil {
 		renderError(w, r, err)
 		return
 	}

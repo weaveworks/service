@@ -527,7 +527,7 @@ func (d *DB) GetOrganizationName(_ context.Context, externalID string) (string, 
 }
 
 // DeleteOrganization deletes an organization
-func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
+func (d *DB) DeleteOrganization(_ context.Context, externalID string, userID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)

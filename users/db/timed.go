@@ -287,9 +287,9 @@ func (t timed) GetOrganizationName(ctx context.Context, externalID string) (name
 	return
 }
 
-func (t timed) DeleteOrganization(ctx context.Context, externalID string) error {
+func (t timed) DeleteOrganization(ctx context.Context, externalID string, userID string) error {
 	return t.timeRequest(ctx, "DeleteOrganization", func(ctx context.Context) error {
-		return t.d.DeleteOrganization(ctx, externalID)
+		return t.d.DeleteOrganization(ctx, externalID, userID)
 	})
 }
 

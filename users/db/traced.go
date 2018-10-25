@@ -191,9 +191,9 @@ func (t traced) GetOrganizationName(ctx context.Context, externalID string) (nam
 	return t.d.GetOrganizationName(ctx, externalID)
 }
 
-func (t traced) DeleteOrganization(ctx context.Context, externalID string) (err error) {
+func (t traced) DeleteOrganization(ctx context.Context, externalID string, userID string) (err error) {
 	defer t.trace("DeleteOrganization", externalID, err)
-	return t.d.DeleteOrganization(ctx, externalID)
+	return t.d.DeleteOrganization(ctx, externalID, userID)
 }
 
 func (t traced) AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) (err error) {
