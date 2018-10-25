@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"golang.org/x/net/context"
@@ -343,6 +344,8 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 }
 
 func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOutWeeklyReportRequest) (*users.SendOutWeeklyReportResponse, error) {
+	now := time.Now()
+
 	// Make sure the organization exists
 	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
 	if err != nil {
@@ -350,7 +353,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 	}
 
 	// Generate the weekly report for the organization
-	now := time.Now()
+	log.Infof("Generating weekly report for '%s'", org.ExternalID)
 	weeklyReport, err := weeklysummary.GenerateReport(org, now)
 	if err != nil {
 		return nil, err
@@ -373,7 +376,8 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 		return nil, err
 	}
 
-	return &users.SendOutWeeklyReportResponse{}, err
+	log.Infof("Sent out weekly report email to %d members of '%s'", len(members), org.ExternalID)
+	return &users.SendOutWeeklyReportResponse{}, nil
 }
 
 func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.NotifyRefuseDataUploadRequest) (*users.NotifyRefuseDataUploadResponse, error) {

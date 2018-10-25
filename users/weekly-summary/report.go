@@ -16,8 +16,10 @@ import (
 
 const (
 	resourceWorkloadsMaxShown = 3
-	promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
-	fluxURI                   = "http://flux-api.flux.svc.cluster.local"
+	// promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
+	// fluxURI                   = "http://flux-api.flux.svc.cluster.local"
+	promURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom"
+	fluxURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"
 )
 
 // Queries for getting resource consumption data from Prometheus

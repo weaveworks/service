@@ -41,22 +41,22 @@ func (j *Job) Run() {
 func (j *Job) Do() error {
 	organizations, err := j.db.ListOrganizations(context.Background(), filter.All, 0)
 	if err != nil {
-		j.log.Errorf("%v\n", err)
+		log.Errorf("%v\n", err)
 		return err
 	}
 
-	j.log.Infof("Sending out weekly report emails to users of %d instances", len(organizations))
-
+	log.Infof("Sending out weekly report emails for %d instances", len(organizations))
 	almostAWeekAgo := time.Now().AddDate(0, 0, 6)
 
 	for _, organization := range organizations {
-		if organization.LastSentWeeklyReportAt.Before(almostAWeekAgo) {
-			j.log.Infof("Sending weekly report to %s", organization.ExternalID)
-			_, err := j.users.SendOutWeeklyReport(context.Background(), &users.SendOutWeeklyReportRequest{
+		if organization.LastSentWeeklyReportAt == nil || organization.LastSentWeeklyReportAt.Before(almostAWeekAgo) {
+			log.Infof("Sending weekly report to %s", organization.ExternalID)
+			blu := users.SendOutWeeklyReportRequest{
 				ExternalID: organization.ExternalID,
-			})
+			}
+			_, err := j.users.SendOutWeeklyReport(context.Background(), &blu)
 			if err != nil {
-				j.log.Errorln(err)
+				log.Errorln(err)
 			}
 		}
 	}

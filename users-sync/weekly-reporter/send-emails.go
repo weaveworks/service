@@ -1,6 +1,8 @@
 package weeklyreporter
 
 import (
+	"flag"
+
 	"github.com/robfig/cron"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
@@ -16,15 +18,15 @@ func init() {
 
 const (
 	cronSchedule = "0 8 * * 1" // Every Monday at 8:00 AM UTC.
-	// usersServiceURL = "users.default:4772" // URL to connect to users service.
-	usersServiceURL = "users.default.svc.cluster.local:4772" // URL to connect to users service.
 )
 
 // NewJob runs org cleaner
 func NewJob(log logging.Interface, db db.DB) *cron.Cron {
 	log.Infoln("Run weekly reporter")
 
-	users, err := users.NewClient(users.Config{HostPort: usersServiceURL})
+	var usersConfig users.Config
+	usersConfig.RegisterFlags(flag.CommandLine)
+	users, err := users.NewClient(usersConfig)
 	if err != nil {
 		log.Errorf("error initialising users client: %v", err)
 	}
