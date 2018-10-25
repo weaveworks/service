@@ -1,5 +1,6 @@
 FROM golang:1.9.2-stretch
 RUN apt-get update && apt-get install -y \
+		python-pip \
 		python-requests \
 		python-yaml \
 		file \
@@ -14,11 +15,12 @@ RUN go clean -i net && \
 	go install -race -tags netgo std sync/atomic
 RUN go get -tags netgo \
 		github.com/fzipp/gocyclo \
-		github.com/golang/lint/golint \
+		golang.org/x/lint/golint \
 		github.com/kisielk/errcheck \
 		github.com/mjibson/esc \
 		github.com/client9/misspell/cmd/misspell && \
 	rm -rf /go/pkg/ /go/src/
+RUN pip install attrs pyhcl yapf==0.16.2 flake8==3.3.0 urllib3==1.23
 RUN curl -fsSLO https://github.com/gogo/protobuf/archive/v0.5.tar.gz && \
 	echo "38a9888ae3f2117ce4678209baf04ee75c7b9c04dd9f79990f1b7da802e41157  v0.5.tar.gz" | sha256sum -c && \
 	mkdir -p /go/src/github.com/gogo/protobuf && \

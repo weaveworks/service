@@ -7,7 +7,7 @@ ENTRYPOINT ["/proxy"]
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
-      org.opencontainers.image.title="authfe" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/authfe" \
+      org.opencontainers.image.title="socks" \
+      org.opencontainers.image.source="https://github.com/weaveworks/build-tools/tree/master/socks" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

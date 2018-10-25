@@ -87,7 +87,7 @@ def common_dependencies():
 
 
 def get_go_dependencies(component):
-    # Fetch go depedencies using 'go list'
+    # Fetch go dependencies using 'go list'
     cmd = """
         cd {} &&
         for dep in `go list -f '{{{{ .Deps }}}}'`; do
