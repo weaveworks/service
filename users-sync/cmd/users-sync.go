@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/weaveworks/billing/users"
 	"github.com/weaveworks/service/users/marketing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,6 +43,7 @@ func main() {
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
 		marketoCfg marketing.MarketoConfig
+		usersCfg   users.Config
 
 		cleanupURLs common.ArrayFlags
 	)
@@ -50,6 +52,7 @@ func main() {
 	dbCfg.RegisterFlags(flag.CommandLine, "memory://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
 	billingCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
+	usersCfg.RegisterFlags(flag.CommandLine)
 
 	flag.Parse()
 
@@ -62,6 +65,12 @@ func main() {
 	defer db.Close(context.Background())
 
 	logger := logging.Logrus(logrus.StandardLogger())
+
+	usersClient, err := users.NewClient(usersCfg)
+	if err != nil {
+		logrus.Fatalf("Failed creating users client: %v", err)
+	}
+	defer usersClient.Close()
 
 	billingClient, err := billing_grpc.NewClient(billingCfg)
 	if err != nil {
@@ -80,7 +89,7 @@ func main() {
 		logrus.Fatalf("Failed creating a marketo client: %v", err)
 	}
 
-	weeklyReporter := weeklyreporter.NewJob(logger, db)
+	weeklyReporter := weeklyreporter.New(logger, usersClient)
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(
 		logger, db, billingClient, segmentClient, marketoClient)

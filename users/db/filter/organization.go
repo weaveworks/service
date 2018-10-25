@@ -105,6 +105,23 @@ func (t TrialActiveAt) MatchesOrg(o users.Organization) bool {
 	return o.TrialExpiresAt.After(time.Time(t))
 }
 
+// LastSentWeeklyReportBefore filters for organizations whose trials were active at given
+// date.
+type LastSentWeeklyReportBefore time.Time
+
+// Where returns the query to filter by trial expiry.
+func (t LastSentWeeklyReportBefore) Where() squirrel.Sqlizer {
+	return squirrel.Or{
+		squirrel.Eq{"organizations.last_sent_weekly_report_at": nil},
+		squirrel.Lt{"organizations.last_sent_weekly_report_at": time.Time(t)},
+	}
+}
+
+// MatchesOrg checks whether an organization matches this filter.
+func (t LastSentWeeklyReportBefore) MatchesOrg(o users.Organization) bool {
+	return o.LastSentWeeklyReportAt == nil || o.LastSentWeeklyReportAt.Before(time.Time(t))
+}
+
 // HasFeatureFlag filters for organizations that has the given feature flag.
 type HasFeatureFlag string
 

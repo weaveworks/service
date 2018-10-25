@@ -50,6 +50,9 @@ service Users {
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 
+    // GetOrganizationsReadyForWeeklyReport lists all the organizations that need weekly report updates sent out.
+    rpc GetOrganizationsReadyForWeeklyReport(GetOrganizationsReadyForWeeklyReportRequest) returns (GetOrganizationsReadyForWeeklyReportResponse) {};
+
     // SendOutWeeklyReport sends weekly report emails to all the users of the organization.
     rpc SendOutWeeklyReport(SendOutWeeklyReportRequest) returns (SendOutWeeklyReportResponse) {};
 
@@ -220,7 +223,7 @@ message Organization {
     google.protobuf.Timestamp FirstSeenScopeConnectedAt = 25 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // Replacing the default data refusal reason
     string RefuseDataReason = 26;
-    // Keeping track of when Weekly Report email was last sent for the instance
+    // Keeping track of when weekly report email was last sent for the instance
     google.protobuf.Timestamp LastSentWeeklyReportAt = 27 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
 }
 
@@ -271,7 +274,6 @@ message SetOrganizationFlagRequest {
 }
 
 message SetOrganizationFlagResponse {
-
 }
 
 message GetUserRequest {
@@ -280,6 +282,14 @@ message GetUserRequest {
 
 message GetUserResponse {
     User User = 1 [(gogoproto.nullable) = false];
+}
+
+message GetOrganizationsReadyForWeeklyReportRequest {
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetOrganizationsReadyForWeeklyReportResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
 }
 
 message SendOutWeeklyReportRequest {

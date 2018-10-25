@@ -343,7 +343,31 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	return &users.NotifyTrialExpiredResponse{}, err
 }
 
+func (a *usersServer) GetOrganizationsReadyForWeeklyReport(ctx context.Context, req *users.GetOrganizationsReadyForWeeklyReportRequest) (*users.GetOrganizationsReadyForWeeklyReportResponse, error) {
+	// Get all organizations for which weekly reporting is enabled and that haven't been reported at least for a week.
+	endOfSameDayLastWeek := req.Now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -6)
+	organizations, err := a.db.ListOrganizations(
+		ctx,
+		filter.And(
+			filter.HasFeatureFlag(featureflag.WeeklyReportable),
+			filter.LastSentWeeklyReportBefore(endOfSameDayLastWeek),
+		),
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy all filtered organizations into the response object.
+	response := &users.GetOrganizationsReadyForWeeklyReportResponse{}
+	for _, org := range organizations {
+		response.Organizations = append(response.Organizations, *org)
+	}
+	return response, nil
+}
+
 func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOutWeeklyReportRequest) (*users.SendOutWeeklyReportResponse, error) {
+	// The report will be generated at the current time
 	now := time.Now()
 
 	// Make sure the organization exists
@@ -353,7 +377,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 	}
 
 	// Generate the weekly report for the organization
-	log.Infof("Generating weekly report for '%s'", org.ExternalID)
+	log.Debugf("Generating weekly report for '%s'", org.ExternalID)
 	weeklyReport, err := weeklysummary.GenerateReport(org, now)
 	if err != nil {
 		return nil, err
@@ -376,7 +400,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 		return nil, err
 	}
 
-	log.Infof("Sent out weekly report email to %d members of '%s'", len(members), org.ExternalID)
+	log.Debugf("Sent out weekly report email to %d members of '%s'", len(members), org.ExternalID)
 	return &users.SendOutWeeklyReportResponse{}, nil
 }
 

@@ -2,62 +2,60 @@ package weeklyreporter
 
 import (
 	"context"
-	"time"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/common/instrument"
+	"github.com/robfig/cron"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/db"
-	"github.com/weaveworks/service/users/db/filter"
 )
 
-// Job blu.
+const (
+	cronSchedule = "0 0 2 * * Mon" // Every Monday at 2:00 AM UTC.
+)
+
+// Job for weekly reporting.
 type Job struct {
-	db        db.DB
-	users     users.UsersClient
-	log       logging.Interface
-	collector *instrument.JobCollector
+	log   logging.Interface
+	users users.UsersClient
 }
 
-// New instantiates Enforce.
-func New(db db.DB, users users.UsersClient, log logging.Interface, collector *instrument.JobCollector) *Job {
-	return &Job{
-		db:        db,
-		users:     users,
-		log:       log,
-		collector: collector,
-	}
+// New schedules a new weekly reporting job to be run on a regular basis.
+func New(log logging.Interface, users users.UsersClient) *cron.Cron {
+	log.Infoln("Run weekly reporter")
+
+	cronScheduler := cron.New()
+	cronScheduler.AddJob(cronSchedule, &Job{
+		log:   log,
+		users: users,
+	})
+
+	return cronScheduler
 }
 
 // Run starts the job and logs errors.
 func (j *Job) Run() {
 	if err := j.Do(); err != nil {
-		log.Errorf("Error running job: %v", err)
+		j.log.Errorf("Error running job: %v", err)
 	}
 }
 
 // Do starts the job and returns an error if it fails.
 func (j *Job) Do() error {
-	organizations, err := j.db.ListOrganizations(context.Background(), filter.All, 0)
+	return j.sendOutWeeklyReportForAllInstances(context.Background())
+}
+
+func (j *Job) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
+	resp, err := j.users.GetOrganizationsReadyForWeeklyReport(ctx, &users.GetOrganizationsReadyForWeeklyReportRequest{})
 	if err != nil {
-		log.Errorf("%v\n", err)
+		j.log.Errorf("WeeklyReports: error fetching the instances for reports: %v", err)
 		return err
 	}
+	j.log.Infof("WeeklyReports: sending out emails to members of %d instances", len(resp.Organizations))
 
-	log.Infof("Sending out weekly report emails for %d instances", len(organizations))
-	almostAWeekAgo := time.Now().AddDate(0, 0, 6)
-
-	for _, organization := range organizations {
-		if organization.LastSentWeeklyReportAt == nil || organization.LastSentWeeklyReportAt.Before(almostAWeekAgo) {
-			log.Infof("Sending weekly report to %s", organization.ExternalID)
-			blu := users.SendOutWeeklyReportRequest{
-				ExternalID: organization.ExternalID,
-			}
-			_, err := j.users.SendOutWeeklyReport(context.Background(), &blu)
-			if err != nil {
-				log.Errorln(err)
-			}
+	for _, organization := range resp.Organizations {
+		request := users.SendOutWeeklyReportRequest{ExternalID: organization.ExternalID}
+		if _, err := j.users.SendOutWeeklyReport(ctx, &request); err != nil {
+			j.log.Errorf("WeeklyReports: error sending reports to members of '%s': %v", organization.ExternalID, err)
+			return err
 		}
 	}
 

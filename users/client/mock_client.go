@@ -104,6 +104,11 @@ func (MockClient) NotifyTrialExpired(ctx context.Context, in *users.NotifyTrialE
 	return &users.NotifyTrialExpiredResponse{}, nil
 }
 
+// GetOrganizationsReadyForWeeklyReport lists all the organizations that need weekly report updates sent out
+func (MockClient) GetOrganizationsReadyForWeeklyReport(ctx context.Context, in *users.GetOrganizationsReadyForWeeklyReportRequest, opts ...grpc.CallOption) (*users.GetOrganizationsReadyForWeeklyReportResponse, error) {
+	return &users.GetOrganizationsReadyForWeeklyReportResponse{}, nil
+}
+
 // SendOutWeeklyReport sends weekly report emails to all users of the instance
 func (MockClient) SendOutWeeklyReport(ctx context.Context, in *users.SendOutWeeklyReportRequest, opts ...grpc.CallOption) (*users.SendOutWeeklyReportResponse, error) {
 	return &users.SendOutWeeklyReportResponse{}, nil
