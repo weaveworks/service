@@ -231,6 +231,9 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamN
 	ctx := context.Background()
 	_, user, err := a.Signup(ctx, api.SignupRequest{
 		Email:       email,
+		GivenName:   "Testy",
+		FamilyName:  "McTestFace",
+		Company:     "Acme Inc.",
 		QueryParams: make(map[string]string)})
 	if err != nil {
 		log.Errorf("Error creating local test user: %v", err)
@@ -247,6 +250,7 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamN
 		return
 	}
 
+	now := time.Now()
 	if err := a.CreateOrg(ctx, user, api.OrgView{
 		ExternalID:     instanceID,
 		Name:           instanceName,
@@ -254,8 +258,11 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamN
 		FeatureFlags:   featureFlags,
 		TrialExpiresAt: user.TrialExpiresAt(),
 		TeamName:       teamName,
-	}, time.Now()); err != nil {
+	}, now); err != nil {
 		log.Errorf("Error creating local test instance: %v", err)
-		return
+	}
+
+	if err := a.SetOrganizationFirstSeenConnectedAt(ctx, instanceID, &now); err != nil {
+		log.Errorf("Error onboarding local test instance: %v", err)
 	}
 }
