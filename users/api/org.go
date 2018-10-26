@@ -195,6 +195,11 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 	return nil
 }
 
+// SetOrganizationFirstSeenConnectedAt Marks an Org as onboarded
+func (a *API) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, t *time.Time) error {
+	return a.db.SetOrganizationFirstSeenConnectedAt(ctx, externalID, t)
+}
+
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var update users.OrgWriteView
