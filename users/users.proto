@@ -227,6 +227,7 @@ message Organization {
     google.protobuf.Timestamp LastSentWeeklyReportAt = 27 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // Used by the admin interface
     string PlatformVersion = 28;
+    string DeletedBy = 29;
 }
 
 message GoogleCloudPlatform {
