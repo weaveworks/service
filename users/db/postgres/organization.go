@@ -700,8 +700,8 @@ func (d DB) GetOrganizationName(ctx context.Context, externalID string) (string,
 // DeleteOrganization deletes an organization
 func (d DB) DeleteOrganization(ctx context.Context, externalID string, userID string) error {
 	_, err := d.ExecContext(ctx,
-		`update organizations set deleted_at = $1 where external_id = lower($2) and deleted_at is null`,
-		d.Now(), externalID,
+		`update organizations set deleted_at = $1, deleted_by = $2 where external_id = lower($3) and deleted_at is null`,
+		d.Now(), userID, externalID,
 	)
 	return err
 }
