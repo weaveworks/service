@@ -311,9 +311,12 @@
   revision = "2fa06788d5bf9a718f8d5d4c63be5db0b58cd1dd"
 
 [[projects]]
-  digest = "1:a62049a8fa554d688c8db4845c65ddcd5986b75f3a851e4fb563c6893d292e38"
+  digest = "1:5d6c39b65c0a426c8483cbc7f69a00dd7fc0cede346e9bafe15014356486d74b"
   name = "github.com/golang/mock"
-  packages = ["gomock"]
+  packages = [
+    "gomock",
+    "mockgen/model",
+  ]
   pruneopts = "NUT"
   revision = "13f360950a79f5864a972c786a10a50e44b69541"
   version = "v1.0.0"
@@ -999,7 +1002,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e8546b26f89442a3455021f92a4b2f323f1fa7d7de4ec0d6cdded3cd74657359"
+  digest = "1:6a6de491c0bb62aa4dd49a816b80f43e978f8d04189294bc8576f66f4c09ee5b"
   name = "github.com/weaveworks/flux"
   packages = [
     ".",
@@ -1031,7 +1034,7 @@
     "update",
   ]
   pruneopts = "NUT"
-  revision = "8dd22bc52aa8dd4e54a0fe265a279d91c5a68029"
+  revision = "706adb1ebc2daf60509169c72c7767f98236c2be"
 
 [[projects]]
   branch = "master"
@@ -1381,6 +1384,7 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
+    "github.com/golang/mock/mockgen/model",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/go-github/github",
     "github.com/google/uuid",
