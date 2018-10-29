@@ -12,38 +12,25 @@ const (
 	cronSchedule = "0 0 8 * * 1" // Every Monday at 8:00 AM (UTC).
 )
 
-// Job for weekly reporting.
-type Job struct {
+// ReporterJob for weekly reporting.
+type ReporterJob struct {
 	log   logging.Interface
 	users users.UsersClient
 }
 
-// New schedules a new weekly reporting job to be run on a regular basis.
-func New(log logging.Interface, users users.UsersClient) *cron.Cron {
-	log.Infoln("Run weekly reporter")
-
-	cronScheduler := cron.New()
-	cronScheduler.AddJob(cronSchedule, &Job{
-		log:   log,
-		users: users,
-	})
-
-	return cronScheduler
-}
-
 // Run starts the job and logs errors.
-func (j *Job) Run() {
+func (j *ReporterJob) Run() {
 	if err := j.Do(); err != nil {
 		j.log.Errorf("Error running job: %v", err)
 	}
 }
 
 // Do starts the job and returns an error if it fails.
-func (j *Job) Do() error {
+func (j *ReporterJob) Do() error {
 	return j.sendOutWeeklyReportForAllInstances(context.Background())
 }
 
-func (j *Job) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
+func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
 	resp, err := j.users.GetOrganizationsReadyForWeeklyReport(ctx, &users.GetOrganizationsReadyForWeeklyReportRequest{})
 	if err != nil {
 		j.log.Errorf("WeeklyReports: error fetching the instances for reports: %v", err)
@@ -60,4 +47,36 @@ func (j *Job) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// WeeklyReporter blu.
+type WeeklyReporter struct {
+	scheduler *cron.Cron
+	Job       *ReporterJob
+}
+
+// New schedules a new weekly reporting job to be run on a regular basis.
+func New(log logging.Interface, users users.UsersClient) *WeeklyReporter {
+	job := ReporterJob{
+		log:   log,
+		users: users,
+	}
+
+	cronScheduler := cron.New()
+	cronScheduler.AddJob(cronSchedule, &job)
+
+	return &WeeklyReporter{
+		scheduler: cronScheduler,
+		Job:       &job,
+	}
+}
+
+// Start blu.
+func (w *WeeklyReporter) Start() {
+	w.scheduler.Start()
+}
+
+// Stop blu.
+func (w *WeeklyReporter) Stop() {
+	w.scheduler.Stop()
 }

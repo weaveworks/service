@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
- <base href="/admin/users/emails"/>
+ <base href="/admin/users/weeklyreports"/>
 {{with .}}
   <head>
     <title>Weekly Summary Email – Weave Cloud</title>
@@ -27,15 +27,41 @@
             </span>
         </div>
     </header>
-    <div class="mdl-grid">
-        <form action="emails/weekly-summary/send" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
-            <label>User Email <input type="text" name="UserEmail" value="{{.UserEmail}}" placeholder="e.g. test@test.test" /></label><br/><br/>
-            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
-            type="submit" value="Send" />
-        </form>
-    </div>
+    <ul>
+        <li>
+            <h3>Trigger weekly reports job</h3>
+            <p>The job will pick up all the instances for which new weekly report will be available and send it to all their members.</p>
+            <div class="mdl-grid">
+                <form action="weeklyreports/trigger-job" method="POST">
+                    <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                    <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" value="Trigger" />
+                </form>
+            </div>
+        </li>
+        <li>
+            <h3>Weekly report for a single instance</h3>
+            <p>Generates the weekly report for an instance, sends it out to all its members and updates the database.</p>
+            <div class="mdl-grid">
+                <form action="weeklyreports/send-single" method="POST">
+                    <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                    <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
+                    <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" value="Send out" />
+                </form>
+            </div>
+        </li>
+        <li>
+            <h3>Weekly report preview</h3>
+            <p>Send a weekly report preview to one member of a specific instance for testing purposes.</p>
+            <div class="mdl-grid">
+                <form action="weeklyreports/preview" method="POST">
+                    <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                    <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
+                    <label>User Email <input type="text" name="UserEmail" value="{{.UserEmail}}" placeholder="e.g. test@test.test" /></label><br/><br/>
+                    <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" value="Preview" />
+                </form>
+            </div>
+        </li>
+    </ul>
   </body>
 {{end}}
 </html>

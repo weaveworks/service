@@ -21,7 +21,7 @@ import (
 	"github.com/weaveworks/service/users-sync/attrsync"
 	"github.com/weaveworks/service/users-sync/cleaner"
 	"github.com/weaveworks/service/users-sync/server"
-	weeklyreporter "github.com/weaveworks/service/users-sync/weekly-reporter"
+	weeklyreporter "github.com/weaveworks/service/users-sync/weeklyreporter"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/render"
 )
@@ -107,7 +107,7 @@ func main() {
 		logrus.Fatalf("Failed to create server: %v", err)
 		return
 	}
-	userSyncServer := server.New(logger, orgCleaner, attributeSyncer)
+	userSyncServer := server.New(logger, orgCleaner, attributeSyncer, weeklyReporter)
 	api.RegisterUsersSyncServer(cServer.GRPC, userSyncServer)
 
 	weeklyReporter.Start()

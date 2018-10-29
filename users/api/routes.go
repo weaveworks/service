@@ -78,9 +78,10 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
-		{"admin_users_emails", "GET", "/admin/users/emails", a.adminListEmails},
-		{"admin_users_emails_weekly_summary", "GET", "/admin/users/emails/weekly-summary", a.adminWeeklySummaryEmailTemplate},
-		{"admin_users_emails_weekly_summary_send", "POST", "/admin/users/emails/weekly-summary/send", a.adminSendWeeklySummaryEmail},
+		{"admin_users_weekly_reports", "GET", "/admin/users/weeklyreports", a.adminWeeklyReportsControlPanel},
+		{"admin_users_weekly_reports_trigger_job", "POST", "/admin/users/weeklyreports/trigger-job", a.adminWeeklyReportsTriggerJob},
+		{"admin_users_weekly_reports_send_single", "POST", "/admin/users/weeklyreports/send-single", a.adminWeeklyReportsSendSingle},
+		{"admin_users_weekly_reports_preview", "POST", "/admin/users/weeklyreports/preview", a.adminWeeklyReportsPreview},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
 		{"admin_users_gcp_externalAccountID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.adminListUsersForOrganization},

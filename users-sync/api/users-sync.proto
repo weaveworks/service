@@ -8,6 +8,7 @@ service UsersSync {
     rpc EnqueueUsersSync(EnqueueUsersSyncRequest) returns (EnqueueUsersSyncResponse) {};
     rpc EnqueueOrgsSync(EnqueueOrgsSyncRequest) returns (EnqueueOrgsSyncResponse) {};
     rpc EnqueueOrgDeletedSync(EnqueueOrgDeletedSyncRequest) returns (EnqueueOrgDeletedSyncResponse) {};
+    rpc EnforceWeeklyReporterJob(EnforceWeeklyReporterJobRequest) returns (EnforceWeeklyReporterJobResponse) {};
 }
 
 message EnqueueUsersSyncRequest {
@@ -26,3 +27,6 @@ message EnqueueOrgDeletedSyncRequest {
     string OrgExternalID = 1;
 }
 message EnqueueOrgDeletedSyncResponse {}
+
+message EnforceWeeklyReporterJobRequest {}
+message EnforceWeeklyReporterJobResponse {}
