@@ -20,7 +20,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/templates"
-	"github.com/weaveworks/service/users/weekly-summary"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 		ID:    "456",
 		Email: "inviter@weave.works.example",
 	}
-	weeklyReport := &weeklysummary.Report{
+	weeklyReport := &weeklyreports.Report{
 		GeneratedAt: time.Now(),
 		StartAt:     time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -7),
 		EndAt:       time.Now().UTC().Truncate(24 * time.Hour),
@@ -55,7 +55,7 @@ func main() {
 			CreatedAt:  time.Now().AddDate(0, 0, -6), // Simulate instance creation after first day of the report.
 		},
 		DeploymentsPerDay: []int{12, 43, 18, 23, 4, 0, 1},
-		CPUIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumptionRaw{
+		CPUIntensiveWorkloads: []weeklyreports.WorkloadResourceConsumptionRaw{
 			{
 				WorkloadName:       "cortex:deployment/ingester",
 				ClusterConsumption: 0.134,
@@ -69,7 +69,7 @@ func main() {
 				ClusterConsumption: 0.0103,
 			},
 		},
-		MemoryIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumptionRaw{
+		MemoryIntensiveWorkloads: []weeklyreports.WorkloadResourceConsumptionRaw{
 			{
 				WorkloadName:       "monitoring:deployment/prometheus",
 				ClusterConsumption: 0.2095,
@@ -107,7 +107,7 @@ func main() {
 			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
 		},
 		"weekly": func() error {
-			return em.WeeklySummaryEmail(dst, weeklyReport)
+			return em.WeeklyReportEmail(dst, weeklyReport)
 		},
 	}
 

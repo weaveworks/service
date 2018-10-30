@@ -22,7 +22,7 @@ import (
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/weekly-summary"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 func (a *API) admin(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Req
 }
 
 func (a *API) adminWeeklyReportsControlPanel(w http.ResponseWriter, r *http.Request) {
-	b, err := a.templates.Bytes("weekly_summary_email_form.html", map[string]interface{}{
+	b, err := a.templates.Bytes("weekly_report_emails_panel.html", map[string]interface{}{
 		"UserEmail":     r.FormValue("UserEmail"),
 		"OrgExternalID": r.FormValue("OrgExternalID"),
 	})
@@ -165,7 +165,7 @@ func (a *API) adminWeeklyReportsControlPanel(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		commonuser.LogWith(r.Context(), logging.Global()).Warnf("weekly summary email: %v", err)
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("weekly report email: %v", err)
 	}
 }
 
@@ -192,12 +192,12 @@ func (a *API) adminWeeklyReportsPreview(w http.ResponseWriter, r *http.Request) 
 		renderError(w, r, err)
 		return
 	}
-	weeklyReport, err := weeklysummary.GenerateReport(org, time.Now())
+	weeklyReport, err := weeklyreports.GenerateReport(org, time.Now())
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	err = a.emailer.WeeklySummaryEmail(user, weeklyReport)
+	err = a.emailer.WeeklyReportEmail(user, weeklyReport)
 	if err != nil {
 		renderError(w, r, err)
 		return

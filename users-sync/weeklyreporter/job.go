@@ -49,13 +49,13 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context) er
 	return nil
 }
 
-// WeeklyReporter blu.
+// WeeklyReporter consists of the scheduled job + cron scheduler.
 type WeeklyReporter struct {
 	scheduler *cron.Cron
 	Job       *ReporterJob
 }
 
-// New schedules a new weekly reporting job to be run on a regular basis.
+// New schedules a new weekly reporter that runs on a regular basis.
 func New(log logging.Interface, users users.UsersClient) *WeeklyReporter {
 	job := ReporterJob{
 		log:   log,
@@ -71,12 +71,12 @@ func New(log logging.Interface, users users.UsersClient) *WeeklyReporter {
 	}
 }
 
-// Start blu.
+// Start starts the cron scheduler.
 func (w *WeeklyReporter) Start() {
 	w.scheduler.Start()
 }
 
-// Stop blu.
+// Stop stops the cron scheduler.
 func (w *WeeklyReporter) Stop() {
 	w.scheduler.Stop()
 }

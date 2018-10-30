@@ -1,4 +1,4 @@
-package weeklysummary
+package weeklyreports
 
 import (
 	"fmt"

@@ -17,7 +17,7 @@ import (
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
-	weeklysummary "github.com/weaveworks/service/users/weekly-summary"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 // usersServer implements users.UsersServer
@@ -378,7 +378,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 
 	// Generate the weekly report for the organization
 	log.Debugf("Generating weekly report for '%s'", org.ExternalID)
-	weeklyReport, err := weeklysummary.GenerateReport(org, now)
+	weeklyReport, err := weeklyreports.GenerateReport(org, now)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +391,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 
 	// Iterate through the users and send emails to all of them
 	for _, user := range members {
-		a.emailer.WeeklySummaryEmail(user, weeklyReport)
+		a.emailer.WeeklyReportEmail(user, weeklyReport)
 	}
 
 	// Persist weekly report timestamp in the db
