@@ -3,12 +3,12 @@
   "name": "Resources",
   "sections": [
     {
-      "name": "CPU",
+      "name": "CPU usage",
       "rows": [
         {
           "panels": [
             {
-              "title": "CPU usage",
+              "title": "",
               "type": "line",
               "unit": {
                 "format": "numeric",
@@ -21,12 +21,12 @@
       ]
     },
     {
-      "name": "Memory",
+      "name": "Memory usage",
       "rows": [
         {
           "panels": [
             {
-              "title": "Memory usage",
+              "title": "",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -66,12 +66,12 @@
       ]
     },
     {
-      "name": "Network",
+      "name": "Network traffic",
       "rows": [
         {
           "panels": [
             {
-              "title": "Incoming network traffic",
+              "title": "Incoming",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -79,7 +79,7 @@
               "query": "sum (rate(container_network_receive_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "Outgoing network traffic",
+              "title": "Outgoing",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -91,12 +91,12 @@
       ]
     },
     {
-      "name": "Disk",
+      "name": "Disk I/O",
       "rows": [
         {
           "panels": [
             {
-              "title": "I/O bandwidth (read)",
+              "title": "Bandwidth (read)",
               "optional": true,
               "type": "line",
               "unit": {
@@ -105,7 +105,7 @@
               "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "I/O bandwidth (write)",
+              "title": "Bandwidth (write)",
               "optional": true,
               "type": "line",
               "unit": {
@@ -118,7 +118,7 @@
         {
           "panels": [
             {
-              "title": "I/O operations per second (read)",
+              "title": "Operations per second (read)",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -126,7 +126,7 @@
               "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "I/O operations per second (write)",
+              "title": "Operations per second (write)",
               "type": "line",
               "unit": {
                 "format": "numeric"
