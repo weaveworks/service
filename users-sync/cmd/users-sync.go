@@ -21,7 +21,7 @@ import (
 	"github.com/weaveworks/service/users-sync/attrsync"
 	"github.com/weaveworks/service/users-sync/cleaner"
 	"github.com/weaveworks/service/users-sync/server"
-	weeklyreporter "github.com/weaveworks/service/users-sync/weeklyreporter"
+	"github.com/weaveworks/service/users-sync/weeklyreporter"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/render"
 )
@@ -49,7 +49,7 @@ func main() {
 	)
 
 	flag.Var(&cleanupURLs, "cleanup-url", "Endpoints for cleanup after instance deletion")
-	dbCfg.RegisterFlags(flag.CommandLine, "memory://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
+	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
 	billingCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
 	usersCfg.RegisterFlags(flag.CommandLine)
