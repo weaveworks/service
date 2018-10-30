@@ -351,6 +351,7 @@ func (a *usersServer) GetOrganizationsReadyForWeeklyReport(ctx context.Context, 
 		filter.And(
 			filter.HasFeatureFlag(featureflag.WeeklyReportable),
 			filter.LastSentWeeklyReportBefore(endOfSameDayLastWeek),
+			filter.SeenPromConnected(true),
 		),
 		0,
 	)
