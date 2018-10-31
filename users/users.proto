@@ -293,7 +293,8 @@ message GetOrganizationsReadyForWeeklyReportResponse {
 }
 
 message SendOutWeeklyReportRequest {
-    string ExternalID = 1;
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    string ExternalID = 2;
 }
 
 message SendOutWeeklyReportResponse {

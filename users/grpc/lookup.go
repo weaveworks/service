@@ -368,9 +368,6 @@ func (a *usersServer) GetOrganizationsReadyForWeeklyReport(ctx context.Context, 
 }
 
 func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOutWeeklyReportRequest) (*users.SendOutWeeklyReportResponse, error) {
-	// The report will be generated at the current time
-	now := time.Now()
-
 	// Make sure the organization exists
 	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
 	if err != nil {
@@ -379,7 +376,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 
 	// Generate the weekly report for the organization
 	log.Debugf("Generating weekly report for '%s'", org.ExternalID)
-	weeklyReport, err := weeklyreports.GenerateReport(org, now)
+	weeklyReport, err := weeklyreports.GenerateReport(org, req.Now)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +393,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 	}
 
 	// Persist weekly report timestamp in the db
-	err = a.db.SetLastSentWeeklyReportAt(ctx, req.ExternalID, &now)
+	err = a.db.SetLastSentWeeklyReportAt(ctx, req.ExternalID, &req.Now)
 	if err != nil {
 		return nil, err
 	}

@@ -176,6 +176,7 @@ func (a *API) adminWeeklyReportsTriggerJob(w http.ResponseWriter, r *http.Reques
 
 func (a *API) adminWeeklyReportsSendSingle(w http.ResponseWriter, r *http.Request) {
 	a.grpc.SendOutWeeklyReport(r.Context(), &users.SendOutWeeklyReportRequest{
+		Now:        time.Now(),
 		ExternalID: r.FormValue("OrgExternalID"),
 	})
 	http.Redirect(w, r, "/admin/users/weeklyreports", http.StatusFound)

@@ -79,8 +79,8 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
 		{"admin_users_weekly_reports", "GET", "/admin/users/weeklyreports", a.adminWeeklyReportsControlPanel},
-		{"admin_users_weekly_reports_trigger_job", "POST", "/admin/users/weeklyreports/trigger-job", a.adminWeeklyReportsTriggerJob},
-		{"admin_users_weekly_reports_send_single", "POST", "/admin/users/weeklyreports/send-single", a.adminWeeklyReportsSendSingle},
+		{"admin_users_weekly_reports_trigger_job", "POST", "/admin/users/weeklyreports/trigger_job", a.adminWeeklyReportsTriggerJob},
+		{"admin_users_weekly_reports_send_single", "POST", "/admin/users/weeklyreports/send_single", a.adminWeeklyReportsSendSingle},
 		{"admin_users_weekly_reports_preview", "POST", "/admin/users/weeklyreports/preview", a.adminWeeklyReportsPreview},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
 		{"admin_users_gcp_externalAccountID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},

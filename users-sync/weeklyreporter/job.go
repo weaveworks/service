@@ -2,6 +2,7 @@ package weeklyreporter
 
 import (
 	"context"
+	"time"
 
 	"github.com/robfig/cron"
 	"github.com/weaveworks/common/logging"
@@ -9,7 +10,9 @@ import (
 )
 
 const (
-	cronSchedule = "0 0 8 * * 1" // Every Monday at 8:00 AM (UTC).
+	// Run the job every Monday at 08:00:00 AM (UTC).
+	// The first zero stands for seconds - see https://godoc.org/github.com/robfig/cron for more details.
+	cronSchedule = "0 0 8 * * 1"
 )
 
 // ReporterJob for weekly reporting.
@@ -27,11 +30,11 @@ func (j *ReporterJob) Run() {
 
 // Do starts the job and returns an error if it fails.
 func (j *ReporterJob) Do() error {
-	return j.sendOutWeeklyReportForAllInstances(context.Background())
+	return j.sendOutWeeklyReportForAllInstances(context.Background(), time.Now())
 }
 
-func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context) error {
-	resp, err := j.users.GetOrganizationsReadyForWeeklyReport(ctx, &users.GetOrganizationsReadyForWeeklyReportRequest{})
+func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context, now time.Time) error {
+	resp, err := j.users.GetOrganizationsReadyForWeeklyReport(ctx, &users.GetOrganizationsReadyForWeeklyReportRequest{Now: now})
 	if err != nil {
 		j.log.Errorf("WeeklyReports: error fetching the instances for reports: %v", err)
 		return err
@@ -39,7 +42,7 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context) er
 	j.log.Infof("WeeklyReports: sending out emails to members of %d instances", len(resp.Organizations))
 
 	for _, organization := range resp.Organizations {
-		request := users.SendOutWeeklyReportRequest{ExternalID: organization.ExternalID}
+		request := users.SendOutWeeklyReportRequest{Now: now, ExternalID: organization.ExternalID}
 		if _, err := j.users.SendOutWeeklyReport(ctx, &request); err != nil {
 			// Only log the error and move to the next instance if sending out weekly report fails.
 			j.log.Errorf("WeeklyReports: error sending report for '%s': %v", organization.ExternalID, err)

@@ -31,8 +31,9 @@
         <li>
             <h3>Trigger weekly reports job</h3>
             <p>The job will pick up all the instances for which new weekly report will be available and send it to all their members.</p>
+            <p><i>Note:</i> This job is scheduled to run once every week at 8:00 AM (UTC) on Mondays.</p>
             <div class="mdl-grid">
-                <form action="weeklyreports/trigger-job" method="POST">
+                <form action="weeklyreports/trigger_job" method="POST">
                     <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                     <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" value="Trigger" />
                 </form>
@@ -42,7 +43,7 @@
             <h3>Weekly report for a single instance</h3>
             <p>Generates the weekly report for an instance, sends it out to all its members and updates the database.</p>
             <div class="mdl-grid">
-                <form action="weeklyreports/send-single" method="POST">
+                <form action="weeklyreports/send_single" method="POST">
                     <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                     <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
                     <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit" value="Send out" />
