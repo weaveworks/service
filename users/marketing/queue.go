@@ -91,8 +91,11 @@ func (c *Queue) loop() {
 func (c *Queue) waitForStuffToDo() {
 	c.Lock()
 	defer c.Unlock()
-	for len(c.hits)+len(c.prospects) == 0 {
+	for {
 		c.cond.Wait()
+		if len(c.hits)+len(c.prospects) > 0 {
+			break
+		}
 	}
 }
 
