@@ -49,7 +49,6 @@ type GoketoClient interface {
 // MarketoClient is our client interface to marketo
 type MarketoClient interface {
 	BatchUpsertProspect(prospects []Prospect) error
-	UpsertProspect(email string, fields map[string]string) error
 	name() string
 }
 
@@ -161,58 +160,6 @@ func (c *marketoClient) BatchUpsertProspect(prospects []Prospect) error {
 			InstanceBillingConfiguredName:       p.OrganizationBillingConfiguredName,
 		})
 	}
-	body, err := json.Marshal(leads)
-	if err != nil {
-		return err
-	}
-	log.Debugf("Marketo request: %s", string(body))
-	resp, err := c.client.Post("leads/push.json", body)
-	if err != nil {
-		return err
-	}
-	log.Debugf("Marketo response: %s", string(resp))
-
-	var marketoResponse marketoResponse
-	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
-		return err
-	}
-
-	for _, result := range marketoResponse.Results {
-		if result.Status == "skipped" {
-			marketoLeadsSkipped.Add(1)
-			log.Infof("Marketo skipped prospect %v: %v", result.ID, result.Reasons)
-		}
-	}
-
-	if !marketoResponse.Success {
-		return &marketoResponse
-	}
-	return nil
-}
-
-// UpsertProspect insert/updates an entry in Marketo.
-func (c *marketoClient) UpsertProspect(email string, fields map[string]string) error {
-	if err := c.client.RefreshToken(); err != nil {
-		return err
-	}
-
-	lead := map[string]string{
-		"email": email,
-	}
-	for k, v := range fields {
-		lead[k] = v
-	}
-
-	leads := struct {
-		ProgramName string              `json:"programName"`
-		LookupField string              `json:"lookupField"`
-		Input       []map[string]string `json:"input"`
-	}{
-		ProgramName: c.programName,
-		LookupField: "email",
-		Input:       []map[string]string{lead},
-	}
-
 	body, err := json.Marshal(leads)
 	if err != nil {
 		return err

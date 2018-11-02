@@ -2,21 +2,20 @@ package attrsync
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
-	"github.com/weaveworks/service/users/marketing"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/analytics-go"
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
-	commonUser "github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
+	"github.com/weaveworks/service/users/marketing"
 )
 
 var attrsComputeDurationCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
@@ -26,7 +25,11 @@ var attrsComputeDurationCollector = instrument.NewHistogramCollectorFromOpts(pro
 	Help:      "Time taken to recompute user attributes.",
 })
 
-const minus30Days = -1 * 30 * 24 * time.Hour
+const (
+	minus30Days       = -1 * 30 * 24 * time.Hour
+	recentUsersPeriod = 3 * time.Hour
+	staleUsersPeriod  = 3 * 24 * time.Hour
+)
 
 func init() {
 	attrsComputeDurationCollector.Register()
@@ -54,8 +57,8 @@ func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClie
 		billingClient:     billingClient,
 		segmentClient:     segmentClient,
 		marketoClient:     marketoClient,
-		recentUsersTicker: time.NewTicker(3 * time.Hour),
-		staleUsersTicker:  time.NewTicker(3 * 24 * time.Hour),
+		recentUsersTicker: time.NewTicker(recentUsersPeriod),
+		staleUsersTicker:  time.NewTicker(staleUsersPeriod),
 		work:              make(chan filter.User),
 		quit:              make(chan struct{}),
 	}
@@ -139,94 +142,77 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 	// page starts at 1 because 0 is "all pages"
 	page := uint64(1)
 	for {
-		users, err := c.db.ListUsers(ctx, userFilter, page)
+		us, err := c.db.ListUsers(ctx, userFilter, page)
 		if err != nil {
 			return err
 		}
 
-		if len(users) == 0 {
+		if len(us) == 0 {
 			break
 		}
 
 		span, pageCtx := opentracing.StartSpanFromContext(ctx, "SyncUsersPage")
-		span.LogKV("count", len(users), "page", page)
+		span.LogKV("count", len(us), "page", page)
 		c.log.WithFields(map[string]interface{}{
 			"filter": userFilter,
-			"count":  len(users),
+			"count":  len(us),
 			"page":   page,
 		}).Debugf("Syncing attributes for users")
 
-		for _, user := range users {
-			ctxWithID := commonUser.InjectUserID(pageCtx, user.ID)
-			instrument.CollectedRequest(
-				ctxWithID,
-				"syncUser",
-				attrsComputeDurationCollector,
-				instrument.ErrorCode,
-				func(fCtx context.Context) error {
-					err := c.syncUser(fCtx, user)
-					if err != nil {
-						c.log.WithField("error", err).
-							WithField("user", user).
-							Errorln("Error syncing user")
-					}
-					return err
-				})
-
-			// Sleep for a while to avoid overloading other services
-			time.Sleep(10 * time.Millisecond)
-		}
+		c.postUsers(pageCtx, us)
 
 		page++
 	}
 	return nil
 }
 
-func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error {
-	attrs, err := c.userOrgAttributes(ctx, user)
-
-	if err != nil {
-		return err
-	}
-
-	segmentTraits := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
-	prospect := marketing.Prospect{Email: user.Email}
-
-	// Since old users won't have this data, send it optionally
-	if user.Name != "" {
-		segmentTraits = segmentTraits.SetName(user.Name)
-	}
-	if user.GivenName != "" {
-		segmentTraits = segmentTraits.SetFirstName(user.GivenName)
-		prospect.FirstName = user.GivenName
-	}
-	if user.FamilyName != "" {
-		segmentTraits = segmentTraits.SetLastName(user.FamilyName)
-		prospect.LastName = user.FamilyName
-	}
-	if user.Company != "" {
-		segmentTraits = segmentTraits.Set("company", map[string]string{"name": user.Company})
-		prospect.Company = user.Company
-	}
-
-	for name, val := range attrs {
-		// Don't copy these attributes to marketo as it doesn't know about them
-		// If we want to send them to marketo we should hook it up to segment.
-		segmentTraits.Set(name, val)
-	}
-
-	err = c.segmentClient.Enqueue(analytics.Identify{
-		UserId: user.Email,
-		Traits: segmentTraits,
-	})
-	if err != nil {
-		c.log.WithField("err", err).Errorln("Error enqueuing segment message")
-	}
-	// TODO(rndstr): do we need to check this? is there a better way?
-	if prospect.FirstName == "" && prospect.LastName == "" && prospect.Company == "" {
-		if err = c.marketoClient.BatchUpsertProspect([]marketing.Prospect{prospect}); err != nil {
-			c.log.WithField("err", err).Errorln("Error sending fields to Marketo")
+func (c *AttributeSyncer) postUsers(ctx context.Context, users []*users.User) {
+	traits := map[string]analytics.Traits{}
+	var prospects []marketing.Prospect
+	for _, user := range users {
+		if p, ok := marketoProspect(user); ok {
+			prospects = append(prospects, p)
 		}
+
+		attrs, err := c.userOrgAttributes(ctx, user)
+		if err != nil {
+			c.log.WithField("err", err).WithField("user", user.ID).Errorln("Error getting org attributes for user")
+			continue
+		}
+		traits[user.Email] = segmentTrait(user, attrs)
 	}
-	return nil
+
+	instrument.CollectedRequest(
+		ctx,
+		"syncUsers",
+		attrsComputeDurationCollector,
+		instrument.ErrorCode,
+		func(fCtx context.Context) error {
+			// Marketo
+			if len(prospects) > 0 {
+				if err := c.marketoClient.BatchUpsertProspect(prospects); err != nil {
+					c.log.WithField("err", err).Errorln("Error sending fields to Marketo")
+				}
+			}
+
+			// Segment
+			for email, traits := range traits {
+				err := c.segmentClient.Enqueue(analytics.Identify{
+					UserId: email,
+					Traits: traits,
+				})
+				if err != nil {
+					c.log.WithFields(logging.Fields{
+						"err":    err,
+						"email":  email,
+						"traits": traits,
+					}).Errorln("Error enqueuing segment message")
+				}
+
+				// Sleep for a while to avoid overloading other services
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			return nil
+		})
 }

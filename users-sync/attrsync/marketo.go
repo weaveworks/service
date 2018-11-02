@@ -3,6 +3,7 @@ package attrsync
 import (
 	"github.com/FrenchBen/goketo"
 
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/marketing"
 )
 
@@ -20,4 +21,23 @@ func NewMarketoClient(cfg marketing.MarketoConfig) (marketing.MarketoClient, err
 	}
 
 	return marketing.NewMarketoClient(goketoClient, cfg.Program), nil
+}
+
+func marketoProspect(user *users.User) (prospect marketing.Prospect, ok bool) {
+	prospect.Email = user.Email
+
+	if user.GivenName != "" {
+		prospect.FirstName = user.GivenName
+		ok = true
+	}
+	if user.FamilyName != "" {
+		prospect.LastName = user.FamilyName
+		ok = true
+	}
+	if user.Company != "" {
+		prospect.Company = user.Company
+		ok = true
+	}
+
+	return prospect, ok
 }
