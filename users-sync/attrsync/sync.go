@@ -190,7 +190,7 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 	}
 
 	segmentTraits := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
-	mktoFields := map[string]string{}
+	prospect := marketing.Prospect{Email: user.Email}
 
 	// Since old users won't have this data, send it optionally
 	if user.Name != "" {
@@ -198,15 +198,15 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 	}
 	if user.GivenName != "" {
 		segmentTraits = segmentTraits.SetFirstName(user.GivenName)
-		mktoFields["firstName"] = user.GivenName
+		prospect.FirstName = user.GivenName
 	}
 	if user.FamilyName != "" {
 		segmentTraits = segmentTraits.SetLastName(user.FamilyName)
-		mktoFields["lastName"] = user.FamilyName
+		prospect.LastName = user.FamilyName
 	}
 	if user.Company != "" {
 		segmentTraits = segmentTraits.Set("company", map[string]string{"name": user.Company})
-		mktoFields["company"] = user.Company
+		prospect.Company = user.Company
 	}
 
 	for name, val := range attrs {
@@ -222,10 +222,10 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 	if err != nil {
 		c.log.WithField("err", err).Errorln("Error enqueuing segment message")
 	}
-	if len(mktoFields) != 0 {
-		err = c.marketoClient.UpsertProspect(user.Email, mktoFields)
-		if err != nil {
-			c.log.WithField("err", err).Errorln("Error sending fields to marketo")
+	// TODO(rndstr): do we need to check this? is there a better way?
+	if prospect.FirstName == "" && prospect.LastName == "" && prospect.Company == "" {
+		if err = c.marketoClient.BatchUpsertProspect([]marketing.Prospect{prospect}); err != nil {
+			c.log.WithField("err", err).Errorln("Error sending fields to Marketo")
 		}
 	}
 	return nil

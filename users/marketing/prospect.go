@@ -11,6 +11,10 @@ type Prospect struct {
 	CampaignID        string    `json:"campaignId"`
 	LeadSource        string    `json:"leadSource"`
 
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Company   string `json:"Company,omitempty"`
+
 	// TODO: these don't fit well in this prospect system. We should redesign the whole thing.
 	OrganizationBillingConfiguredExternalID string `json:"organizationBillingConfiguredExternalID"`
 	OrganizationBillingConfiguredName       string `json:"organizationBillingConfiguredName"`
@@ -25,6 +29,10 @@ func (p1 Prospect) Merge(p2 Prospect) Prospect {
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
 		CampaignID:        either(p1.CampaignID, p2.CampaignID),
 		LeadSource:        either(p1.LeadSource, p2.LeadSource),
+
+		FirstName: either(p1.FirstName, p2.FirstName),
+		LastName:  either(p1.LastName, p2.LastName),
+		Company:   either(p1.Company, p2.Company),
 
 		OrganizationBillingConfiguredExternalID: either(p1.OrganizationBillingConfiguredExternalID, p2.OrganizationBillingConfiguredExternalID),
 		OrganizationBillingConfiguredName:       either(p1.OrganizationBillingConfiguredName, p2.OrganizationBillingConfiguredName),

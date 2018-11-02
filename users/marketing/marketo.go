@@ -100,6 +100,10 @@ type marketoProspect struct {
 	LeadSource     string `json:"leadSource,omitempty"`
 	CampaignID     string `json:"salesforceCampaignID,omitempty"`
 
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Company   string `json:"Company,omitempty"`
+
 	// Convert Org -> Instance before we tell the external service
 	InstanceBillingConfiguredExternalID string `json:"WC_Billing_Configured_External_ID__c,omitempty"`
 	InstanceBillingConfiguredName       string `json:"WC_Instance_Billing_Configured_Name__c,omitempty"`
@@ -148,6 +152,10 @@ func (c *marketoClient) BatchUpsertProspect(prospects []Prospect) error {
 			LastAccess:     nilTime(p.ServiceLastAccess),
 			LeadSource:     p.LeadSource,
 			CampaignID:     p.CampaignID,
+
+			FirstName: p.FirstName,
+			LastName:  p.LastName,
+			Company:   p.Company,
 
 			InstanceBillingConfiguredExternalID: p.OrganizationBillingConfiguredExternalID,
 			InstanceBillingConfiguredName:       p.OrganizationBillingConfiguredName,
