@@ -21,6 +21,10 @@ RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool lib
  && rm -rf /var/lib/apt/lists/* \
            /home/fluent/.gem/ruby/2.3.0/cache/*.gem
 
+# HACK! Overwrite some bug-fixes, pending merges upstream
+ADD https://raw.githubusercontent.com/weaveworks/logfmt-ruby/infinity-banned/lib/logfmt/parser.rb /var/lib/gems/2.3.0/gems/logfmt-0.0.8/lib/logfmt/parser.rb
+ADD https://raw.githubusercontent.com/weaveworks/fluent-plugin-loggly/error-handling/lib/fluent/plugin/out_loggly_buffered.rb /var/lib/gems/2.3.0/gems/fluent-plugin-loggly-0.0.9/lib/fluent/plugin/out_loggly_buffered.rb
+
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="fluentd-loggly" \
