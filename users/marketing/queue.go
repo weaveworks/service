@@ -10,7 +10,14 @@ import (
 
 const (
 	pushPeriod = 1 * time.Minute
-	batchSize  = 20
+
+	// [As of 20181101]
+	// Segment (https://segment.com/docs/sources/server/http/#batch)
+	// > There is a maximum of 500kb per batch request and 32kb per call.
+	//
+	// Marketo (http://developers.marketo.com/rest-api/marketo-integration-best-practices/)
+	// > Batch Size: Lead DB – 300 records
+	batchSize = 20
 )
 
 var (

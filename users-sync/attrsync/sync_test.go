@@ -2,7 +2,6 @@ package attrsync
 
 import (
 	"context"
-	"github.com/weaveworks/service/users/marketing"
 	"testing"
 	"time"
 
@@ -10,11 +9,13 @@ import (
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-	"github.com/weaveworks/common/logging"
 
+	"github.com/weaveworks/common/logging"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/users"
 	users_db "github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
+	"github.com/weaveworks/service/users/marketing"
 )
 
 type MockSegment struct {
@@ -64,7 +65,41 @@ func Test_AttrSyncNoOrgs(t *testing.T) {
 	defer tf.cleanup(t)
 
 	user := dbtest.GetUser(t, tf.db)
-	require.NoError(t, attrSync.syncUser(tf.ctx, user))
+	user = dbtest.AddUserInfoToUser(t, tf.db, user)
+
+	attrSync.postUsers(tf.ctx, []*users.User{user})
+
+	require.Len(t, tf.mockSegment.Messages, 1)
+	ident, ok := tf.mockSegment.Messages[0].(analytics.Identify)
+	require.True(t, ok)
+
+	require.Equal(t, analytics.Identify{
+		UserId: user.Email,
+		Traits: analytics.Traits{
+			"name":      user.Name,
+			"firstName": user.GivenName,
+			"lastName":  user.FamilyName,
+			"email":     user.Email,
+			"createdAt": user.CreatedAt,
+			"company": map[string]string{
+				"name": user.Company,
+			},
+
+			"instances_ever_connected_flux_total":          0,
+			"instances_ever_connected_net_total":           0,
+			"instances_ever_connected_prom_total":          0,
+			"instances_ever_connected_scope_total":         0,
+			"instances_ever_connected_total":               0,
+			"instances_status_active_total":                0,
+			"instances_status_payment_due_total":           0,
+			"instances_status_payment_error_total":         0,
+			"instances_status_subscription_inactive_total": 0,
+			"instances_status_trial_active_total":          0,
+			"instances_status_trial_expired_total":         0,
+			"instances_status_unknown_total":               0,
+			"instances_total":                              0,
+		},
+	}, ident)
 }
 
 func Test_AttrSyncWithOrg(t *testing.T) {
@@ -89,13 +124,13 @@ func Test_AttrSyncWithOrg(t *testing.T) {
 			BillingStatus: billing_grpc.ACTIVE,
 		}, nil)
 
-	require.NoError(t, attrSync.syncUser(tf.ctx, user))
+	attrSync.postUsers(tf.ctx, []*users.User{user})
 
 	require.Len(t, tf.mockSegment.Messages, 1)
 	ident, ok := tf.mockSegment.Messages[0].(analytics.Identify)
 	require.True(t, ok)
 
-	require.Equal(t, ident, analytics.Identify{
+	require.Equal(t, analytics.Identify{
 		UserId: user.Email,
 		Traits: analytics.Traits{
 			"name":      user.Name,
@@ -121,5 +156,5 @@ func Test_AttrSyncWithOrg(t *testing.T) {
 			"instances_status_unknown_total":               0,
 			"instances_total":                              1,
 		},
-	})
+	}, ident)
 }

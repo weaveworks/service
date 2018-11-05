@@ -6,7 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/analytics-go"
+
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/users"
 )
 
 var segmentMessagesTotalCounter = prometheus.NewCounterVec(
@@ -67,6 +69,30 @@ func (cb *sendCountingCallback) Success(analytics.Message) {
 
 func (cb *sendCountingCallback) Failure(analytics.Message, error) {
 	cb.counter.WithLabelValues("failure").Inc()
+}
+
+func segmentTrait(user *users.User, attrs map[string]int) analytics.Traits {
+	trait := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
+
+	// Since old users won't have this data, send it optionally
+	if user.Name != "" {
+		trait.SetName(user.Name)
+	}
+	if user.GivenName != "" {
+		trait.SetFirstName(user.GivenName)
+	}
+	if user.FamilyName != "" {
+		trait.SetLastName(user.FamilyName)
+	}
+	if user.Company != "" {
+		trait.Set("company", map[string]string{"name": user.Company})
+	}
+
+	for name, val := range attrs {
+		trait.Set(name, val)
+	}
+
+	return trait
 }
 
 // enqueueCountingClient increments a metric for each message enqueued
