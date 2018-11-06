@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
@@ -62,11 +63,17 @@ func Test_Signup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@weave.works"
+	email := "joez@weave.works"
+	data := jsonBody{
+		"email":      email,
+		"givenName":  "Quincy",
+		"familyName": "Hanley",
+		"company":    "TDE",
+	}
 
-	// Signup as a new user, should send login email
+	// -- Signup as a new user, should send login email
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email}.Reader(t))
+	r, _ := http.NewRequest("POST", "/api/users/signup", data.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -87,7 +94,12 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "$")
 	assert.NotContains(t, emailToken, "%24")
 
-	// Login with the link
+	// Verify data forwarded to Marketo
+	today := time.Now().Format("2006-01-02")
+	marketoExpected := `{"programName":"test","lookupField":"email","input":[{"email":"joez@weave.works","Weave_Cloud_Created_On__c":"` + today + `","firstName":"Quincy","lastName":"Hanley","Company":"TDE"}]}`
+	assert.JSONEq(t, marketoExpected, string(goketoClient.LatestReq))
+
+	// -- Login with the link
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
 	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
@@ -121,9 +133,9 @@ func Test_Signup(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
 
-	// Subsequent Logins do not change their FirstLoginAt or organization
+	// -- Subsequent Logins do not change their FirstLoginAt or organization
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email}.Reader(t))
+	r, _ = http.NewRequest("POST", "/api/users/signup", data.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	require.Len(t, sentEmails, 2)
@@ -145,6 +157,7 @@ func Test_Signup(t *testing.T) {
 	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
+	assert.JSONEq(t, marketoExpected, string(goketoClient.LatestReq))
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {
