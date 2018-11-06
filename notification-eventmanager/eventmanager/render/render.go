@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	fluxevent "github.com/weaveworks/flux/event"
-	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	userTemplates "github.com/weaveworks/service/users/templates"
 )
@@ -46,19 +45,13 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.DeployType:
 		var data fluxevent.ReleaseEventMetadata
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling deploy data error")
-		}
-
-		// Sanity check: we shouldn't get any other kind, but you never know.
-		if data.Spec.Kind != update.ReleaseKindExecute {
-			return errors.Errorf("wrong data spec kind %q, should be %q", data.Spec.Kind, update.ReleaseKindExecute)
+			return errors.Wrap(err, "unmarshaling deploy data error")
 		}
 
 		pd, err := parseDeployData(data)
 		if err != nil {
 			return errors.Wrap(err, "cannot parse deploy metadata")
 		}
-
 		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
 			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 		}
@@ -66,7 +59,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.AutoDeployType:
 		var data fluxevent.AutoReleaseEventMetadata
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling auto deploy data error")
+			return errors.Wrap(err, "unmarshaling auto deploy data error")
 		}
 
 		pd, err := parseAutoDeployData(data)
@@ -80,7 +73,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.SyncType:
 		var data types.SyncData
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling sync data error")
+			return errors.Wrap(err, "unmarshaling sync data error")
 		}
 
 		pd, err := parseSyncData(data)
@@ -94,7 +87,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.PolicyType:
 		var data fluxevent.CommitEventMetadata
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling policy data error")
+			return errors.Wrap(err, "unmarshaling policy data error")
 		}
 
 		pd := &parsedData{
@@ -108,7 +101,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.DeployCommitType:
 		var data fluxevent.CommitEventMetadata
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling deploy commit data error")
+			return errors.Wrap(err, "unmarshaling deploy commit data error")
 		}
 
 		pd := &parsedData{
@@ -122,7 +115,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 	case types.AutoDeployCommitType:
 		var data fluxevent.CommitEventMetadata
 		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return errors.Wrap(err, "ummarshaling auto deploy commit data error")
+			return errors.Wrap(err, "unmarshaling auto deploy commit data error")
 		}
 
 		pd := &parsedData{
