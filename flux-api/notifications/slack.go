@@ -50,7 +50,7 @@ func successAttachment(msg string) slackAttachment {
 }
 
 const (
-	releaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
+	releaseTemplate = `Release {{trim (print .Release.Spec.ReleaseImageSpec.ImageSpec) "<>"}} to {{with .Release.Spec.ReleaseImageSpec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ReleaseImageSpec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
 
 	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 
@@ -69,9 +69,23 @@ var (
 func slackNotifyRelease(url string, release *event.ReleaseEventMetadata, releaseError string) error {
 	// Sanity check: we shouldn't get any other kind, but you
 	// never know.
-	if release.Spec.Kind != update.ReleaseKindExecute {
-		return nil
+	switch release.Spec.Type {
+	case event.ReleaseImageSpecType:
+		if release.Spec.ReleaseImageSpec != nil {
+			if release.Spec.ReleaseImageSpec.Kind != update.ReleaseKindExecute {
+				return nil
+			}
+		}
+	case event.ReleaseContainersSpecType:
+		if release.Spec.ReleaseContainersSpec != nil {
+			if release.Spec.ReleaseContainersSpec.Kind != update.ReleaseKindExecute {
+				return nil
+			}
+		}
+	default:
+		return errors.Errorf("unknown release spec type %s", release.Spec.Type)
 	}
+
 	var attachments []slackAttachment
 
 	text, err := instantiateTemplate("release", releaseTemplate, struct {

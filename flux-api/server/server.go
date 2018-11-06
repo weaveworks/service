@@ -205,7 +205,7 @@ func (s *Server) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesO
 }
 
 // UpdateImages updates images on the given instance.
-func (s *Server) UpdateImages(ctx context.Context, spec update.ReleaseSpec, cause update.Cause) (job.ID, error) {
+func (s *Server) UpdateImages(ctx context.Context, spec update.ReleaseImageSpec, cause update.Cause) (job.ID, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return "", err
