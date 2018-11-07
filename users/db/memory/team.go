@@ -113,7 +113,7 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 }
 
 // DeleteTeam marks the given team as deleted.
-func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
+func (d *DB) DeleteTeam(ctx context.Context, teamID string) error {
 	// Verify team has no orgs
 	for _, org := range d.organizations {
 		if org.TeamID == teamID {
@@ -137,7 +137,7 @@ func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
 }
 
 // getTeamUserIsPartOf returns the team the user is part of.
-func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
+func (d *DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
 	if teamExternalID == "" {
 		return nil, errors.New("teamExternalID must be provided")
 	}
@@ -165,7 +165,7 @@ func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID stri
 }
 
 // ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist
-func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
+func (d *DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
 	// no lock needed: caller must acquire lock.
 	if teamName == "" {
 		return nil, errors.New("teamName must be provided")

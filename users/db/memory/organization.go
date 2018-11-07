@@ -453,7 +453,7 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 	})
 }
 
-func (d DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+func (d *DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	for _, t := range d.teams {
 		if t.ExternalID == externalID {
 			return t, nil
