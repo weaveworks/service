@@ -141,6 +141,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 		"organizations.first_seen_net_connected_at",
 		"organizations.first_seen_prom_connected_at",
 		"organizations.first_seen_scope_connected_at",
+		"organizations.last_sent_weekly_report_at",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -537,6 +538,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&o.FirstSeenNetConnectedAt,
 		&o.FirstSeenPromConnectedAt,
 		&o.FirstSeenScopeConnectedAt,
+		&o.LastSentWeeklyReportAt,
 	); err != nil {
 		return nil, err
 	}
@@ -790,6 +792,15 @@ func (d DB) SetOrganizationZuoraAccount(ctx context.Context, externalID, number 
 	_, err := d.ExecContext(ctx,
 		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where external_id = lower($3) and deleted_at is null`,
 		number, createdAt, externalID,
+	)
+	return err
+}
+
+// SetLastSentWeeklyReportAt sets the last time weekly report email was sent for the instance
+func (d DB) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set last_sent_weekly_report_at = $1 where external_id = lower($2) and deleted_at is null`,
+		sentAt, externalID,
 	)
 	return err
 }

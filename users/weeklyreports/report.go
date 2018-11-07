@@ -1,4 +1,4 @@
-package weeklysummary
+package weeklyreports
 
 import (
 	"context"
@@ -142,10 +142,21 @@ func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
 	return v1.NewAPI(client), nil
 }
 
+func getEndOfPreviousWeek(t time.Time) time.Time {
+	// Get the beginning of day.
+	t = t.UTC().Truncate(24 * time.Hour)
+	// Move back in time until we hit the beginning of week ...
+	for t.Weekday() != time.Monday {
+		t = t.AddDate(0, 0, -1)
+	}
+	// ... which is also the end of previous week.
+	return t
+}
+
 // GenerateReport returns the raw weekly report data for the organization.
-func GenerateReport(org *users.Organization, endAt time.Time) (*Report, error) {
-	endAt = endAt.UTC().Truncate(24 * time.Hour) // We round down the timestamp to a day to stop at the end of previous day.
-	startAt := endAt.AddDate(0, 0, -7)           // The report will consist of full 7 days of data.
+func GenerateReport(org *users.Organization, timestamp time.Time) (*Report, error) {
+	endAt := getEndOfPreviousWeek(timestamp) // We always consider the previous week Mon-Sun to get the full report.
+	startAt := endAt.AddDate(0, 0, -7)       // The report will consist of full 7 days of data.
 
 	ctx := user.InjectOrgID(context.Background(), org.ID)
 

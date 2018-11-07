@@ -13,7 +13,7 @@ import (
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
-	"github.com/weaveworks/service/users/weekly-summary"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
@@ -55,10 +55,10 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-// WeeklySummaryEmail sends the weekly summary email
-func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, report *weeklysummary.Report) error {
+// WeeklyReportEmail sends the weekly report email
+func (s SMTPEmailer) WeeklyReportEmail(u *users.User, report *weeklyreports.Report) error {
 	organizationURL := organizationURL(s.Domain, report.Organization.ExternalID)
-	summary := weeklysummary.EmailSummaryFromReport(report, organizationURL)
+	summary := weeklyreports.EmailSummaryFromReport(report, organizationURL)
 
 	e := email.NewEmail()
 	e.From = s.FromAddress
@@ -67,8 +67,8 @@ func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, report *weeklysummary.Rep
 	data := map[string]interface{}{
 		"Report": summary,
 	}
-	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
-	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, "", data)
+	e.Text = s.Templates.QuietBytes("weekly_report_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("weekly_report_email.html", emailWrapperFilename, "", data)
 	return s.Sender(e)
 }
 

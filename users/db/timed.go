@@ -357,6 +357,12 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
+func (t timed) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) error {
+	return t.timeRequest(ctx, "SetLastSentWeeklyReportAt", func(ctx context.Context) error {
+		return t.d.SetLastSentWeeklyReportAt(ctx, externalID, sentAt)
+	})
+}
+
 func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (org *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithGCP", func(ctx context.Context) error {
 		org, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID, trialExpiresAt)

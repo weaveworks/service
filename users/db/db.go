@@ -105,6 +105,7 @@ type DB interface {
 	SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
+	SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) error
 	// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
 	MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error
 

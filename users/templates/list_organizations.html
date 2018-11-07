@@ -70,6 +70,7 @@
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Name<br />Instance</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼<br />FirstSeenConnectedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">LastSentWeeklyReportAt</th>
             <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
@@ -96,6 +97,9 @@
                 type="submit" value="Onboard" />
             </form>
         {{ end }}</td>
+        <td class="mdl-data-table__cell--non-numeric">
+            {{if .LastSentWeeklyReportAt}}{{.LastSentWeeklyReportAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
+        </td>
         <td class="mdl-data-table__cell--non-numeric">
             {{if not .DeletedAt.IsZero}}{{.DeletedAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
         </td>

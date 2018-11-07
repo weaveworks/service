@@ -105,6 +105,41 @@ func (t TrialActiveAt) MatchesOrg(o users.Organization) bool {
 	return o.TrialExpiresAt.After(time.Time(t))
 }
 
+// LastSentWeeklyReportBefore filters for organizations for which the weekly report was last sent before the given time.
+type LastSentWeeklyReportBefore time.Time
+
+// Where returns the query to filter depending on when the weekly report was last sent.
+func (t LastSentWeeklyReportBefore) Where() squirrel.Sqlizer {
+	return squirrel.Or{
+		squirrel.Eq{"organizations.last_sent_weekly_report_at": nil},
+		squirrel.Lt{"organizations.last_sent_weekly_report_at": time.Time(t)},
+	}
+}
+
+// MatchesOrg checks whether an organization matches this filter.
+func (t LastSentWeeklyReportBefore) MatchesOrg(o users.Organization) bool {
+	return o.LastSentWeeklyReportAt == nil || o.LastSentWeeklyReportAt.Before(time.Time(t))
+}
+
+// SeenPromConnected filters for organizations for which Prometheus was connected at some point in time.
+type SeenPromConnected bool
+
+// Where returns the query to filter by whether prom has ever been connected.
+func (s SeenPromConnected) Where() squirrel.Sqlizer {
+	if bool(s) {
+		return squirrel.NotEq{"first_seen_prom_connected_at": nil}
+	}
+	return squirrel.Eq{"first_seen_prom_connected_at": nil}
+}
+
+// MatchesOrg checks whether an organization matches this filter.
+func (s SeenPromConnected) MatchesOrg(o users.Organization) bool {
+	if bool(s) {
+		return o.FirstSeenPromConnectedAt != nil
+	}
+	return o.FirstSeenPromConnectedAt == nil
+}
+
 // HasFeatureFlag filters for organizations that has the given feature flag.
 type HasFeatureFlag string
 

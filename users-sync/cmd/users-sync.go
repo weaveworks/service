@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+
+	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/users/marketing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,6 +21,7 @@ import (
 	"github.com/weaveworks/service/users-sync/attrsync"
 	"github.com/weaveworks/service/users-sync/cleaner"
 	"github.com/weaveworks/service/users-sync/server"
+	"github.com/weaveworks/service/users-sync/weeklyreporter"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/render"
 )
@@ -40,6 +43,7 @@ func main() {
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
 		marketoCfg marketing.MarketoConfig
+		usersCfg   users.Config
 
 		cleanupURLs common.ArrayFlags
 	)
@@ -48,6 +52,7 @@ func main() {
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
 	billingCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
+	usersCfg.RegisterFlags(flag.CommandLine)
 
 	flag.Parse()
 
@@ -60,6 +65,11 @@ func main() {
 	defer db.Close(context.Background())
 
 	logger := logging.Logrus(logrus.StandardLogger())
+
+	usersClient, err := users.NewClient(usersCfg)
+	if err != nil {
+		logrus.Fatalf("Failed creating users client: %v", err)
+	}
 
 	billingClient, err := billing_grpc.NewClient(billingCfg)
 	if err != nil {
@@ -78,6 +88,7 @@ func main() {
 		logrus.Fatalf("Failed creating a marketo client: %v", err)
 	}
 
+	weeklyReporter := weeklyreporter.New(logger, usersClient)
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(
 		logger, db, billingClient, segmentClient, marketoClient)
@@ -96,9 +107,11 @@ func main() {
 		logrus.Fatalf("Failed to create server: %v", err)
 		return
 	}
-	userSyncServer := server.New(logger, orgCleaner, attributeSyncer)
+	userSyncServer := server.New(logger, orgCleaner, attributeSyncer, weeklyReporter)
 	api.RegisterUsersSyncServer(cServer.GRPC, userSyncServer)
 
+	weeklyReporter.Start()
+	defer weeklyReporter.Stop()
 	orgCleaner.Start()
 	defer orgCleaner.Stop()
 	attributeSyncer.Start()

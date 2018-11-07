@@ -251,6 +251,11 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
+func (t traced) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) (err error) {
+	defer t.trace("SetLastSentWeeklyReportAt", externalID, sentAt, err)
+	return t.d.SetLastSentWeeklyReportAt(ctx, externalID, sentAt)
+}
+
 func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (org *users.Organization, err error) {
 	defer func() {
 		t.trace("CreateOrganizationWithGCP", ownerID, externalAccountID, trialExpiresAt, org, err)

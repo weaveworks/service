@@ -10,3 +10,6 @@ const Billing = "billing"
 // and useful to work around the fact we cannot filter instances without
 // the "billing" flag, in the admin UI.
 const NoBilling = "no-billing"
+
+// WeeklyReportable feature flag enables weekly reports to be sent to the members of an organization
+const WeeklyReportable = "weekly-reportable"

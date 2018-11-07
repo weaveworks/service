@@ -1,24 +1,27 @@
 package server
 
 import (
-	"context"
-	"github.com/weaveworks/service/users-sync/attrsync"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 
 	"github.com/weaveworks/service/users-sync/api"
+	"github.com/weaveworks/service/users-sync/attrsync"
 	"github.com/weaveworks/service/users-sync/cleaner"
+	"github.com/weaveworks/service/users-sync/weeklyreporter"
 )
 
 type usersSyncServer struct {
+	weeklyReporter  *weeklyreporter.WeeklyReporter
 	attributeSyncer *attrsync.AttributeSyncer
 	cleaner         *cleaner.OrgCleaner
 	log             logging.Interface
 }
 
 // New returns a new UsersSyncServer
-func New(log logging.Interface, cleaner *cleaner.OrgCleaner, attributeSyncer *attrsync.AttributeSyncer) api.UsersSyncServer {
+func New(log logging.Interface, cleaner *cleaner.OrgCleaner, attributeSyncer *attrsync.AttributeSyncer, weeklyReporter *weeklyreporter.WeeklyReporter) api.UsersSyncServer {
 	return &usersSyncServer{
+		weeklyReporter,
 		attributeSyncer,
 		cleaner,
 		log,
@@ -39,4 +42,9 @@ func (u *usersSyncServer) EnqueueOrgDeletedSync(ctx context.Context, req *api.En
 	u.cleaner.Trigger()
 	err := u.attributeSyncer.EnqueueOrgsSync(ctx, []string{req.OrgExternalID})
 	return &api.EnqueueOrgDeletedSyncResponse{}, err
+}
+
+func (u *usersSyncServer) EnforceWeeklyReporterJob(ctx context.Context, req *api.EnforceWeeklyReporterJobRequest) (*api.EnforceWeeklyReporterJobResponse, error) {
+	err := u.weeklyReporter.Job.Do()
+	return &api.EnforceWeeklyReporterJobResponse{}, err
 }

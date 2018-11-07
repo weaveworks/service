@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"golang.org/x/net/context"
@@ -16,6 +17,7 @@ import (
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 // usersServer implements users.UsersServer
@@ -339,6 +341,65 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	_, err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
 
 	return &users.NotifyTrialExpiredResponse{}, err
+}
+
+func (a *usersServer) GetOrganizationsReadyForWeeklyReport(ctx context.Context, req *users.GetOrganizationsReadyForWeeklyReportRequest) (*users.GetOrganizationsReadyForWeeklyReportResponse, error) {
+	// Get all organizations for which weekly reporting is enabled and that haven't been reported at least for a week.
+	endOfSameDayLastWeek := req.Now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -6)
+	organizations, err := a.db.ListOrganizations(
+		ctx,
+		filter.And(
+			filter.HasFeatureFlag(featureflag.WeeklyReportable),
+			filter.LastSentWeeklyReportBefore(endOfSameDayLastWeek),
+			filter.SeenPromConnected(true),
+		),
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy all filtered organizations into the response object.
+	response := &users.GetOrganizationsReadyForWeeklyReportResponse{}
+	for _, org := range organizations {
+		response.Organizations = append(response.Organizations, *org)
+	}
+	return response, nil
+}
+
+func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOutWeeklyReportRequest) (*users.SendOutWeeklyReportResponse, error) {
+	// Make sure the organization exists
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate the weekly report for the organization
+	log.Debugf("Generating weekly report for '%s'", org.ExternalID)
+	weeklyReport, err := weeklyreports.GenerateReport(org, req.Now)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all users belonging to the organization
+	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate through the users and send emails to all of them
+	for _, user := range members {
+		a.emailer.WeeklyReportEmail(user, weeklyReport)
+	}
+
+	// Persist weekly report timestamp in the db
+	err = a.db.SetLastSentWeeklyReportAt(ctx, req.ExternalID, &req.Now)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Sent out weekly report email to %d members of '%s'", len(members), org.ExternalID)
+	return &users.SendOutWeeklyReportResponse{}, nil
 }
 
 func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.NotifyRefuseDataUploadRequest) (*users.NotifyRefuseDataUploadResponse, error) {
