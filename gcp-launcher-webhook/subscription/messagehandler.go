@@ -55,6 +55,15 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	sub, subs, err := m.getSubscriptions(ctx, externalAccountID, subscriptionName)
 	if err != nil {
+		// Once in a while, Google seems to be sending a PubSub message for a subscription that is
+		// no longer accessible for us. This could be due to the (billing) account being deleted on
+		// Google's end.
+		// If that subscription is marked as completed locally, we just ignore that error to have
+		// the PubSub message properly ACKed.
+		// TODO(rndstr): can we confirm the account was deleted and delete the instance instead?
+		if gcp.SubscriptionStatus == string(partner.Complete) {
+			return nil // ACK
+		}
 		return err
 	}
 
