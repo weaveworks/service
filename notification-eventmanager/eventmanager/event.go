@@ -101,6 +101,8 @@ func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (i
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud page link")
 	}
 
+	// e.Data is meant as a replacement for e.Text to move the rendering into the eventmanager as opposed
+	// for the client to come up with it. If it is given, we just render the data into the other fields ourselves.
 	if e.Data != nil {
 		if err := em.Render.Data(&e, link, eventURLText, notifLink); err != nil {
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
