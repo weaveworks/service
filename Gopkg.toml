@@ -70,3 +70,6 @@ required = ["github.com/ugorji/go/codec/codecgen"]
 [[override]]
   branch = "v3.0"
   name = "github.com/segmentio/analytics-go"
+[[constraint]]
+  name = "github.com/microcosm-cc/bluemonday"
+  version = "1.0.1"

@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/microcosm-cc/bluemonday"
+
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
+
+var stripHTML = bluemonday.StrictPolicy().Sanitize
 
 func (a *API) getCurrentUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	resp := users.UserResponse{
@@ -35,11 +39,11 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 
 	resp := users.UserResponse{
-		Email:     user.Email,
-		Name:      user.Name,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Company:   user.Company,
+		Email:      user.Email,
+		Name:       user.Name,
+		Company:    stripHTML(user.Company),
+		FirstName:  stripHTML(user.FirstName),
+		LastName: stripHTML(user.LastName),
 	}
 
 	render.JSON(w, http.StatusOK, resp)

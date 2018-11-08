@@ -582,6 +582,14 @@
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
 
 [[projects]]
+  digest = "1:a127ff6552f64ae4ff4ccc051201edba258f545221f40b4bdf1c2a7db8c0906b"
+  name = "github.com/microcosm-cc/bluemonday"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "82c7118e8ccf7403d4860175d97bb635e8e28239"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:24b5f8d41224b90e3f4d22768926ed782a8ca481d945c0e064c8f165bf768280"
   name = "github.com/miekg/dns"
   packages = ["."]
@@ -1098,12 +1106,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ca29c4a39a32f9e635a8cf616fcf9e7d87a85221c6630e6141c1d1adb99bc1d5"
+  digest = "1:f2acaae745546dde483a2eff34253f8597cc0d7377bac40bcfdd4483ed957f45"
   name = "golang.org/x/net"
   packages = [
     "bpf",
     "context",
     "context/ctxhttp",
+    "html",
+    "html/atom",
     "http2",
     "http2/hpack",
     "idna",
@@ -1398,6 +1408,7 @@
     "github.com/justinas/nosurf",
     "github.com/lib/pq",
     "github.com/mgutz/ansi",
+    "github.com/microcosm-cc/bluemonday",
     "github.com/mitchellh/copystructure",
     "github.com/mwitkow/go-grpc-middleware",
     "github.com/nats-io/go-nats",
