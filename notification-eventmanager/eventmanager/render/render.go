@@ -21,11 +21,16 @@ type Render struct {
 }
 
 type parsedData struct {
-	Title  string
-	Text   string
+	Title string
+	// Text should be in tune with the Slack message requirements. You need to encode
+	// `<>&` as HTML entities. Not only because Slack uses these as control directives
+	// but also to prevent XSS since this is passed to clients to render.
+	Text string
+	// Result will be presented as a code block, as the output of a possible event action.
 	Result string
-	Color  string
-	Error  string
+	// Color is one of the Slack colors (good, warning, danger) and possibly a hex value?
+	Color string
+	Error string
 }
 
 // NewRender returns a new render with templates
@@ -50,7 +55,7 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling deploy data error")
 		}
 
-		if	pd, err = parseDeployData(data); err != nil {
+		if pd, err = parseDeployData(data); err != nil {
 			return errors.Wrap(err, "cannot parse deploy metadata")
 		}
 
