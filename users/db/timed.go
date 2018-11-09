@@ -159,6 +159,14 @@ func (t timed) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...strin
 	return
 }
 
+func (t timed) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (os []*users.Organization, err error) {
+	t.timeRequest(ctx, "ListAllOrganizationsForUserIDs", func(ctx context.Context) error {
+		os, err = t.d.ListAllOrganizationsForUserIDs(ctx, userIDs...)
+		return err
+	})
+	return
+}
+
 func (t timed) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) (ls []*login.Login, err error) {
 	t.timeRequest(ctx, "ListLoginsForUserIDs", func(ctx context.Context) error {
 		ls, err = t.d.ListLoginsForUserIDs(ctx, userIDs...)
