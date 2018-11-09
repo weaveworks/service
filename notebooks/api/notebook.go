@@ -39,12 +39,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 	resolvedNotebooks := []notebooks.Notebook{}
 	for _, n := range ns {
-		err = n.ResolveUser(r, a.usersClient)
-		if err != nil {
-			logger.Errorf("Error resolving notebook user: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		a.resolveNotebookReferences(r, &n)
 		resolvedNotebooks = append(resolvedNotebooks, n)
 	}
 
@@ -113,12 +108,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.resolveNotebookReferences(r, &notebook)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
@@ -151,12 +141,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.resolveNotebookReferences(r, &notebook)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
@@ -231,12 +216,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.resolveNotebookReferences(r, &notebook)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
@@ -271,4 +251,11 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) resolveNotebookReferences(r *http.Request, n *notebooks.Notebook) {
+	if err := n.ResolveUser(r, a.usersClient); err != nil {
+		logger := user.LogWith(r.Context(), logging.Global())
+		logger.Warnf("Cannot resolve notebook user: %v", err)
+	}
 }
