@@ -22,7 +22,7 @@ type Notebook struct {
 	CreatedBy      string      `json:"-"`
 	CreatedAt      time.Time   `json:"-"`
 	UpdatedBy      string      `json:"-"`
-	UpdatedByEmail string      `json:"updatedByEmail"` // resolved with ResolveUser
+	UpdatedByEmail string      `json:"updatedByEmail"` // resolved with ResolveReferences
 	UpdatedAt      time.Time   `json:"updatedAt"`
 	Title          string      `json:"title"`
 	Entries        []Entry     `json:"entries"`
@@ -32,8 +32,9 @@ type Notebook struct {
 	Version        uuid.UUID   `json:"version"`
 }
 
-// ResolveUser uses the UserClient to fill in details about the user such as email address
-func (n *Notebook) ResolveUser(r *http.Request, usersClient users.UsersClient) error {
+// ResolveReferences uses the UserClient to fill in details, such as
+// email addresses, about the users referenced in a notebook.
+func (n *Notebook) ResolveReferences(r *http.Request, usersClient users.UsersClient) error {
 	userResponse, err := usersClient.GetUser(r.Context(), &users.GetUserRequest{UserID: n.UpdatedBy})
 	if err != nil {
 		return errors.Wrapf(err, "unable to resolve user %s in notebook %s", n.UpdatedBy, n.ID)
