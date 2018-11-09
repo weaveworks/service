@@ -18,6 +18,10 @@ import (
 	notificationTypes "github.com/weaveworks/service/notification-eventmanager/types"
 )
 
+var (
+	httpClient = &http.Client{Timeout: 5 * time.Second}
+)
+
 // Event sends a notification for the given event if cfg specifies HookURL.
 func Event(url string, e event.Event, instID service.InstanceID) error {
 	if url == "" {
@@ -47,9 +51,9 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 		if !execute {
 			return nil
 		}
-		notifEventType = releaseEventType
+		notifEventType = notificationTypes.DeployType
 	case event.EventAutoRelease:
-		notifEventType = autoReleaseEventType
+		notifEventType = notificationTypes.AutoDeployType
 	case event.EventSync:
 		details := e.Metadata.(*event.SyncEventMetadata)
 		// Only send a notification if this contains something other
@@ -59,7 +63,7 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 				return nil
 			}
 		}
-		notifEventType = syncEventType
+		notifEventType = notificationTypes.SyncType
 		// add services, because of sync metadata doesn't contain them
 		notifyData = notificationTypes.SyncData{
 			Metadata:   e.Metadata.(*event.SyncEventMetadata),
@@ -69,13 +73,13 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 		commitMetadata := e.Metadata.(*event.CommitEventMetadata)
 		switch commitMetadata.Spec.Type {
 		case update.Policy:
-			notifEventType = policyEventType
+			notifEventType = notificationTypes.PolicyType
 		case update.Images:
-			notifEventType = releaseCommitEventType
+			notifEventType = notificationTypes.DeployCommitType
 		case update.Auto:
-			notifEventType = autoReleaseCommitEventType
+			notifEventType = notificationTypes.AutoDeployCommitType
 		case update.Containers:
-			notifEventType = releaseCommitEventType
+			notifEventType = notificationTypes.DeployCommitType
 		default:
 			return errors.Errorf("cannot notify for event, unknown commit metadata event type %s", commitMetadata.Spec.Type)
 		}
