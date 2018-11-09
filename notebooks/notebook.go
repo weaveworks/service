@@ -2,10 +2,10 @@ package notebooks
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/weaveworks/service/users"
 )
@@ -36,7 +36,7 @@ type Notebook struct {
 func (n *Notebook) ResolveUser(r *http.Request, usersClient users.UsersClient) error {
 	userResponse, err := usersClient.GetUser(r.Context(), &users.GetUserRequest{UserID: n.UpdatedBy})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "unable to resolve user %s in notebook %s", n.UpdatedBy, n.ID)
 	}
 	n.UpdatedByEmail = userResponse.User.Email
 	return nil

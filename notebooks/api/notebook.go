@@ -235,7 +235,7 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 func (a *API) resolveNotebookReferences(r *http.Request, n *notebooks.Notebook) {
 	if err := n.ResolveUser(r, a.usersClient); err != nil {
 		logger := user.LogWith(r.Context(), logging.Global())
-		logger.Warnf("Cannot resolve notebook user: %v", err)
+		logger.Warnln(err)
 	}
 }
 
