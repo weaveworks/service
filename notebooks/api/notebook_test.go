@@ -76,6 +76,8 @@ func TestAPI_listNotebooks(t *testing.T) {
 	// Assert notebooks in descending UpdatedAt (creation time)
 	assert.Equal(t, result.Notebooks[0].Title, "Test notebook 1")
 	assert.Equal(t, result.Notebooks[0].Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.Notebooks[0].CreatedByEmail, "mock-user@example.org")
+	assert.NotEmpty(t, result.Notebooks[0].CreatedAt)
 	assert.Equal(t, result.Notebooks[0].UpdatedByEmail, "mock-user@example.org")
 	assert.NotEmpty(t, result.Notebooks[0].UpdatedAt)
 
@@ -86,6 +88,8 @@ func TestAPI_listNotebooks(t *testing.T) {
 
 	assert.Equal(t, result.Notebooks[1].Title, "Test notebook 2")
 	assert.Equal(t, result.Notebooks[1].Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.Notebooks[1].CreatedByEmail, "mock-user@example.org")
+	assert.NotEmpty(t, result.Notebooks[1].CreatedAt)
 	assert.Equal(t, result.Notebooks[1].UpdatedByEmail, "mock-user@example.org")
 	assert.NotEmpty(t, result.Notebooks[1].UpdatedAt)
 
@@ -114,10 +118,12 @@ func TestAPI_createNotebook(t *testing.T) {
 
 	assert.Equal(t, w.Code, 200)
 	assert.NotEmpty(t, result.ID)
+	assert.NotEmpty(t, result.CreatedAt)
 	assert.NotEmpty(t, result.UpdatedAt)
 	assert.NotEmpty(t, result.Version)
 	assert.Equal(t, result.Title, "New notebook")
 	assert.Equal(t, result.Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.CreatedByEmail, "mock-user@example.org")
 	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
 	assert.Equal(t, result.QueryEnd, json.Number("1000000.1"))
 	assert.Equal(t, result.QueryRange, "1h")
@@ -157,10 +163,12 @@ func TestAPI_getNotebook(t *testing.T) {
 	// Check individual fields as some are updated by the database
 	assert.Equal(t, result.ID, createResult.ID)
 	assert.Equal(t, result.Title, "Test notebook")
+	assert.Equal(t, result.CreatedByEmail, "mock-user@example.org")
 	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
 	assert.Equal(t, result.QueryEnd, json.Number("1000000.1"))
 	assert.Equal(t, result.QueryRange, "1h")
 	assert.Equal(t, result.TrailingNow, true)
+	assert.NotEmpty(t, result.CreatedAt)
 	assert.NotEmpty(t, result.UpdatedAt)
 
 	// Internal fields (ids)
