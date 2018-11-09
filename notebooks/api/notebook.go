@@ -39,12 +39,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 	resolvedNotebooks := []notebooks.Notebook{}
 	for _, n := range ns {
-		err = n.ResolveUser(r, a.usersClient)
-		if err != nil {
-			logger.Errorf("Error resolving notebook user: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		a.resolveNotebookReferences(r, &n)
 		resolvedNotebooks = append(resolvedNotebooks, n)
 	}
 
@@ -113,19 +108,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebooks: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // getNotebook gets a single notebook with the notebook ID
@@ -151,19 +134,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebook: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // updateNotebook updates a notebook with the same id
@@ -231,19 +202,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = notebook.ResolveUser(r, a.usersClient)
-	if err != nil {
-		logger.Errorf("Error resolving notebook user: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebooks: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // deleteNotebook deletes the notebook with the id
@@ -271,4 +230,22 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) resolveNotebookReferences(r *http.Request, n *notebooks.Notebook) {
+	if err := n.ResolveUser(r, a.usersClient); err != nil {
+		logger := user.LogWith(r.Context(), logging.Global())
+		logger.Warnln(err)
+	}
+}
+
+func (a *API) sendNotebook(w http.ResponseWriter, r *http.Request, notebook notebooks.Notebook) {
+	a.resolveNotebookReferences(r, &notebook)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(notebook); err != nil {
+		logger := user.LogWith(r.Context(), logging.Global())
+		logger.Errorf("Error encoding notebooks: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
