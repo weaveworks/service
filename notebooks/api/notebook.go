@@ -108,14 +108,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.resolveNotebookReferences(r, &notebook)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebooks: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // getNotebook gets a single notebook with the notebook ID
@@ -141,14 +134,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.resolveNotebookReferences(r, &notebook)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebook: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // updateNotebook updates a notebook with the same id
@@ -216,14 +202,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.resolveNotebookReferences(r, &notebook)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		logger.Errorf("Error encoding notebooks: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.sendNotebook(w, r, notebook)
 }
 
 // deleteNotebook deletes the notebook with the id
@@ -257,5 +236,16 @@ func (a *API) resolveNotebookReferences(r *http.Request, n *notebooks.Notebook) 
 	if err := n.ResolveUser(r, a.usersClient); err != nil {
 		logger := user.LogWith(r.Context(), logging.Global())
 		logger.Warnf("Cannot resolve notebook user: %v", err)
+	}
+}
+
+func (a *API) sendNotebook(w http.ResponseWriter, r *http.Request, notebook notebooks.Notebook) {
+	a.resolveNotebookReferences(r, &notebook)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(notebook); err != nil {
+		logger := user.LogWith(r.Context(), logging.Global())
+		logger.Errorf("Error encoding notebooks: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
