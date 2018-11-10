@@ -173,6 +173,16 @@ func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Af
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
 func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(userIDs, false)
+}
+
+// ListAllOrganizationsForUserIDs lists the organizations these users
+// belong to, including deleted ones.
+func (d *DB) ListAllOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(userIDs, true)
+}
+
+func (d *DB) listOrganizationsForUserIDs(userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgIDs := map[string]struct{}{}
@@ -197,12 +207,22 @@ func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) (
 					orgIDs[o.ID] = struct{}{}
 				}
 			}
+			if includeDeletedOrgs {
+				for _, o := range d.deletedOrganizations {
+					if o.TeamID == teamID {
+						orgIDs[o.ID] = struct{}{}
+					}
+				}
+			}
 		}
 	}
 
 	var orgs []*users.Organization
 	for orgID := range orgIDs {
 		o, ok := d.organizations[orgID]
+		if !ok && includeDeletedOrgs {
+			o, ok = d.deletedOrganizations[orgID]
+		}
 		if !ok {
 			return nil, users.ErrNotFound
 		}

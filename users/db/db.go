@@ -62,6 +62,7 @@ type DB interface {
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
 	ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)
+	ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)
 
 	// ListLoginsForUserIDs lists all the logins associated with these users
 	ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*login.Login, error)

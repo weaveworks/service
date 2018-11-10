@@ -28,8 +28,8 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 	return d.scanTeams(rows)
 }
 
-func (d DB) listTeamOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	rows, err := d.organizationsQuery().
+func (d DB) listTeamOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
+	rows, err := d.organizationsQueryHelper(includeDeletedOrgs).
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where("team_memberships.deleted_at IS NULL").
 		Where(squirrel.Eq{"team_memberships.user_id": userIDs}).

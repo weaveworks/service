@@ -244,7 +244,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, err)
 		return
 	}
-	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), userID)
+	organizations, err := a.db.ListAllOrganizationsForUserIDs(r.Context(), userID)
 	if err != nil {
 		renderError(w, r, err)
 		return

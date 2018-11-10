@@ -252,12 +252,23 @@ func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string,
 // ListOrganizationsForUserIDs lists the organizations these users belong to.
 // This includes direct membership and team membership.
 func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(ctx, userIDs, false)
+}
+
+// ListAllOrganizationsForUserIDs lists the organizations these users
+// belong to, including deleted ones.  This includes direct membership
+// and team membership.
+func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(ctx, userIDs, true)
+}
+
+func (d DB) listOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
 	// SQL UNIONs are not supported by github.com/Masterminds/squirrel
-	memberOrgs, err := d.listMemberOrganizationsForUserIDs(ctx, userIDs...)
+	memberOrgs, err := d.listMemberOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
 	if err != nil {
 		return nil, err
 	}
-	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs...)
+	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
 	if err != nil {
 		return nil, err
 	}
@@ -267,8 +278,8 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 }
 
 // listMemberOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) listMemberOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	rows, err := d.organizationsQuery().
+func (d DB) listMemberOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
+	rows, err := d.organizationsQueryHelper(includeDeletedOrgs).
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
 		Where("memberships.deleted_at is null").
