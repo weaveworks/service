@@ -103,11 +103,7 @@ func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, users.ErrNotFound)
 		return
 	}
-	_, err := a.db.FindOrganizationByID(r.Context(), orgID)
-	if err != nil {
-		renderError(w, r, users.ErrNotFound)
-		return
-	}
+
 	us, err := a.db.ListOrganizationUsers(r.Context(), orgID, true)
 	if err != nil {
 		renderError(w, r, err)
