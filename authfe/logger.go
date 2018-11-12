@@ -129,7 +129,11 @@ func newWebhooksLogger(webhooksIntegrationTypeHeader string) HTTPEventExtractor 
 
 		// Only pass first 8 chars of secret in URL `/webhooks/abcd1234abcd1234abcd1234abcd1234/`
 		urlParts := strings.Split(r.URL.Path, "/")
-		urlParts[2] = urlParts[2][:8] + strings.Repeat("*", 24)
+		l := len(urlParts[2])
+		if l > 8 {
+			l = 8
+		}
+		urlParts[2] = urlParts[2][:l] + strings.Repeat("*", 32-l)
 		url := strings.Join(urlParts, "/")
 
 		event := Event{
