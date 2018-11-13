@@ -54,7 +54,7 @@ func TestRelease_DryRun(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// It should send releases to slack
+	// It should not send releases to slack for non "execute" types
 	r := exampleRelease(t)
 	ev := event.Event{Metadata: r, Type: event.EventRelease}
 	r.Spec.ReleaseImageSpec.Kind = update.ReleaseKindPlan

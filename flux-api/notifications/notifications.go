@@ -40,21 +40,12 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 		// Sanity check: we shouldn't get any other kind, but you
 		// never know.
 		release := e.Metadata.(*event.ReleaseEventMetadata)
-		switch release.Spec.Type {
-		case event.ReleaseImageSpecType:
-			if release.Spec.ReleaseImageSpec != nil {
-				if release.Spec.ReleaseImageSpec.Kind != update.ReleaseKindExecute {
-					return nil
-				}
-			}
-		case event.ReleaseContainersSpecType:
-			if release.Spec.ReleaseContainersSpec != nil {
-				if release.Spec.ReleaseContainersSpec.Kind != update.ReleaseKindExecute {
-					return nil
-				}
-			}
-		default:
-			return errors.Errorf("unknown release spec type %s", release.Spec.Type)
+		execute, err := release.Spec.IsKindExecute()
+		if err != nil {
+			return err
+		}
+		if !execute {
+			return nil
 		}
 		notifEventType = releaseEventType
 	case event.EventAutoRelease:
