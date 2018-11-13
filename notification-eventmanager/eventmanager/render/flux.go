@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	releaseTemplate     = `Release {{trim (print .ImageSpec) "<>"}} to {{with .ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
-	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
+	releaseImageTemplate      = `Release {{trim (print .ImageSpec) "<>"}} to {{with .ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
+	releaseContainersTemplate = `Update image refs in {{with $list := .}}{{range $index, $srv := .}}{{if not (eq $index 0)}}, {{if last $index $list}}and {{end}}{{end}}{{trim (print $srv) "<>"}}{{end}}{{end}}.`
+	autoReleaseTemplate       = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 )
 
 func (r *Render) fluxMessages(ev *types.Event, pd *parsedData, eventURL, eventURLText, settingsURL string) error {
@@ -64,9 +65,9 @@ func parseDeployData(data fluxevent.ReleaseEventMetadata) (*parsedData, error) {
 
 	switch data.Spec.Type {
 	case fluxevent.ReleaseImageSpecType:
-		text, err := executeTempl(releaseTemplate, data.Spec.ReleaseImageSpec)
+		text, err := executeTempl(releaseImageTemplate, data.Spec.ReleaseImageSpec)
 		if err != nil {
-			return nil, errors.Wrap(err, "instantiate release template error")
+			return nil, errors.Wrap(err, "instantiate release image template error")
 		}
 		return &parsedData{
 			Title:  "Weave Cloud deploy",
@@ -82,7 +83,10 @@ func parseDeployData(data fluxevent.ReleaseEventMetadata) (*parsedData, error) {
 		for service := range servicemap {
 			services = append(services, service.String())
 		}
-		text := fmt.Sprintf("Update image refs in %s.", strings.Join(services, ", "))
+		text, err := executeTempl(releaseContainersTemplate, services)
+		if err != nil {
+			return nil, errors.Wrap(err, "instantiate release containers template error")
+		}
 		return &parsedData{
 			Title:  "Weave Cloud deploy",
 			Text:   text,
