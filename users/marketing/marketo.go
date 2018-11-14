@@ -127,17 +127,19 @@ func nilTime(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
+type leadsRequest struct {
+	ProgramName string            `json:"programName"`
+	LookupField string            `json:"lookupField"`
+	Input       []marketoProspect `json:"input"`
+}
+
 // BatchUpsertProspect batches the provided prospects and insert/update them in Marketo.
 func (c *marketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	if err := c.client.RefreshToken(); err != nil {
 		return err
 	}
 
-	leads := struct {
-		ProgramName string            `json:"programName"`
-		LookupField string            `json:"lookupField"`
-		Input       []marketoProspect `json:"input"`
-	}{
+	leads := leadsRequest{
 		ProgramName: c.programName,
 		LookupField: "email",
 		Input:       []marketoProspect{},

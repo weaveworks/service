@@ -8,25 +8,10 @@ import (
 	"github.com/weaveworks/service/users/marketing"
 )
 
-type mockGoketoClient struct {
-	LatestReq []byte
-}
-
-// RefreshToken does nothing.
-func (m mockGoketoClient) RefreshToken() error {
-	return nil
-}
-
-// Post returns a fake successful response.
-func (m *mockGoketoClient) Post(resource string, data []byte) ([]byte, error) {
-	m.LatestReq = data
-	return []byte("{\"requestId\": \"foo\",\"result\": [{\"id\": 1337,\"status\": \"created\"}],\"success\": true}"), nil
-}
-
 var today = time.Date(2018, time.February, 12, 0, 0, 0, 0, time.UTC)
 
 func TestBatchUpsertOneProspectComingFromGCPShouldSet_Activated_on_GCP__c(t *testing.T) {
-	mock := &mockGoketoClient{}
+	mock := &marketing.MockGoketoClient{}
 	client := marketing.NewMarketoClient(mock, "test")
 	client.BatchUpsertProspect([]marketing.Prospect{
 		{
@@ -43,7 +28,7 @@ func TestBatchUpsertOneProspectComingFromGCPShouldSet_Activated_on_GCP__c(t *tes
 }
 
 func TestBatchUpsertOneProspectNotComingFromGCPShouldNotUnset_Activated_on_GCP__c(t *testing.T) {
-	mock := &mockGoketoClient{}
+	mock := &marketing.MockGoketoClient{}
 	client := marketing.NewMarketoClient(mock, "test")
 	client.BatchUpsertProspect([]marketing.Prospect{
 		{
@@ -60,7 +45,7 @@ func TestBatchUpsertOneProspectNotComingFromGCPShouldNotUnset_Activated_on_GCP__
 }
 
 func TestBatchUpsertManyProspects(t *testing.T) {
-	mock := &mockGoketoClient{}
+	mock := &marketing.MockGoketoClient{}
 	client := marketing.NewMarketoClient(mock, "test")
 	client.BatchUpsertProspect([]marketing.Prospect{
 		{

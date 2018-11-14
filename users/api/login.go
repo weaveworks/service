@@ -178,7 +178,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		a.marketingQueues.UserCreated(u.Email, u.CreatedAt, extraState)
+		a.marketingQueues.UserCreated(u.Email, u.GivenName, u.FamilyName, u.Company, u.CreatedAt, extraState)
 	}
 
 	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
@@ -321,7 +321,8 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 			Company:    req.Company,
 		})
 		if err == nil {
-			a.marketingQueues.UserCreated(user.Email, user.CreatedAt, req.QueryParams)
+			a.marketingQueues.UserCreated(user.Email, user.GivenName, user.FamilyName, user.Company, user.CreatedAt,
+				req.QueryParams)
 			if a.mixpanel != nil {
 				go func() {
 					if err := a.mixpanel.TrackSignup(email); err != nil {

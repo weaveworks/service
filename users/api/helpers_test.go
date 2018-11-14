@@ -37,6 +37,7 @@ var (
 	domain        = "http://fake.scope"
 	ctrl          *gomock.Controller
 	billingClient *billing_grpc.MockBillingClient
+	goketoClient  *marketing.MockGoketoClient
 )
 
 func setup(t *testing.T) {
@@ -68,6 +69,10 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 	ctrl = gomock.NewController(t)
 	billingClient = billing_grpc.NewMockBillingClient(ctrl)
 
+	goketoClient = &marketing.MockGoketoClient{}
+	marketoClient := marketing.NewMarketoClient(goketoClient, "test")
+	queue := marketing.NewQueue(marketoClient)
+
 	var billingEnabler featureflag.Enabler
 	billingEnabler = featureflag.NewRandomEnabler(100)
 	app = api.New(
@@ -77,7 +82,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		database,
 		logins,
 		templates,
-		nil,
+		marketing.Queues{queue},
 		nil,
 		"",
 		"",
