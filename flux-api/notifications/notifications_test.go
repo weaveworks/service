@@ -33,11 +33,14 @@ func exampleRelease(t *testing.T) *event.ReleaseEventMetadata {
 			User:    "test-user",
 			Message: "this was to test notifications",
 		},
-		Spec: update.ReleaseSpec{
-			ServiceSpecs: []update.ResourceSpec{update.ResourceSpec("default/helloworld")},
-			ImageSpec:    update.ImageSpecLatest,
-			Kind:         update.ReleaseKindExecute,
-			Excludes:     nil,
+		Spec: event.ReleaseSpec{
+			Type: event.ReleaseImageSpecType,
+			ReleaseImageSpec: &update.ReleaseImageSpec{
+				ServiceSpecs: []update.ResourceSpec{update.ResourceSpec("default/helloworld")},
+				ImageSpec:    update.ImageSpecLatest,
+				Kind:         update.ReleaseKindExecute,
+				Excludes:     nil,
+			},
 		},
 		ReleaseEventCommon: event.ReleaseEventCommon{
 			Result: exampleResult,
@@ -51,10 +54,10 @@ func TestRelease_DryRun(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// It should send releases to slack
+	// It should not send releases to slack for non "execute" types
 	r := exampleRelease(t)
 	ev := event.Event{Metadata: r, Type: event.EventRelease}
-	r.Spec.Kind = update.ReleaseKindPlan
+	r.Spec.ReleaseImageSpec.Kind = update.ReleaseKindPlan
 	if err := Event(server.URL, ev, ""); err != nil {
 		t.Fatal(err)
 	}

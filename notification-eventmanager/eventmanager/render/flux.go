@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	releaseTemplate     = `Release {{trim (print .Spec.ImageSpec) "<>"}} to {{with .Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
-	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
+	releaseImageTemplate      = `Release {{trim (print .ImageSpec) "<>"}} to {{with .ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
+	releaseContainersTemplate = `Update image refs in {{with $list := .}}{{range $index, $srv := .}}{{if not (eq $index 0)}}, {{if last $index $list}}and {{end}}{{end}}{{trim (print $srv) "<>"}}{{end}}{{end}}.`
+	autoReleaseTemplate       = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 )
 
 func (r *Render) fluxMessages(ev *types.Event, pd *parsedData, eventURL, eventURLText, settingsURL string) error {
@@ -51,11 +52,6 @@ func (r *Render) fluxMessages(ev *types.Event, pd *parsedData, eventURL, eventUR
 }
 
 func parseDeployData(data fluxevent.ReleaseEventMetadata) (*parsedData, error) {
-	text, err := executeTempl(releaseTemplate, data)
-	if err != nil {
-		return nil, errors.Wrap(err, "instantiate release template error")
-	}
-
 	releaseError := data.Error
 	var resText, color string
 
@@ -66,13 +62,42 @@ func parseDeployData(data fluxevent.ReleaseEventMetadata) (*parsedData, error) {
 		}
 		resText = updateResultText(data.Result)
 	}
-	return &parsedData{
-		Title:  "Weave Cloud deploy",
-		Text:   text,
-		Error:  releaseError,
-		Result: resText,
-		Color:  color,
-	}, nil
+
+	switch data.Spec.Type {
+	case fluxevent.ReleaseImageSpecType:
+		text, err := executeTempl(releaseImageTemplate, data.Spec.ReleaseImageSpec)
+		if err != nil {
+			return nil, errors.Wrap(err, "instantiate release image template error")
+		}
+		return &parsedData{
+			Title:  "Weave Cloud deploy",
+			Text:   text,
+			Error:  releaseError,
+			Result: resText,
+			Color:  color,
+		}, nil
+
+	case fluxevent.ReleaseContainersSpecType:
+		servicemap := data.Spec.ReleaseContainersSpec.ContainerSpecs
+		services := make([]string, 0, len(servicemap))
+		for service := range servicemap {
+			services = append(services, service.String())
+		}
+		text, err := executeTempl(releaseContainersTemplate, services)
+		if err != nil {
+			return nil, errors.Wrap(err, "instantiate release containers template error")
+		}
+		return &parsedData{
+			Title:  "Weave Cloud deploy",
+			Text:   text,
+			Error:  releaseError,
+			Result: resText,
+			Color:  color,
+		}, nil
+
+	default:
+		return nil, errors.Errorf("unknown deploy data type: %s", data.Spec.Type)
+	}
 }
 
 func parseAutoDeployData(data fluxevent.AutoReleaseEventMetadata) (*parsedData, error) {

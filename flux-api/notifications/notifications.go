@@ -40,7 +40,11 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 		// Sanity check: we shouldn't get any other kind, but you
 		// never know.
 		release := e.Metadata.(*event.ReleaseEventMetadata)
-		if release.Spec.Kind != update.ReleaseKindExecute {
+		execute, err := release.Spec.IsKindExecute()
+		if err != nil {
+			return err
+		}
+		if !execute {
 			return nil
 		}
 		notifEventType = releaseEventType

@@ -274,7 +274,7 @@ func TestFluxsvc_Release(t *testing.T) {
 	}
 
 	// Test UpdateImages
-	spec := update.ReleaseSpec{
+	spec := update.ReleaseImageSpec{
 		ImageSpec:    "alpine:latest",
 		Kind:         "execute",
 		ServiceSpecs: []update.ResourceSpec{helloWorldSvc},

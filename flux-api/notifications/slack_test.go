@@ -74,7 +74,7 @@ func TestSlackNotifierDryRun(t *testing.T) {
 
 	// It should send releases to slack
 	release := exampleRelease(t)
-	release.Spec.Kind = update.ReleaseKindPlan
+	release.Spec.ReleaseImageSpec.Kind = update.ReleaseKindPlan
 	if err := slackNotifyRelease(server.URL, release, "test-error"); err != nil {
 		t.Fatal(err)
 	}

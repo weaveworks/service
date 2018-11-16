@@ -624,7 +624,7 @@ func (s Server) updateImages(w http.ResponseWriter, r *http.Request) {
 		}
 		excludes = append(excludes, s)
 	}
-	spec := update.ReleaseSpec{
+	spec := update.ReleaseImageSpec{
 		ServiceSpecs: serviceSpecs,
 		ImageSpec:    imageSpec,
 		Kind:         releaseKind,
