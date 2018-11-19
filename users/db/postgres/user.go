@@ -18,22 +18,22 @@ import (
 // CreateUser creates a new user with the given email.
 func (d DB) CreateUser(ctx context.Context, email string, details *users.UserUpdate) (*users.User, error) {
 	u := &users.User{
-		Email:      email,
-		Company:    "",
-		Name:       "",
-		GivenName:  "",
-		FamilyName: "",
-		CreatedAt:  d.Now(),
+		Email:     email,
+		Company:   "",
+		Name:      "",
+		FirstName: "",
+		LastName:  "",
+		CreatedAt: d.Now(),
 	}
 	if details != nil {
 		u.Name = details.Name
-		u.GivenName = details.GivenName
-		u.FamilyName = details.FamilyName
+		u.FirstName = details.FirstName
+		u.LastName = details.LastName
 		u.Company = details.Company
 	}
 	query := d.Insert("users").
-		Columns("email", "approved_at", "created_at", "company", "name", "given_name", "family_name").
-		Values(squirrel.Expr("lower(?)", email), u.CreatedAt, u.CreatedAt, u.Company, u.Name, u.GivenName, u.FamilyName).
+		Columns("email", "approved_at", "created_at", "company", "name", "first_name", "last_name").
+		Values(squirrel.Expr("lower(?)", email), u.CreatedAt, u.CreatedAt, u.Company, u.Name, u.FirstName, u.LastName).
 		Suffix("RETURNING \"id\"")
 	err := query.QueryRow().Scan(&u.ID)
 
@@ -68,16 +68,16 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 		values["name"] = name
 	}
 
-	if update.GivenName != "" {
-		givenName := strings.TrimSpace(update.GivenName)
-		user.GivenName = givenName
-		values["given_name"] = givenName
+	if update.FirstName != "" {
+		firstName := strings.TrimSpace(update.FirstName)
+		user.FirstName = firstName
+		values["first_name"] = firstName
 	}
 
-	if update.FamilyName != "" {
-		familyName := strings.TrimSpace(update.FamilyName)
-		user.FamilyName = familyName
-		values["family_name"] = familyName
+	if update.LastName != "" {
+		lastName := strings.TrimSpace(update.LastName)
+		user.LastName = lastName
+		values["last_name"] = lastName
 	}
 
 	err = d.Transaction(func(tx DB) error {
@@ -349,7 +349,7 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	)
 	if err := row.Scan(
 		&u.ID, &u.Email, &u.Company, &u.Name, &token, &tokenCreatedAt, &createdAt,
-		&u.Admin, &firstLoginAt, &lastLoginAt, &u.GivenName, &u.FamilyName,
+		&u.Admin, &firstLoginAt, &lastLoginAt, &u.FirstName, &u.LastName,
 	); err != nil {
 		return nil, err
 	}
@@ -373,8 +373,8 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 		"users.admin",
 		"users.first_login_at",
 		"users.last_login_at",
-		"users.given_name",
-		"users.family_name",
+		"users.first_name",
+		"users.last_name",
 	).
 		From("users").
 		Where("users.deleted_at is null").

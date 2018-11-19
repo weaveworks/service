@@ -29,11 +29,11 @@ func (d *DB) UpdateUser(ctx context.Context, userID string, update *users.UserUp
 	if update.Name != "" {
 		d.users[userID].Name = update.Name
 	}
-	if update.GivenName != "" {
-		d.users[userID].GivenName = update.GivenName
+	if update.FirstName != "" {
+		d.users[userID].FirstName = update.FirstName
 	}
-	if update.FamilyName != "" {
-		d.users[userID].FamilyName = update.FamilyName
+	if update.LastName != "" {
+		d.users[userID].LastName = update.LastName
 	}
 	if update.Company != "" {
 		d.users[userID].Company = update.Company
@@ -79,15 +79,15 @@ func (d *DB) createUser(email string, details *users.UserUpdate) (*users.User, e
 		ID:         fmt.Sprint(len(d.users)),
 		Email:      strings.ToLower(email),
 		Name:       "",
-		GivenName:  "",
-		FamilyName: "",
+		FirstName:  "",
+		LastName: "",
 		Company:    "",
 		CreatedAt:  time.Now().UTC(),
 	}
 	if details != nil {
 		u.Name = details.Name
-		u.GivenName = details.GivenName
-		u.FamilyName = details.FamilyName
+		u.FirstName = details.FirstName
+		u.LastName = details.LastName
 		u.Company = details.Company
 	}
 	d.users[u.ID] = u

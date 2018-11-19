@@ -13,8 +13,8 @@ func (a *API) getCurrentUser(currentUser *users.User, w http.ResponseWriter, r *
 		Email:      currentUser.Email,
 		Company:    currentUser.Company,
 		Name:       currentUser.Name,
-		GivenName:  currentUser.GivenName,
-		FamilyName: currentUser.FamilyName,
+		FirstName:  currentUser.FirstName,
+		LastName: currentUser.LastName,
 	}
 	render.JSON(w, http.StatusOK, resp)
 }
@@ -37,8 +37,8 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 	resp := users.UserResponse{
 		Email:      user.Email,
 		Name:       user.Name,
-		GivenName:  user.GivenName,
-		FamilyName: user.FamilyName,
+		FirstName:  user.FirstName,
+		LastName: user.LastName,
 		Company:    user.Company,
 	}
 

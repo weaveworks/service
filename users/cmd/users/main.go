@@ -214,7 +214,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
@@ -231,8 +231,8 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamN
 	ctx := context.Background()
 	_, user, err := a.Signup(ctx, api.SignupRequest{
 		Email:       email,
-		GivenName:   "Testy",
-		FamilyName:  "McTestFace",
+		FirstName:   "Testy",
+		LastName:  "McTestFace",
 		Company:     "Acme Inc.",
 		QueryParams: make(map[string]string)})
 	if err != nil {
