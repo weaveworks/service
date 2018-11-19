@@ -610,6 +610,7 @@ type Organization struct {
 	RefuseDataUpload     bool       `protobuf:"varint,8,opt,name=RefuseDataUpload,proto3" json:"RefuseDataUpload,omitempty"`
 	FirstSeenConnectedAt *time.Time `protobuf:"bytes,9,opt,name=FirstSeenConnectedAt,stdtime" json:"FirstSeenConnectedAt,omitempty"`
 	Platform             string     `protobuf:"bytes,10,opt,name=Platform,proto3" json:"Platform,omitempty"`
+	PlatformVersion      string     `protobuf:"bytes,28,opt,name=PlatformVersion,proto3" json:"PlatformVersion,omitempty"`
 	Environment          string     `protobuf:"bytes,11,opt,name=Environment,proto3" json:"Environment,omitempty"`
 	// When the organization's trial period expires.
 	TrialExpiresAt        time.Time  `protobuf:"bytes,12,opt,name=TrialExpiresAt,stdtime" json:"TrialExpiresAt"`
@@ -705,6 +706,13 @@ func (m *Organization) GetFirstSeenConnectedAt() *time.Time {
 func (m *Organization) GetPlatform() string {
 	if m != nil {
 		return m.Platform
+	}
+	return ""
+}
+
+func (m *Organization) GetPlatformVersion() string {
+	if m != nil {
+		return m.PlatformVersion
 	}
 	return ""
 }
@@ -2584,6 +2592,9 @@ func (this *Organization) Equal(that interface{}) bool {
 	if this.Platform != that1.Platform {
 		return false
 	}
+	if this.PlatformVersion != that1.PlatformVersion {
+		return false
+	}
 	if this.Environment != that1.Environment {
 		return false
 	}
@@ -4082,7 +4093,7 @@ func (this *Organization) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 31)
+	s := make([]string, 0, 32)
 	s = append(s, "&users.Organization{")
 	s = append(s, "ID: "+fmt.Sprintf("%#v", this.ID)+",\n")
 	s = append(s, "ExternalID: "+fmt.Sprintf("%#v", this.ExternalID)+",\n")
@@ -4094,6 +4105,7 @@ func (this *Organization) GoString() string {
 	s = append(s, "RefuseDataUpload: "+fmt.Sprintf("%#v", this.RefuseDataUpload)+",\n")
 	s = append(s, "FirstSeenConnectedAt: "+fmt.Sprintf("%#v", this.FirstSeenConnectedAt)+",\n")
 	s = append(s, "Platform: "+fmt.Sprintf("%#v", this.Platform)+",\n")
+	s = append(s, "PlatformVersion: "+fmt.Sprintf("%#v", this.PlatformVersion)+",\n")
 	s = append(s, "Environment: "+fmt.Sprintf("%#v", this.Environment)+",\n")
 	s = append(s, "TrialExpiresAt: "+fmt.Sprintf("%#v", this.TrialExpiresAt)+",\n")
 	s = append(s, "ZuoraAccountNumber: "+fmt.Sprintf("%#v", this.ZuoraAccountNumber)+",\n")
@@ -6188,6 +6200,14 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n18
 	}
+	if len(m.PlatformVersion) > 0 {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintUsers(dAtA, i, uint64(len(m.PlatformVersion)))
+		i += copy(dAtA[i:], m.PlatformVersion)
+	}
 	return i, nil
 }
 
@@ -7688,6 +7708,7 @@ func NewPopulatedOrganization(r randyUsers, easy bool) *Organization {
 	if r.Intn(10) != 0 {
 		this.LastSentWeeklyReportAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
 	}
+	this.PlatformVersion = string(randStringUsers(r))
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -8463,6 +8484,10 @@ func (m *Organization) Size() (n int) {
 		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.LastSentWeeklyReportAt)
 		n += 2 + l + sovUsers(uint64(l))
 	}
+	l = len(m.PlatformVersion)
+	if l > 0 {
+		n += 2 + l + sovUsers(uint64(l))
+	}
 	return n
 }
 
@@ -9222,6 +9247,7 @@ func (this *Organization) String() string {
 		`FirstSeenScopeConnectedAt:` + strings.Replace(fmt.Sprintf("%v", this.FirstSeenScopeConnectedAt), "Timestamp", "google_protobuf1.Timestamp", 1) + `,`,
 		`RefuseDataReason:` + fmt.Sprintf("%v", this.RefuseDataReason) + `,`,
 		`LastSentWeeklyReportAt:` + strings.Replace(fmt.Sprintf("%v", this.LastSentWeeklyReportAt), "Timestamp", "google_protobuf1.Timestamp", 1) + `,`,
+		`PlatformVersion:` + fmt.Sprintf("%v", this.PlatformVersion) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -12097,6 +12123,35 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.LastSentWeeklyReportAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlatformVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUsers
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUsers
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PlatformVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
