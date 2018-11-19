@@ -76,13 +76,13 @@ func (d *DB) DeleteUser(ctx context.Context, userID string) error {
 
 func (d *DB) createUser(email string, details *users.UserUpdate) (*users.User, error) {
 	u := &users.User{
-		ID:         fmt.Sprint(len(d.users)),
-		Email:      strings.ToLower(email),
-		Name:       "",
-		FirstName:  "",
-		LastName: "",
-		Company:    "",
-		CreatedAt:  time.Now().UTC(),
+		ID:        fmt.Sprint(len(d.users)),
+		Email:     strings.ToLower(email),
+		Name:      "",
+		FirstName: "",
+		LastName:  "",
+		Company:   "",
+		CreatedAt: time.Now().UTC(),
 	}
 	if details != nil {
 		u.Name = details.Name

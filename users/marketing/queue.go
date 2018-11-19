@@ -196,7 +196,7 @@ func (c *Queue) OrganizationBillingConfigured(email string, orgExternalID string
 	c.Lock()
 	defer c.Unlock()
 	c.prospects = append(c.prospects, Prospect{
-		Email:                                   email,
+		Email: email,
 		OrganizationBillingConfiguredExternalID: orgExternalID,
 		OrganizationBillingConfiguredName:       orgName,
 	})
