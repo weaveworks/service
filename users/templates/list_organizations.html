@@ -73,6 +73,7 @@
             <th class="mdl-data-table__cell--non-numeric">LastSentWeeklyReportAt</th>
             <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
+            <th class="mdl-data-table__cell--non-numeric">Version</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
             <th class="mdl-data-table__cell--non-numeric">Trial days remaining</th>
             <th class="mdl-data-table__cell--non-numeric">Billing</th>
@@ -105,6 +106,9 @@
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{.Platform}}{{if .Environment}}/{{.Environment}}{{end}}
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
+          {{.PlatformVersion}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">

@@ -142,6 +142,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 		"organizations.first_seen_prom_connected_at",
 		"organizations.first_seen_scope_connected_at",
 		"organizations.last_sent_weekly_report_at",
+		"organizations.platform_version",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -550,6 +551,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&o.FirstSeenPromConnectedAt,
 		&o.FirstSeenScopeConnectedAt,
 		&o.LastSentWeeklyReportAt,
+		&o.PlatformVersion,
 	); err != nil {
 		return nil, err
 	}
