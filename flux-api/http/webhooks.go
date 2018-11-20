@@ -170,7 +170,40 @@ func (r bitbucketOrgRepository) RepoURL() string {
 }
 
 func handleGitlabPush(s Server, w http.ResponseWriter, r *http.Request) {
-	transport.WriteError(w, r, http.StatusNotImplemented, fmt.Errorf("gitlab not supported yet"))
+	if r.Header.Get("X-Gitlab-Event") != "Push Hook" {
+		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Unexpected or missing X-Gitlab-Event"))
+		return
+	}
+
+	type gitlabPayload struct {
+		Ref     string
+		Project struct {
+			SSHURL string `json:"git_ssh_url"`
+		}
+	}
+
+	var payload gitlabPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	change := v9.Change{
+		Kind: v9.GitChange,
+		Source: v9.GitUpdate{
+			URL:    payload.Project.SSHURL,
+			Branch: strings.TrimPrefix(payload.Ref, "refs/heads/"),
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(getRequestContext(r), fluxDaemonTimeout)
+	defer cancel()
+	if err := s.daemonProxy.NotifyChange(ctx, change); err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func handleDockerHub(s Server, w http.ResponseWriter, r *http.Request) {
