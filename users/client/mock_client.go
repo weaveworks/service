@@ -149,3 +149,8 @@ func (MockClient) SetOrganizationWebhookFirstSeenAt(ctx context.Context, in *use
 func (MockClient) InformOrganizationBillingConfigured(ctx context.Context, req *users.InformOrganizationBillingConfiguredRequest, opts ...grpc.CallOption) (*users.Empty, error) {
 	return &users.Empty{}, nil
 }
+
+// SetOrganizationPlatformVersion sets the instance platform version.
+func (MockClient) SetOrganizationPlatformVersion(ctx context.Context, req *users.SetOrganizationPlatformVersionRequest, opts ...grpc.CallOption) (*users.SetOrganizationPlatformVersionResponse, error) {
+	return &users.SetOrganizationPlatformVersionResponse{}, nil
+}

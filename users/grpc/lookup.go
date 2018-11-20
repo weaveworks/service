@@ -281,6 +281,14 @@ func (a *usersServer) SetOrganizationZuoraAccount(ctx context.Context, req *user
 	return &users.SetOrganizationZuoraAccountResponse{}, nil
 }
 
+func (a *usersServer) SetOrganizationPlatformVersion(ctx context.Context, req *users.SetOrganizationPlatformVersionRequest) (*users.SetOrganizationPlatformVersionResponse, error) {
+	err := a.db.SetOrganizationPlatformVersion(ctx, req.ExternalID, req.PlatformVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &users.SetOrganizationPlatformVersionResponse{}, nil
+}
+
 func (a *usersServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*users.GetUserResponse, error) {
 	user, err := a.db.FindUserByID(ctx, req.UserID)
 	if err != nil {

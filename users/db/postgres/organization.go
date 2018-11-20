@@ -809,6 +809,15 @@ func (d DB) SetOrganizationZuoraAccount(ctx context.Context, externalID, number 
 	return err
 }
 
+// SetOrganizationPlatformVersion sets the instance platform version.
+func (d DB) SetOrganizationPlatformVersion(ctx context.Context, externalID, platformVersion string) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set platform_version = $1 where external_id = lower($2) and deleted_at is null`,
+		platformVersion, externalID,
+	)
+	return err
+}
+
 // SetLastSentWeeklyReportAt sets the last time weekly report email was sent for the instance
 func (d DB) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) error {
 	_, err := d.ExecContext(ctx,
