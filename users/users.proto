@@ -42,11 +42,6 @@ service Users {
     // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
     rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
-    // SetOrganizationPlatformVersion updates the platform version information for the given instance.
-    // The idea is that the launcher agent would send this info through once the users are setting up
-    // their instances - this would help us profile our users better.
-    rpc SetOrganizationPlatformVersion(SetOrganizationPlatformVersionRequest) returns (SetOrganizationPlatformVersionResponse) {};
-
     // GetGCP returns the Google Cloud Platform entry.
     rpc GetGCP(GetGCPRequest) returns (GetGCPResponse) {};
     // UpdateGCP updates the Google Cloud Platform entry.
@@ -271,15 +266,6 @@ message SetOrganizationZuoraAccountRequest {
 }
 
 message SetOrganizationZuoraAccountResponse {
-}
-
-
-message SetOrganizationPlatformVersionRequest {
-    string ExternalID = 1;
-    string PlatformVersion = 2;
-}
-
-message SetOrganizationPlatformVersionResponse {
 }
 
 message SetOrganizationFlagRequest {
