@@ -54,7 +54,7 @@ type Client interface {
 	UploadUsage(ctx context.Context, r io.Reader, id string) (UsageUploadID, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
 	GetUsageImportStatusURL(usageUploadID UsageUploadID) string
-	GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error)
+	GetUsageImportStatus(ctx context.Context, url string) (ImportStatusResponse, error)
 
 	GetCurrentRates(ctx context.Context) (RateMap, error)
 	GetProductsUnitSet(ctx context.Context, productIDs []string) (map[string]bool, error)
