@@ -166,7 +166,12 @@ func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (Im
 			}
 		}
 		sleepingTime := time.Duration(math.Pow(float64(2), float64(attempt))) * time.Second
-		user.LogWith(ctx, logging.Global()).Infof("Exponentially retrying in %v", sleepingTime)
+		user.LogWith(ctx, logging.Global()).
+			WithFields(logging.Fields{
+				"status":  resp.ImportStatus,
+				"message": resp.Message,
+				"err":     statusCheckErr,
+			}).Warnf("Exponentially retrying in %v", sleepingTime)
 		time.Sleep(sleepingTime)
 	}
 	if attempt < maxAttempts {
