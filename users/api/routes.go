@@ -57,6 +57,9 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Used by the launcher agent to get the external instance ID using a token
 		{"api_users_org_token_lookup", "GET", "/api/users/org/lookup", a.authenticateProbe(a.orgLookup)},
 
+		// Used by the launcher agent to update the platform version using a token
+		{"api_users_org_platform_version_update", "PUT", "/api/users/org/platform_version", a.authenticateProbe(a.orgPlatformVersionUpdate)},
+
 		// Basic view and management of an organization
 		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticateUser(a.generateOrgExternalID)},
 		{"api_users_generateOrgID", "GET", "/api/users/generateOrgID", a.authenticateUser(a.generateOrgExternalID)},

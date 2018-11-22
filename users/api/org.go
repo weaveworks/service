@@ -625,3 +625,25 @@ func (a *API) orgLookup(org *users.Organization, w http.ResponseWriter, r *http.
 	view := orgLookupView{Name: org.Name, ExternalID: org.ExternalID}
 	render.JSON(w, http.StatusOK, view)
 }
+
+type orgPlatformVersionData struct {
+	PlatformVersion string `json:"platformVersion"`
+}
+
+func (a *API) orgPlatformVersionUpdate(org *users.Organization, w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var update orgPlatformVersionData
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		renderError(w, r, users.NewMalformedInputError(err))
+		return
+	}
+
+	err := a.db.SetOrganizationPlatformVersion(r.Context(), org.ExternalID, update.PlatformVersion)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
