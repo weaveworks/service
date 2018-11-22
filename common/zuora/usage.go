@@ -153,7 +153,7 @@ func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (ImportSta
 
 // WaitForImportFinished waits for a usage import to complete and returns the status.
 func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (ImportStatusResponse, error) {
-	maxAttempts := 6
+	maxAttempts := 9
 	var attempt int
 	var resp ImportStatusResponse
 	for attempt = 0; attempt < maxAttempts; attempt++ {
