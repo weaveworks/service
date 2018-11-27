@@ -111,7 +111,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (UsageU
 
 	if importStatus != Completed {
 		user.LogWith(ctx, logging.Global()).Errorf("Usage upload failed! Usage file: %v", usage.String())
-		return "", fmt.Errorf("Usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
+		return "", fmt.Errorf("usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
 	}
 	return extractUsageImportID(resp.CheckImportStatusURL)
 }
@@ -139,40 +139,45 @@ func (z *Zuora) GetUsageImportStatusURL(usageUploadID UsageUploadID) string {
 }
 
 // GetUsageImportStatus returns the Zuora status of a given usage.
-func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error) {
+// It always returns the response even if it errors.
+func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (ImportStatusResponse, error) {
 	resp := ImportStatusResponse{}
 	if err := z.Get(ctx, getImportStatusPath, url, &resp); err != nil {
-		return nil, err
+		return resp, err
 	}
 	if !resp.Success {
-		return nil, &resp
+		return resp, &resp
 	}
-	return &resp, nil
+	return resp, nil
 }
 
 // WaitForImportFinished waits for a usage import to complete and returns the status.
-func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (*ImportStatusResponse, error) {
-	maxAttempts := 6
+func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (ImportStatusResponse, error) {
+	maxAttempts := 9
 	var attempt int
-	var resp *ImportStatusResponse
+	var resp ImportStatusResponse
 	for attempt = 0; attempt < maxAttempts; attempt++ {
 		var statusCheckErr error
 		user.LogWith(ctx, logging.Global()).Infof("Checking usage import status")
 		resp, statusCheckErr = z.GetUsageImportStatus(ctx, statusURL)
 		if statusCheckErr == nil {
-			importStatus := resp.ImportStatus
-			if !(importStatus == "Pending" || importStatus == "Processing") {
+			if !(resp.ImportStatus == "Pending" || resp.ImportStatus == "Processing") {
 				break
 			}
 		}
 		sleepingTime := time.Duration(math.Pow(float64(2), float64(attempt))) * time.Second
-		user.LogWith(ctx, logging.Global()).Infof("Exponentially retrying in %v", sleepingTime)
+		user.LogWith(ctx, logging.Global()).
+			WithFields(logging.Fields{
+				"status":  resp.ImportStatus,
+				"message": resp.Message,
+				"err":     statusCheckErr,
+			}).Warnf("Exponentially retrying in %v", sleepingTime)
 		time.Sleep(sleepingTime)
 	}
 	if attempt < maxAttempts {
 		return resp, nil
 	}
-	return nil, fmt.Errorf("Usage was not imported within %d retries", attempt)
+	return resp, fmt.Errorf("usage was not imported within %d retries", attempt)
 }
 
 func extractUsageImportID(path string) (UsageUploadID, error) {
@@ -181,7 +186,7 @@ func extractUsageImportID(path string) (UsageUploadID, error) {
 	// match should return 2 elements because the left most match is the entire string.
 	// see https://golang.org/pkg/regexp/#Regexp.FindStringSubmatch
 	if len(match) != 2 {
-		return "", fmt.Errorf("Could not parse usage import status id path: %v", path)
+		return "", fmt.Errorf("could not parse usage import status id path: %v", path)
 	}
 	return UsageUploadID(match[1]), nil
 }

@@ -124,8 +124,8 @@ func (z StubClient) GetUsageImportStatusURL(usageUploadID zuora.UsageUploadID) s
 }
 
 // GetUsageImportStatus mocks.
-func (z StubClient) GetUsageImportStatus(ctx context.Context, importID string) (*zuora.ImportStatusResponse, error) {
-	return &zuora.ImportStatusResponse{}, nil
+func (z StubClient) GetUsageImportStatus(ctx context.Context, importID string) (zuora.ImportStatusResponse, error) {
+	return zuora.ImportStatusResponse{}, nil
 }
 
 // GetPayments mocks.
