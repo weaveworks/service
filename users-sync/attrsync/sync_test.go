@@ -77,8 +77,8 @@ func Test_AttrSyncNoOrgs(t *testing.T) {
 		UserId: user.Email,
 		Traits: analytics.Traits{
 			"name":      user.Name,
-			"firstName": user.GivenName,
-			"lastName":  user.FamilyName,
+			"firstName": user.FirstName,
+			"lastName":  user.LastName,
 			"email":     user.Email,
 			"createdAt": user.CreatedAt,
 			"company": map[string]string{
@@ -134,8 +134,8 @@ func Test_AttrSyncWithOrg(t *testing.T) {
 		UserId: user.Email,
 		Traits: analytics.Traits{
 			"name":      user.Name,
-			"firstName": user.GivenName,
-			"lastName":  user.FamilyName,
+			"firstName": user.FirstName,
+			"lastName":  user.LastName,
 			"email":     user.Email,
 			"createdAt": user.CreatedAt,
 			"company": map[string]string{

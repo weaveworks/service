@@ -178,7 +178,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		a.marketingQueues.UserCreated(u.Email, u.GivenName, u.FamilyName, u.Company, u.CreatedAt, extraState)
+		a.marketingQueues.UserCreated(u.Email, u.FirstName, u.LastName, u.Company, u.CreatedAt, extraState)
 	}
 
 	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
@@ -269,10 +269,10 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 
 // SignupRequest is the message sent to initiate a signup request
 type SignupRequest struct {
-	Email      string `json:"email,omitempty"`
-	GivenName  string `json:"givenName,omitempty"`
-	FamilyName string `json:"familyName,omitempty"`
-	Company    string `json:"company,omitempty"`
+	Email     string `json:"email,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Company   string `json:"company,omitempty"`
 	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
@@ -315,13 +315,13 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 			return nil, nil, users.ValidationErrorf("Please provide a valid email")
 		}
 		user, err = a.db.CreateUser(ctx, email, &users.UserUpdate{
-			Name:       fmt.Sprintf("%s %s", req.GivenName, req.FamilyName),
-			GivenName:  req.GivenName,
-			FamilyName: req.FamilyName,
-			Company:    req.Company,
+			Name:      fmt.Sprintf("%s %s", req.FirstName, req.LastName),
+			FirstName: req.FirstName,
+			LastName:  req.LastName,
+			Company:   req.Company,
 		})
 		if err == nil {
-			a.marketingQueues.UserCreated(user.Email, user.GivenName, user.FamilyName, user.Company, user.CreatedAt,
+			a.marketingQueues.UserCreated(user.Email, user.FirstName, user.LastName, user.Company, user.CreatedAt,
 				req.QueryParams)
 			if a.mixpanel != nil {
 				go func() {
@@ -462,8 +462,8 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	Name          string    `json:"name,omitempty"`
-	GivenName     string    `json:"givenName,omitempty"`
-	FamilyName    string    `json:"familyName,omitempty"`
+	FirstName     string    `json:"firstName,omitempty"`
+	LastName      string    `json:"lastName,omitempty"`
 	Company       string    `json:"company,omitempty"`
 	FirstLoginAt  string    `json:"firstLoginAt,omitempty"`
 	Organizations []OrgView `json:"organizations"`
@@ -498,8 +498,8 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	view := publicLookupView{
 		Email:         currentUser.Email,
 		Name:          currentUser.Name,
-		GivenName:     currentUser.GivenName,
-		FamilyName:    currentUser.FamilyName,
+		FirstName:     currentUser.FirstName,
+		LastName:      currentUser.LastName,
 		Company:       currentUser.Company,
 		FirstLoginAt:  currentUser.FormatFirstLoginAt(),
 		MunchkinHash:  a.MunchkinHash(currentUser.Email),

@@ -78,11 +78,11 @@ func segmentTrait(user *users.User, attrs map[string]int) analytics.Traits {
 	if user.Name != "" {
 		trait.SetName(user.Name)
 	}
-	if user.GivenName != "" {
-		trait.SetFirstName(user.GivenName)
+	if user.FirstName != "" {
+		trait.SetFirstName(user.FirstName)
 	}
-	if user.FamilyName != "" {
-		trait.SetLastName(user.FamilyName)
+	if user.LastName != "" {
+		trait.SetLastName(user.LastName)
 	}
 	if user.Company != "" {
 		trait.Set("company", map[string]string{"name": user.Company})

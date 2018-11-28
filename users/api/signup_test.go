@@ -65,10 +65,10 @@ func Test_Signup(t *testing.T) {
 
 	email := "joez@weave.works"
 	data := jsonBody{
-		"email":      email,
-		"givenName":  "Quincy",
-		"familyName": "Hanley",
-		"company":    "TDE",
+		"email":     email,
+		"firstName": "Quincy",
+		"lastName":  "Hanley",
+		"company":   "TDE",
 	}
 
 	// -- Signup as a new user, should send login email

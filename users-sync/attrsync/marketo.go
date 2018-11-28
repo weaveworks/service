@@ -26,12 +26,12 @@ func NewMarketoClient(cfg marketing.MarketoConfig) (marketing.MarketoClient, err
 func marketoProspect(user *users.User) (prospect marketing.Prospect, ok bool) {
 	prospect.Email = user.Email
 
-	if user.GivenName != "" {
-		prospect.FirstName = user.GivenName
+	if user.FirstName != "" {
+		prospect.FirstName = user.FirstName
 		ok = true
 	}
-	if user.FamilyName != "" {
-		prospect.LastName = user.FamilyName
+	if user.LastName != "" {
+		prospect.LastName = user.LastName
 		ok = true
 	}
 	if user.Company != "" {
