@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS permissions (
 
 CREATE SEQUENCE roles_id_seq;
 CREATE TABLE IF NOT EXISTS roles (
+    -- This ID should always be set to a unique descriptor name, e.g. 'admin' or 'editor'
     id                  text PRIMARY KEY NOT NULL DEFAULT nextval('roles_id_seq'),
     name                text NOT NULL,
 
