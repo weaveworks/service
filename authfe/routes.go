@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -421,6 +421,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/gcp-launcher/webhook",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
+		"/api/users/org/platform_version",               // Also validated by explicit token
 		"/webhooks",                                     // POSTed to by external services
 
 		"/admin/corp-atlantis/events", // GitHub webhook

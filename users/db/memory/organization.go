@@ -643,6 +643,14 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
+// SetOrganizationPlatformVersion sets the instance platform version.
+func (d *DB) SetOrganizationPlatformVersion(_ context.Context, externalID, platformVersion string) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.PlatformVersion = platformVersion
+		return nil
+	})
+}
+
 // SetLastSentWeeklyReportAt sets the last time weekly report email was sent for the instance
 func (d *DB) SetLastSentWeeklyReportAt(_ context.Context, externalID string, sentAt *time.Time) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {

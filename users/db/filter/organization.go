@@ -205,3 +205,17 @@ func (t ProbeToken) Where() squirrel.Sqlizer {
 func (t ProbeToken) MatchesOrg(o users.Organization) bool {
 	return strings.Contains(o.ProbeToken, string(t))
 }
+
+// PlatformVersion filters for organizations matching the given platform version.
+type PlatformVersion string
+
+// Where returns the query to filter by weak platform version match.
+func (t PlatformVersion) Where() squirrel.Sqlizer {
+	wrappedVersion := fmt.Sprint("%", string(t), "%")
+	return squirrel.Expr("organizations.platform_version LIKE ?", wrappedVersion)
+}
+
+// MatchesOrg checks whether an organization matches this filter.
+func (t PlatformVersion) MatchesOrg(o users.Organization) bool {
+	return strings.Contains(o.PlatformVersion, string(t))
+}

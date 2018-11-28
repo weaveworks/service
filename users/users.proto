@@ -225,6 +225,8 @@ message Organization {
     string RefuseDataReason = 26;
     // Keeping track of when weekly report email was last sent for the instance
     google.protobuf.Timestamp LastSentWeeklyReportAt = 27 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // Used by the admin interface
+    string PlatformVersion = 28;
 }
 
 message GoogleCloudPlatform {

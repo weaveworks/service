@@ -142,6 +142,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 		"organizations.first_seen_prom_connected_at",
 		"organizations.first_seen_scope_connected_at",
 		"organizations.last_sent_weekly_report_at",
+		"organizations.platform_version",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -550,6 +551,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&o.FirstSeenPromConnectedAt,
 		&o.FirstSeenScopeConnectedAt,
 		&o.LastSentWeeklyReportAt,
+		&o.PlatformVersion,
 	); err != nil {
 		return nil, err
 	}
@@ -803,6 +805,15 @@ func (d DB) SetOrganizationZuoraAccount(ctx context.Context, externalID, number 
 	_, err := d.ExecContext(ctx,
 		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where external_id = lower($3) and deleted_at is null`,
 		number, createdAt, externalID,
+	)
+	return err
+}
+
+// SetOrganizationPlatformVersion sets the instance platform version.
+func (d DB) SetOrganizationPlatformVersion(ctx context.Context, externalID, platformVersion string) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set platform_version = $1 where external_id = lower($2) and deleted_at is null`,
+		platformVersion, externalID,
 	)
 	return err
 }

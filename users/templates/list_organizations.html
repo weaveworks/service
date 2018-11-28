@@ -43,7 +43,7 @@
                 </label>
                 <div class="mdl-textfield mdl-js-textfield" style="width:640px">
                     <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
-                    <label class="mdl-textfield__label" for="query">id:3 instance:foo-bar-99 feature:&lt;flag&gt; has:zuora|gcp token:&lt;probe-token&gt;</label>
+                    <label class="mdl-textfield__label" for="query">id:3 instance:foo-bar-99 feature:&lt;flag&gt; has:zuora|gcp token:&lt;probe-token&gt; version:&lt;platform-version&gt;</label>
                 </div>
             </form>
             {{end}}
@@ -73,6 +73,7 @@
             <th class="mdl-data-table__cell--non-numeric">LastSentWeeklyReportAt</th>
             <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
+            <th class="mdl-data-table__cell--non-numeric">K8s version</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
             <th class="mdl-data-table__cell--non-numeric">Trial days remaining</th>
             <th class="mdl-data-table__cell--non-numeric">Billing</th>
@@ -105,6 +106,9 @@
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{.Platform}}{{if .Environment}}/{{.Environment}}{{end}}
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
+          {{.PlatformVersion}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">

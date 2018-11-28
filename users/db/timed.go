@@ -365,6 +365,12 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
+func (t timed) SetOrganizationPlatformVersion(ctx context.Context, externalID, platformVersion string) error {
+	return t.timeRequest(ctx, "SetOrganizationPlatformVersion", func(ctx context.Context) error {
+		return t.d.SetOrganizationPlatformVersion(ctx, externalID, platformVersion)
+	})
+}
+
 func (t timed) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) error {
 	return t.timeRequest(ctx, "SetLastSentWeeklyReportAt", func(ctx context.Context) error {
 		return t.d.SetLastSentWeeklyReportAt(ctx, externalID, sentAt)

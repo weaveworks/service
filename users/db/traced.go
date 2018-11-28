@@ -256,6 +256,11 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
+func (t traced) SetOrganizationPlatformVersion(ctx context.Context, externalID, platformVersion string) (err error) {
+	defer t.trace("SetOrganizationPlatformVersion", externalID, platformVersion, err)
+	return t.d.SetOrganizationPlatformVersion(ctx, externalID, platformVersion)
+}
+
 func (t traced) SetLastSentWeeklyReportAt(ctx context.Context, externalID string, sentAt *time.Time) (err error) {
 	defer t.trace("SetLastSentWeeklyReportAt", externalID, sentAt, err)
 	return t.d.SetLastSentWeeklyReportAt(ctx, externalID, sentAt)
