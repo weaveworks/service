@@ -11,5 +11,6 @@ DROP SEQUENCE IF EXISTS user_team_role_memberships_id_seq;
 ALTER TABLE team_memberships ADD COLUMN role_id text NOT NULL REFERENCES roles(id) DEFAULT 'admin';
 
 -- Remove ID sequence on roles (see https://github.com/weaveworks/service/pull/2413#discussion_r237190087)
+COMMENT ON COLUMN roles.id IS 'This should always be set to a unique descriptor name, e.g. ''admin'' or ''editor''.';
 ALTER TABLE roles ALTER COLUMN id DROP DEFAULT;
 DROP SEQUENCE IF EXISTS roles_id_seq;
