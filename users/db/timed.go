@@ -460,6 +460,14 @@ func (t timed) ListPermissionsForRoleID(ctx context.Context, roleID string) (p [
 	return
 }
 
+func (t timed) GetUserTeamRole(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+	t.timeRequest(ctx, "GetUserTeamRole", func(ctx context.Context) error {
+		r, err = t.d.GetUserTeamRole(ctx, userID, teamID)
+		return err
+	})
+	return
+}
+
 func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithTeam", func(ctx context.Context) error {
 		o, err = t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt)

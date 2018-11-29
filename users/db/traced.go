@@ -325,6 +325,11 @@ func (t traced) ListPermissionsForRoleID(ctx context.Context, roleID string) (os
 	return t.d.ListPermissionsForRoleID(ctx, roleID)
 }
 
+func (t traced) GetUserTeamRole(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+	defer t.trace("GetUserTeamRole", userID, teamID, r, err)
+	return t.d.GetUserTeamRole(ctx, userID, teamID)
+}
+
 func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	defer func() {
 		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt, o, err)

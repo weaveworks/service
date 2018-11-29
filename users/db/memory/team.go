@@ -19,12 +19,7 @@ func (d *DB) ListTeamsForUserID(_ context.Context, userID string) ([]*users.Team
 	defer d.mtx.Unlock()
 
 	var teams []*users.Team
-	teamIDs, exists := d.teamMemberships[userID]
-	if !exists {
-		return teams, nil
-	}
-
-	for _, teamID := range teamIDs {
+	for teamID := range d.teamMemberships[userID] {
 		team := d.teams[teamID]
 		teams = append(teams, team)
 	}
@@ -41,8 +36,8 @@ func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, e
 
 func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, error) {
 	var users []*users.User
-	for m, teamIDs := range d.teamMemberships {
-		for _, tID := range teamIDs {
+	for m, teamRoles := range d.teamMemberships {
+		for tID := range teamRoles {
 			if tID == teamID {
 				u, err := d.findUserByID(m)
 				if err != nil {
@@ -101,14 +96,15 @@ func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 // AddUserToTeam links a user to the team
 func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 	// no lock needed: caller must acquire lock.
-	teamIDs, _ := d.teamMemberships[userID]
-	for _, id := range teamIDs {
-		if id == teamID {
+	teamRoles, _ := d.teamMemberships[userID]
+	for tID := range teamRoles {
+		if tID == teamID {
 			return nil
 		}
 	}
-	teamIDs = append(teamIDs, teamID)
-	d.teamMemberships[userID] = teamIDs
+	// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
+	teamRoles[teamID] = "admin"
+	d.teamMemberships[userID] = teamRoles
 	return nil
 }
 
@@ -122,10 +118,10 @@ func (d *DB) DeleteTeam(ctx context.Context, teamID string) error {
 	}
 
 	// Delete memberships
-	for uid, tids := range d.teamMemberships {
-		for i, tid := range tids {
+	for uid, teamRoles := range d.teamMemberships {
+		for tid := range teamRoles {
 			if tid == teamID {
-				d.teamMemberships[uid] = append(tids[:i], tids[i+1:]...)
+				delete(d.teamMemberships[uid], tid)
 			}
 		}
 	}
@@ -134,6 +130,15 @@ func (d *DB) DeleteTeam(ctx context.Context, teamID string) error {
 	delete(d.teams, teamID)
 
 	return nil
+}
+
+// GetUserTeamRole returns the role the given user has in the given team
+func (d *DB) GetUserTeamRole(_ context.Context, userID string, teamID string) (*users.Role, error) {
+	roleID, exists := d.teamMemberships[userID][teamID]
+	if !exists {
+		return nil, fmt.Errorf("user %v is not part of the team %v", userID, teamID)
+	}
+	return d.roles[roleID], nil
 }
 
 // getTeamUserIsPartOf returns the team the user is part of.
@@ -154,7 +159,7 @@ func (d *DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID str
 		return nil, fmt.Errorf("team does not exist: %v", teamExternalID)
 	}
 
-	for _, teamID := range d.teamMemberships[userID] {
+	for teamID := range d.teamMemberships[userID] {
 		if teamID == team.ID {
 			// user is part of team
 			return d.teams[teamID], nil
@@ -171,7 +176,7 @@ func (d *DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName 
 		return nil, errors.New("teamName must be provided")
 	}
 
-	for _, teamID := range d.teamMemberships[userID] {
+	for teamID := range d.teamMemberships[userID] {
 		team := d.teams[teamID]
 		if strings.ToLower(teamName) == strings.ToLower(team.Name) {
 			// user is part of the team
