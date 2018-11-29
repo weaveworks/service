@@ -146,19 +146,23 @@ func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
 
 // GetUserRoleInTeam returns the role the given user has in the given team
 func (d DB) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (*users.Role, error) {
-	row, err := d.rolesQuery().
-		Join("team_memberships on (team_memberships.role_id = roles.id)").
-		Where("team_memberships.deleted_at IS NULL").
-		Where(squirrel.Eq{
-			"team_memberships.user_id": userID,
-			"team_memberships.team_id": teamID,
-		}).
-		QueryContext(ctx)
+	role, err := d.scanRole(
+		d.rolesQuery().
+			Join("team_memberships on (team_memberships.role_id = roles.id)").
+			Where("team_memberships.deleted_at IS NULL").
+			Where(squirrel.Eq{
+				"team_memberships.user_id": userID,
+				"team_memberships.team_id": teamID,
+			}).
+			QueryRowContext(ctx),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
-	row.Close()
-	return d.scanRole(row)
+	return role, nil
 }
 
 // teamExternalIDUsed returns whether the team externalID has already been taken

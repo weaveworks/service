@@ -61,8 +61,8 @@ func (d DB) scanPermission(row squirrel.RowScanner) (*users.Permission, error) {
 
 func (d DB) rolesQuery() squirrel.SelectBuilder {
 	return d.Select(`
-		role.id,
-		role.name
+		roles.id,
+		roles.name
 	`).
 		From("roles").
 		Where("roles.deleted_at is null").
