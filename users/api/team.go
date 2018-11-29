@@ -63,3 +63,24 @@ func (a *API) deleteTeam(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+// 	teamExternalID := mux.Vars(r)["teamExternalID"]
+// 	userEmail := mux.Vars(r)["userEmail"]
+
+// 	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), "admin")
+// 	if err != nil {
+// 		renderError(w, r, err)
+// 		return
+// 	}
+
+// 	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
+// 	for _, permission := range permissions {
+// 		view.Permissions = append(view.Permissions, PermissionView{
+// 			ID:          permission.ID,
+// 			Name:        permission.Name,
+// 			Description: permission.Description,
+// 		})
+// 	}
+// 	render.JSON(w, http.StatusOK, view)
+// }
