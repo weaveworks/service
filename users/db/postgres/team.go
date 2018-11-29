@@ -144,8 +144,8 @@ func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
 	return nil
 }
 
-// GetUserTeamRole returns the role the given user has in the given team
-func (d DB) GetUserTeamRole(ctx context.Context, userID string, teamID string) (*users.Role, error) {
+// GetUserRoleInTeam returns the role the given user has in the given team
+func (d DB) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (*users.Role, error) {
 	row, err := d.rolesQuery().
 		Join("team_memberships on (team_memberships.role_id = roles.id)").
 		Where("team_memberships.deleted_at IS NULL").
@@ -203,7 +203,8 @@ func (d DB) removeUserFromTeam(ctx context.Context, userID, teamID string) error
 	return err
 }
 
-func (d DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+// FindTeamByExternalID finds team by its external ID
+func (d DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	team, err := d.scanTeam(
 		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRowContext(ctx),
 	)

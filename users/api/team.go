@@ -21,6 +21,18 @@ type TeamView struct {
 	Name       string `json:"name"`
 }
 
+// PermissionsView describes an array of permissions
+type PermissionsView struct {
+	Permissions []PermissionView `json:"permissions,omitempty"`
+}
+
+// PermissionView describes a permission
+type PermissionView struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 func (a *API) userCanAccessTeam(ctx context.Context, currentUser *users.User, teamExternalID string) (*users.Team, error) {
 	teams, err := a.db.ListTeamsForUserID(ctx, currentUser.ID)
 	if err != nil {
@@ -64,23 +76,38 @@ func (a *API) deleteTeam(currentUser *users.User, w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-// 	teamExternalID := mux.Vars(r)["teamExternalID"]
-// 	userEmail := mux.Vars(r)["userEmail"]
+func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
-// 	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), "admin")
-// 	if err != nil {
-// 		renderError(w, r, err)
-// 		return
-// 	}
+	team, err := a.db.FindTeamByExternalID(r.Context(), mux.Vars(r)["teamExternalID"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
-// 	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
-// 	for _, permission := range permissions {
-// 		view.Permissions = append(view.Permissions, PermissionView{
-// 			ID:          permission.ID,
-// 			Name:        permission.Name,
-// 			Description: permission.Description,
-// 		})
-// 	}
-// 	render.JSON(w, http.StatusOK, view)
-// }
+	role, err := a.db.GetUserRoleInTeam(r.Context(), user.ID, team.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), role.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
+	for _, permission := range permissions {
+		view.Permissions = append(view.Permissions, PermissionView{
+			ID:          permission.ID,
+			Name:        permission.Name,
+			Description: permission.Description,
+		})
+	}
+	render.JSON(w, http.StatusOK, view)
+}

@@ -460,9 +460,17 @@ func (t timed) ListPermissionsForRoleID(ctx context.Context, roleID string) (p [
 	return
 }
 
-func (t timed) GetUserTeamRole(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
-	t.timeRequest(ctx, "GetUserTeamRole", func(ctx context.Context) error {
-		r, err = t.d.GetUserTeamRole(ctx, userID, teamID)
+func (t timed) FindTeamByExternalID(ctx context.Context, externalID string) (team *users.Team, err error) {
+	t.timeRequest(ctx, "FindTeamByExternalID", func(ctx context.Context) error {
+		team, err = t.d.FindTeamByExternalID(ctx, externalID)
+		return err
+	})
+	return
+}
+
+func (t timed) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+	t.timeRequest(ctx, "GetUserRoleInTeam", func(ctx context.Context) error {
+		r, err = t.d.GetUserRoleInTeam(ctx, userID, teamID)
 		return err
 	})
 	return

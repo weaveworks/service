@@ -132,8 +132,8 @@ func (d *DB) DeleteTeam(ctx context.Context, teamID string) error {
 	return nil
 }
 
-// GetUserTeamRole returns the role the given user has in the given team
-func (d *DB) GetUserTeamRole(_ context.Context, userID string, teamID string) (*users.Role, error) {
+// GetUserRoleInTeam returns the role the given user has in the given team
+func (d *DB) GetUserRoleInTeam(_ context.Context, userID string, teamID string) (*users.Role, error) {
 	roleID, exists := d.teamMemberships[userID][teamID]
 	if !exists {
 		return nil, fmt.Errorf("user %v is not part of the team %v", userID, teamID)

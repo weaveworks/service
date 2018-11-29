@@ -126,7 +126,8 @@ type DB interface {
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	ListPermissionsForRoleID(ctx context.Context, roleID string) ([]*users.Permission, error)
-	GetUserTeamRole(ctx context.Context, userID string, teamID string) (*users.Role, error)
+	GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (*users.Role, error)
+	FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error)
 	CreateTeam(_ context.Context, name string) (*users.Team, error)
 	AddUserToTeam(_ context.Context, userID, teamID string) error
 	DeleteTeam(ctx context.Context, teamID string) error

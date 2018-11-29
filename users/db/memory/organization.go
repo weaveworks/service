@@ -461,7 +461,7 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 			return err
 		}
 	} else {
-		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+		if team, err = d.FindTeamByExternalID(ctx, teamExternalID); err != nil {
 			return err
 		}
 	}
@@ -473,7 +473,8 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 	})
 }
 
-func (d *DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+// FindTeamByExternalID finds team by its external ID
+func (d *DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	for _, t := range d.teams {
 		if t.ExternalID == externalID {
 			return t, nil
