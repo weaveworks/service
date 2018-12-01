@@ -121,7 +121,7 @@ type EmailMessage struct {
 // BrowserMessage contains the required fields for formatting browser notifications
 type BrowserMessage struct {
 	Type        string            `json:"type"`
-	Text        string            `json:"text"`
+	Text        string            `json:"text"` // is in Markdown
 	Attachments []SlackAttachment `json:"attachments"`
 	Timestamp   time.Time         `json:"timestamp"`
 }

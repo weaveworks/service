@@ -128,19 +128,21 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return nil
 		}
 
-		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
+		html := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
+		markdown := formatEventTypeText("**", "**", receiver.RType, "_", "_", added, removed, userEmail)
+		plain := formatEventTypeText("", "", receiver.RType, "", "", added, removed, userEmail)
 
-		emailMsg, err := em.Render.EmailFromSlack(configChangeTitle, text, eventType, instanceName, "", "", "", link, eventTime)
+		emailMsg, err := em.Render.EmailFromSlack(configChangeTitle, html, eventType, instanceName, "", "", "", link, eventTime)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, link, "Weave Cloud notification")
+		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: markdown}, eventType, link, "Weave Cloud notification")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		textJSON, err := json.Marshal(text)
+		textJSON, err := json.Marshal(plain)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
