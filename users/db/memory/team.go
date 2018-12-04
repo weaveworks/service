@@ -102,6 +102,10 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 			return nil
 		}
 	}
+	// Make sure the submap has been initialized.
+	if teamRoles == nil {
+		teamRoles = map[string]string{}
+	}
 	// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
 	teamRoles[teamID] = "admin"
 	d.teamMemberships[userID] = teamRoles

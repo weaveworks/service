@@ -170,6 +170,10 @@ func (d *DB) InviteUser(ctx context.Context, email, orgExternalID string) (*user
 		return u, false, nil
 	}
 	if o.TeamID != "" {
+		// Make sure the submap has been initialized.
+		if d.teamMemberships[u.ID] == nil {
+			d.teamMemberships[u.ID] = map[string]string{}
+		}
 		// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
 		d.teamMemberships[u.ID][o.TeamID] = "admin"
 	} else {
