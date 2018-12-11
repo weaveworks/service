@@ -320,6 +320,21 @@ func (t traced) DeleteTeam(ctx context.Context, teamID string) (err error) {
 	return t.d.DeleteTeam(ctx, teamID)
 }
 
+func (t traced) ListPermissionsForRoleID(ctx context.Context, roleID string) (os []*users.Permission, err error) {
+	defer t.trace("ListPermissionsForRoleID", roleID, os, err)
+	return t.d.ListPermissionsForRoleID(ctx, roleID)
+}
+
+func (t traced) FindTeamByExternalID(ctx context.Context, externalID string) (team *users.Team, err error) {
+	defer t.trace("FindTeamByExternalID", externalID, team, err)
+	return t.d.FindTeamByExternalID(ctx, externalID)
+}
+
+func (t traced) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+	defer t.trace("GetUserRoleInTeam", userID, teamID, r, err)
+	return t.d.GetUserRoleInTeam(ctx, userID, teamID)
+}
+
 func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	defer func() {
 		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt, o, err)

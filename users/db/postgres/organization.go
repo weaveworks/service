@@ -656,7 +656,7 @@ func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternal
 			return err
 		}
 	} else {
-		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+		if team, err = d.FindTeamByExternalID(ctx, teamExternalID); err != nil {
 			return err
 		}
 	}

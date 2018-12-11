@@ -418,3 +418,14 @@ message SetOrganizationWebhookFirstSeenAtResponse {
 message InformOrganizationBillingConfiguredRequest {
     string ExternalID = 1;
 }
+
+message Permission {
+    string ID = 1;
+    string Name = 2;
+    string Description = 3;
+}
+
+message Role {
+    string ID = 1;
+    string Name = 2;
+}

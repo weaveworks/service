@@ -144,6 +144,27 @@ func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
 	return nil
 }
 
+// GetUserRoleInTeam returns the role the given user has in the given team
+func (d DB) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (*users.Role, error) {
+	role, err := d.scanRole(
+		d.rolesQuery().
+			Join("team_memberships on (team_memberships.role_id = roles.id)").
+			Where("team_memberships.deleted_at IS NULL").
+			Where(squirrel.Eq{
+				"team_memberships.user_id": userID,
+				"team_memberships.team_id": teamID,
+			}).
+			QueryRowContext(ctx),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
 // teamExternalIDUsed returns whether the team externalID has already been taken
 func (d DB) teamExternalIDUsed(ctx context.Context, externalID string) (bool, error) {
 	var exists bool
@@ -186,7 +207,8 @@ func (d DB) removeUserFromTeam(ctx context.Context, userID, teamID string) error
 	return err
 }
 
-func (d DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+// FindTeamByExternalID finds team by its external ID
+func (d DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	team, err := d.scanTeam(
 		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRowContext(ctx),
 	)

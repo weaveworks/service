@@ -51,8 +51,10 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// This is the first endpoint the UI hits to see if the user is logged in.
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
+		// Team and permissions management
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
 		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
+		{"api_users_teams_teamExternalID_permissions", "GET", "/api/users/teams/{teamExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listPermissions)},
 
 		// Used by the launcher agent to get the external instance ID using a token
 		{"api_users_org_token_lookup", "GET", "/api/users/org/lookup", a.authenticateProbe(a.orgLookup)},

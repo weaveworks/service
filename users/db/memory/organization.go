@@ -43,10 +43,10 @@ func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email 
 	}
 
 	if o.TeamID != "" {
-		var newTeams []string
-		for _, teamID := range d.teamMemberships[u.ID] {
+		var newTeams map[string]string
+		for teamID, roleID := range d.teamMemberships[u.ID] {
 			if teamID != o.TeamID {
-				newTeams = append(newTeams, teamID)
+				newTeams[teamID] = roleID
 			}
 		}
 		d.teamMemberships[u.ID] = newTeams
@@ -73,8 +73,8 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 
 	if o.TeamID != "" {
 		teamIDs, _ := d.teamMemberships[userID]
-		for _, id := range teamIDs {
-			if id == o.TeamID {
+		for teamID := range teamIDs {
+			if teamID == o.TeamID {
 				return true, nil
 			}
 		}
@@ -201,7 +201,7 @@ func (d *DB) listOrganizationsForUserIDs(userIDs []string, includeDeletedOrgs bo
 	}
 
 	for _, userID := range userIDs {
-		for _, teamID := range d.teamMemberships[userID] {
+		for teamID := range d.teamMemberships[userID] {
 			for _, o := range d.organizations {
 				if o.TeamID == teamID {
 					orgIDs[o.ID] = struct{}{}
@@ -461,7 +461,7 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 			return err
 		}
 	} else {
-		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+		if team, err = d.FindTeamByExternalID(ctx, teamExternalID); err != nil {
 			return err
 		}
 	}
@@ -473,7 +473,8 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 	})
 }
 
-func (d *DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+// FindTeamByExternalID finds team by its external ID
+func (d *DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	for _, t := range d.teams {
 		if t.ExternalID == externalID {
 			return t, nil
