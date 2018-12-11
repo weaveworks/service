@@ -145,7 +145,7 @@ func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
 }
 
 // GetUserRoleInTeam returns the role the given user has in the given team
-func (d DB) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (*users.Role, error) {
+func (d DB) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (*users.Role, error) {
 	role, err := d.scanRole(
 		d.rolesQuery().
 			Join("team_memberships on (team_memberships.role_id = roles.id)").

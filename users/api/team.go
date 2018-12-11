@@ -77,13 +77,13 @@ func (a *API) deleteTeam(currentUser *users.User, w http.ResponseWriter, r *http
 }
 
 func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
+	team, err := a.userCanAccessTeam(r.Context(), currentUser, mux.Vars(r)["teamExternalID"])
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	team, err := a.db.FindTeamByExternalID(r.Context(), mux.Vars(r)["teamExternalID"])
+	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
 	if err != nil {
 		renderError(w, r, err)
 		return

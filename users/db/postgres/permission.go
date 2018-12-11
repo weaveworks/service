@@ -13,7 +13,7 @@ import (
 func (d DB) ListPermissionsForRoleID(ctx context.Context, roleID string) ([]*users.Permission, error) {
 	rows, err := d.permissionsQuery().
 		Join("roles_permissions on (roles_permissions.permission_id = permissions.id)").
-		Where("roles_permissions.deleted_at IS NULL").
+		Where("roles_permissions.deleted_at is null").
 		Where(squirrel.Eq{
 			"roles_permissions.role_id": roleID,
 		}).
