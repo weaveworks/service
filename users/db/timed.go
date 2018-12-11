@@ -468,9 +468,17 @@ func (t timed) FindTeamByExternalID(ctx context.Context, externalID string) (tea
 	return
 }
 
-func (t timed) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+func (t timed) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (r *users.Role, err error) {
 	t.timeRequest(ctx, "GetUserRoleInTeam", func(ctx context.Context) error {
 		r, err = t.d.GetUserRoleInTeam(ctx, userID, teamID)
+		return err
+	})
+	return
+}
+
+func (t timed) UpdateUserRoleInTeam(ctx context.Context, userID, teamID, roleID string) (err error) {
+	t.timeRequest(ctx, "UpdateUserRoleInTeam", func(ctx context.Context) error {
+		err = t.d.UpdateUserRoleInTeam(ctx, userID, teamID, roleID)
 		return err
 	})
 	return

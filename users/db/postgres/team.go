@@ -165,6 +165,18 @@ func (d DB) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (*user
 	return role, nil
 }
 
+// UpdateUserRoleInTeam updates the role of the user within the team to roleID
+func (d DB) UpdateUserRoleInTeam(ctx context.Context, userID, teamID, roleID string) error {
+	_, err := d.ExecContext(ctx,
+		"update team_memberships set role_id = $1 where user_id = $2 and team_id = $3 and deleted_at is null",
+		roleID, userID, teamID,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // teamExternalIDUsed returns whether the team externalID has already been taken
 func (d DB) teamExternalIDUsed(ctx context.Context, externalID string) (bool, error) {
 	var exists bool
