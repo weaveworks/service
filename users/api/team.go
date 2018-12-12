@@ -24,7 +24,7 @@ type TeamView struct {
 
 // PermissionsView describes an array of permissions
 type PermissionsView struct {
-	Permissions []PermissionView `json:"permissions,omitempty"`
+	Permissions []PermissionView `json:"permissions"`
 }
 
 // PermissionView describes a permission
