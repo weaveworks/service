@@ -3,7 +3,7 @@
 
 -- Move all orphan organizations into their dedicated teams
 UPDATE organizations SET team_id = teams.id FROM teams
-WHERE organizations.team_id IS NULL AND organizations.external_id = teams.external_id;
+WHERE organizations.team_id IS NULL AND CONCAT(organizations.external_id, '-team') = teams.external_id;
 
 -- Move all user memberships into the new teams
 -- (implicitly linking the users to same organizations)
