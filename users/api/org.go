@@ -412,31 +412,32 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 func (a *API) listOrgPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	userEmail := mux.Vars(r)["userEmail"]
+	ctx := r.Context()
 
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	user, err := a.db.FindUserByEmail(r.Context(), userEmail)
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	role, err := a.db.GetUserRoleInTeam(r.Context(), user.ID, org.TeamID)
+	role, err := a.db.GetUserRoleInTeam(ctx, user.ID, org.TeamID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), role.ID)
+	permissions, err := a.db.ListPermissionsForRoleID(ctx, role.ID)
 	if err != nil {
 		renderError(w, r, err)
 		return
