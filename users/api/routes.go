@@ -54,6 +54,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Team and permissions management
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
 		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
+		{"api_users_teams_teamExternalID_update_user_role", "PUT", "/api/users/teams/{teamExternalID}/users/{userEmail}", a.authenticateUser(a.updateUserRoleInTeam)},
 		{"api_users_teams_teamExternalID_permissions", "GET", "/api/users/teams/{teamExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listPermissions)},
 
 		// Used by the launcher agent to get the external instance ID using a token

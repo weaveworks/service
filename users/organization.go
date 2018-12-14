@@ -71,6 +71,11 @@ type OrgWriteView struct {
 	TrialExpiredNotifiedAt       *time.Time
 }
 
+// TeamMembershipWriteView represents an update for an team membership with optional fields.
+type TeamMembershipWriteView struct {
+	RoleID string `json:"roleId"`
+}
+
 // RegenerateProbeToken regenerates the organizations probe token
 func (o *Organization) RegenerateProbeToken() error {
 	t, err := tokens.Generate()

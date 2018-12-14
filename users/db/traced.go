@@ -330,9 +330,14 @@ func (t traced) FindTeamByExternalID(ctx context.Context, externalID string) (te
 	return t.d.FindTeamByExternalID(ctx, externalID)
 }
 
-func (t traced) GetUserRoleInTeam(ctx context.Context, userID string, teamID string) (r *users.Role, err error) {
+func (t traced) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (r *users.Role, err error) {
 	defer t.trace("GetUserRoleInTeam", userID, teamID, r, err)
 	return t.d.GetUserRoleInTeam(ctx, userID, teamID)
+}
+
+func (t traced) UpdateUserRoleInTeam(ctx context.Context, userID, teamID, roleID string) (err error) {
+	defer t.trace("UpdateUserRoleInTeam", userID, teamID, roleID, err)
+	return t.d.UpdateUserRoleInTeam(ctx, userID, teamID, roleID)
 }
 
 func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {

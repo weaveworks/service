@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -23,7 +24,7 @@ type TeamView struct {
 
 // PermissionsView describes an array of permissions
 type PermissionsView struct {
-	Permissions []PermissionView `json:"permissions,omitempty"`
+	Permissions []PermissionView `json:"permissions"`
 }
 
 // PermissionView describes a permission
@@ -70,6 +71,38 @@ func (a *API) deleteTeam(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 	if err := a.db.DeleteTeam(r.Context(), team.ID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	team, err := a.userCanAccessTeam(r.Context(), currentUser, mux.Vars(r)["teamExternalID"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	defer r.Body.Close()
+	var update users.TeamMembershipWriteView
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		renderError(w, r, users.NewMalformedInputError(err))
+		return
+	}
+
+	// This query might fail for a couple of reasons:
+	//   1. The user is not part of the team
+	//   2. Role ID is not valid (`admin`, `editor`, `viewer`)
+	//      - this check is done implicitly on the DB level
+	err = a.db.UpdateUserRoleInTeam(r.Context(), user.ID, team.ID, update.RoleID)
+	if err != nil {
 		renderError(w, r, err)
 		return
 	}
