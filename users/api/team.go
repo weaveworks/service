@@ -109,14 +109,29 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	team, err := a.userCanAccessTeam(r.Context(), currentUser, mux.Vars(r)["teamExternalID"])
+func renderPermissions(permissions []*users.Permission) *PermissionsView {
+	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
+	for _, permission := range permissions {
+		view.Permissions = append(view.Permissions, PermissionView{
+			ID:          permission.ID,
+			Name:        permission.Name,
+			Description: permission.Description,
+		})
+	}
+	return &view
+}
+
+func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	teamExternalID := mux.Vars(r)["teamExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+
+	team, err := a.userCanAccessTeam(r.Context(), currentUser, teamExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
+	user, err := a.db.FindUserByEmail(r.Context(), userEmail)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -134,13 +149,5 @@ func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r 
 		return
 	}
 
-	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
-	for _, permission := range permissions {
-		view.Permissions = append(view.Permissions, PermissionView{
-			ID:          permission.ID,
-			Name:        permission.Name,
-			Description: permission.Description,
-		})
-	}
-	render.JSON(w, http.StatusOK, view)
+	render.JSON(w, http.StatusOK, renderPermissions(permissions))
 }

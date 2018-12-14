@@ -409,6 +409,42 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (a *API) listOrgPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+
+	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	user, err := a.db.FindUserByEmail(r.Context(), userEmail)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	role, err := a.db.GetUserRoleInTeam(r.Context(), user.ID, org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), role.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, renderPermissions(permissions))
+}
+
 type organizationUsersView struct {
 	Users []organizationUserView `json:"users"`
 }

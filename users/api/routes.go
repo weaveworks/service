@@ -55,7 +55,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
 		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
 		{"api_users_teams_teamExternalID_update_user_role", "PUT", "/api/users/teams/{teamExternalID}/users/{userEmail}", a.authenticateUser(a.updateUserRoleInTeam)},
-		{"api_users_teams_teamExternalID_permissions", "GET", "/api/users/teams/{teamExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listPermissions)},
+		{"api_users_teams_teamExternalID_permissions", "GET", "/api/users/teams/{teamExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listTeamPermissions)},
 
 		// Used by the launcher agent to get the external instance ID using a token
 		{"api_users_org_token_lookup", "GET", "/api/users/org/lookup", a.authenticateProbe(a.orgLookup)},
@@ -70,6 +70,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID", "GET", "/api/users/org/{orgExternalID}", a.authenticateUser(a.org)},
 		{"api_users_org_orgExternalID_update", "PUT", "/api/users/org/{orgExternalID}", a.authenticateUser(a.updateOrg)},
 		{"api_users_org_orgExternalID_delete", "DELETE", "/api/users/org/{orgExternalID}", a.authenticateUser(a.deleteOrg)},
+		{"api_users_org_orgExternalID_permissions", "GET", "/api/users/org/{orgExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listOrgPermissions)},
 		{"api_users_org_service_status", "GET", "/api/users/org/{orgExternalID}/status", a.authenticateUser(a.getOrgServiceStatus)},
 
 		// Used to list and manage organization access (invites)
