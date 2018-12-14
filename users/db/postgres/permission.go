@@ -58,21 +58,3 @@ func (d DB) scanPermission(row squirrel.RowScanner) (*users.Permission, error) {
 	}
 	return p, nil
 }
-
-func (d DB) rolesQuery() squirrel.SelectBuilder {
-	return d.Select(`
-		roles.id,
-		roles.name
-	`).
-		From("roles").
-		Where("roles.deleted_at is null").
-		OrderBy("roles.created_at")
-}
-
-func (d DB) scanRole(row squirrel.RowScanner) (*users.Role, error) {
-	r := &users.Role{}
-	if err := row.Scan(&r.ID, &r.Name); err != nil {
-		return nil, err
-	}
-	return r, nil
-}

@@ -13,6 +13,19 @@ import (
 	"github.com/weaveworks/service/users/externalids"
 )
 
+// ListRoles lists all user roles
+func (d *DB) ListRoles(_ context.Context) ([]*users.Role, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	var roles []*users.Role
+	for _, role := range d.roles {
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
 // ListTeamsForUserID lists the teams these users belong to
 func (d *DB) ListTeamsForUserID(_ context.Context, userID string) ([]*users.Team, error) {
 	d.mtx.Lock()

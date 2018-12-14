@@ -22,6 +22,17 @@ type TeamView struct {
 	Name       string `json:"name"`
 }
 
+// RolesView describes an array of user roles
+type RolesView struct {
+	Roles []RoleView `json:"roles"`
+}
+
+// RoleView describes a user role
+type RoleView struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // PermissionsView describes an array of permissions
 type PermissionsView struct {
 	Permissions []PermissionView `json:"permissions"`
@@ -45,6 +56,22 @@ func (a *API) userCanAccessTeam(ctx context.Context, currentUser *users.User, te
 		}
 	}
 	return nil, users.ErrForbidden
+}
+
+func (a *API) listRoles(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	roles, err := a.db.ListRoles(r.Context())
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	view := RolesView{Roles: make([]RoleView, 0, len(roles))}
+	for _, role := range roles {
+		view.Roles = append(view.Roles, RoleView{
+			ID:   role.ID,
+			Name: role.Name,
+		})
+	}
+	render.JSON(w, http.StatusOK, view)
 }
 
 func (a *API) listTeams(currentUser *users.User, w http.ResponseWriter, r *http.Request) {

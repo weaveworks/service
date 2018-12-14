@@ -125,6 +125,7 @@ type DB interface {
 
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
+	ListRoles(ctx context.Context) ([]*users.Role, error)
 	ListPermissionsForRoleID(ctx context.Context, roleID string) ([]*users.Permission, error)
 	GetUserRoleInTeam(ctx context.Context, userID, teamID string) (*users.Role, error)
 	UpdateUserRoleInTeam(ctx context.Context, userID, teamID, roleID string) error

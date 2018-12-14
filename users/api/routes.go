@@ -52,6 +52,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
 		// Team and permissions management
+		{"api_users_roles", "GET", "/api/users/roles", a.authenticateUser(a.listRoles)},
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
 		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
 		{"api_users_teams_teamExternalID_update_user_role", "PUT", "/api/users/teams/{teamExternalID}/users/{userEmail}", a.authenticateUser(a.updateUserRoleInTeam)},
