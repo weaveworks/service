@@ -145,7 +145,7 @@ func (d *DB) GetUserRoleInTeam(_ context.Context, userID, teamID string) (*users
 	return d.roles[roleID], nil
 }
 
-// UpdateUserRoleInTeam returns the role the given user has in the given team
+// UpdateUserRoleInTeam updates the role the given user has in the given team
 func (d *DB) UpdateUserRoleInTeam(_ context.Context, userID, teamID, roleID string) error {
 	if _, exists := d.teamMemberships[userID][teamID]; !exists {
 		return fmt.Errorf("user %v is not part of the team %v", userID, teamID)
