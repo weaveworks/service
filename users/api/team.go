@@ -78,13 +78,17 @@ func (a *API) deleteTeam(currentUser *users.User, w http.ResponseWriter, r *http
 }
 
 func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	team, err := a.userCanAccessTeam(r.Context(), currentUser, mux.Vars(r)["teamExternalID"])
+	teamExternalID := mux.Vars(r)["teamExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+	ctx := r.Context()
+
+	team, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -109,31 +113,7 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	team, err := a.userCanAccessTeam(r.Context(), currentUser, mux.Vars(r)["teamExternalID"])
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-
-	user, err := a.db.FindUserByEmail(r.Context(), mux.Vars(r)["userEmail"])
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-
-	role, err := a.db.GetUserRoleInTeam(r.Context(), user.ID, team.ID)
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-
-	permissions, err := a.db.ListPermissionsForRoleID(r.Context(), role.ID)
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-
+func renderPermissions(permissions []*users.Permission) *PermissionsView {
 	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
 	for _, permission := range permissions {
 		view.Permissions = append(view.Permissions, PermissionView{
@@ -142,5 +122,37 @@ func (a *API) listPermissions(currentUser *users.User, w http.ResponseWriter, r 
 			Description: permission.Description,
 		})
 	}
-	render.JSON(w, http.StatusOK, view)
+	return &view
+}
+
+func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	teamExternalID := mux.Vars(r)["teamExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+	ctx := r.Context()
+
+	team, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	role, err := a.db.GetUserRoleInTeam(ctx, user.ID, team.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	permissions, err := a.db.ListPermissionsForRoleID(ctx, role.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, renderPermissions(permissions))
 }
