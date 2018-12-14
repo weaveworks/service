@@ -12,7 +12,7 @@
 
   <div style="margin-bottom: 60px;">
     <h2 style="color: #666; font-size: 18px; font-weight: normal; margin: 30px 0 5px;">Deployments</h2>
-    <p style="color: #666; font-size: 12px; margin: 0 0 5px;">Days are counted in the <b>UTC</b> timezone</p>
+    <p style="color: #666; font-size: 12px; margin: 0 0 5px;">Days are based on <b>UTC</b></p>
 
     <div style="margin-top: 10px; height: 200px; width: 100%;">
       {{range .Deployments}}
@@ -34,7 +34,7 @@
   </div>
 
   <div style="margin-bottom: 30px;">
-    <h2 style="color: #666; font-size: 18px; font-weight: normal; margin-bottom: 5px;">Resource Consumption</h2>
+    <h2 style="color: #666; font-size: 18px; font-weight: normal; margin-bottom: 5px;">Resource consumption</h2>
     <p style="color: #666; font-size: 12px; margin: 0 0 15px;">Showing workloads consuming most resources (% of total cluster capacity)</p>
 
     {{range .Resources}}

@@ -6,11 +6,11 @@ Hi,
     {{else}}
     Here is an overview of `{{.OrganizationName}}` this past week.
     {{end}}
-    Deployment counts (UTC timezone):
+    Deployment counts (based on UTC):
     {{range .Deployments}}
-        * {{.DayOfWeek}} - {{.TotalCount}}{{end}}
+        * {{.DayOfWeek}}: {{.TotalCount}}{{end}}
 
-    Resource Consumption (% of total cluster capacity):
+    Resource consumption (% of total cluster capacity):
     {{range .Resources}}
         {{.Label}}
         {{range .TopConsumers}}
