@@ -101,7 +101,7 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 	//   1. The user is not part of the team
 	//   2. Role ID is not valid (`admin`, `editor`, `viewer`)
 	//      - this check is done implicitly on the DB level
-	err = a.db.UpdateUserRoleInTeam(r.Context(), user.ID, team.ID, *update.RoleID)
+	err = a.db.UpdateUserRoleInTeam(r.Context(), user.ID, team.ID, update.RoleID)
 	if err != nil {
 		renderError(w, r, err)
 		return

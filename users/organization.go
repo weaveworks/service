@@ -73,7 +73,7 @@ type OrgWriteView struct {
 
 // TeamMembershipWriteView represents an update for an team membership with optional fields.
 type TeamMembershipWriteView struct {
-	RoleID *string `json:"roleId"`
+	RoleID string `json:"roleId"`
 }
 
 // RegenerateProbeToken regenerates the organizations probe token
