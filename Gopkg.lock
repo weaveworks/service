@@ -311,12 +311,15 @@
   revision = "2fa06788d5bf9a718f8d5d4c63be5db0b58cd1dd"
 
 [[projects]]
-  digest = "1:a62049a8fa554d688c8db4845c65ddcd5986b75f3a851e4fb563c6893d292e38"
+  digest = "1:a507e8646bf3775af6f7e7b2a62a5e67d1c6a8f00754f87e66b96181b7f3d747"
   name = "github.com/golang/mock"
-  packages = ["gomock"]
+  packages = [
+    "gomock",
+    "mockgen/model",
+  ]
   pruneopts = "NUT"
-  revision = "13f360950a79f5864a972c786a10a50e44b69541"
-  version = "v1.0.0"
+  revision = "51421b967af1f557f93a59e0057aaf15ca02e29c"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:14d9dd2c6e434160dea649acdcc5ac4edb071174598210c951c5bdaad6c58335"
@@ -1381,6 +1384,7 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
+    "github.com/golang/mock/mockgen/model",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/go-github/github",
     "github.com/google/uuid",
