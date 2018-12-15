@@ -95,9 +95,9 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "%24")
 
 	// Verify data forwarded to Marketo
-	today := time.Now().Format("2006-01-02")
+	today := time.Now().UTC().Format("2006-01-02")
 	marketoExpected := `{"programName":"test","lookupField":"email","input":[{"email":"joez@weave.works","Weave_Cloud_Created_On__c":"` + today + `","firstName":"Quincy","lastName":"Hanley","Company":"TDE"}]}`
-	assert.JSONEq(t, marketoExpected, string(goketoClient.LatestReq))
+	assertMarketoEventually(t, marketoExpected)
 
 	// -- Login with the link
 	u, err := url.Parse(loginLink)
@@ -157,7 +157,24 @@ func Test_Signup(t *testing.T) {
 	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
-	assert.JSONEq(t, marketoExpected, string(goketoClient.LatestReq))
+	assertMarketoEventually(t, marketoExpected)
+}
+
+func assertMarketoEventually(t *testing.T, expected string) {
+	tick := time.Tick(100 * time.Millisecond)
+	timeout := time.After(2 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			assert.Fail(t, "timed out while waiting for Marketo request")
+			return
+		case <-tick:
+			if len(goketoClient.LatestReq) > 0 {
+				assert.JSONEq(t, expected, string(goketoClient.LatestReq))
+				return
+			}
+		}
+	}
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {
