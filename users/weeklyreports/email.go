@@ -9,6 +9,7 @@ import (
 // Date formats for the weekly email.
 const (
 	dayOfWeekFormat = "Mon"
+	dateDayFormat   = "2"
 	dateShortFormat = "Jan 2"
 	dateLongFormat  = "October 2nd, 2006"
 )
@@ -128,9 +129,12 @@ func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizati
 
 func getReportInterval(report *Report) string {
 	// Format the last day nicely (go back a day for inclusive interval).
-	lastDay := report.EndAt.AddDate(0, 0, -1).Format(dateShortFormat)
-	firstDay := report.StartAt.Format(dateShortFormat)
-	return fmt.Sprintf("%s - %s", firstDay, lastDay)
+	lastDay := report.EndAt.AddDate(0, 0, -1)
+	firstDay := report.StartAt
+	if lastDay.Month() == firstDay.Month() {
+		return fmt.Sprintf("%s–%s", firstDay.Format(dateShortFormat), lastDay.Format(dateDayFormat))
+	}
+	return fmt.Sprintf("%s–%s", firstDay.Format(dateShortFormat), lastDay.Format(dateShortFormat))
 }
 
 func getOrganizationCreationDayIfRecent(report *Report) string {
