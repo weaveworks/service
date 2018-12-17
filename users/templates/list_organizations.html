@@ -69,11 +69,11 @@
           <tr>
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Name<br />Instance</th>
+            <th class="mdl-data-table__cell--non-numeric">Team</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼<br />FirstSeenConnectedAt</th>
             <th class="mdl-data-table__cell--non-numeric">LastSentWeeklyReportAt</th>
             <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
-            <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
-            <th class="mdl-data-table__cell--non-numeric">K8s version</th>
+            <th class="mdl-data-table__cell--non-numeric">Platform / Env /<br />K8s version</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
             <th class="mdl-data-table__cell--non-numeric">Trial days remaining</th>
             <th class="mdl-data-table__cell--non-numeric">Billing</th>
@@ -81,13 +81,28 @@
           </tr>
       </thead>
       <tbody>
+      {{ $organizationUsers := .OrganizationUsers }}
+      {{ $moreUsersCount := .MoreUsersCount }}
       {{range .Organizations}}
       <tr>
         <td>{{.ID}}</td>
         <td class="mdl-data-table__cell--non-numeric">
             <span style="font-size:larger">{{if not .DeletedAt.IsZero}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
             <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
-            <a href="organizations/{{.ExternalID}}/users">Users</a> <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
+             <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
+          Team: {{.TeamExternalID}}<br />
+          <a href="organizations/{{.ExternalID}}/users">
+            {{$users := index $organizationUsers .ExternalID}}
+            {{$moreUsers := index $moreUsersCount .ExternalID}}
+            {{range $users}}
+              {{.Email}} ({{.Company}})<br />
+            {{end}}
+            {{ if gt $moreUsers 0 }}
+              and {{$moreUsers}} more...
+            {{ end }}
+          </a>
         </td>
         <td class="mdl-data-table__cell--non-numeric">{{.FormatCreatedAt}}<br />
         {{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt.Format "2006-01-02T15:04:05Z07:00"}}{{ else }}
@@ -105,10 +120,7 @@
             {{if not .DeletedAt.IsZero}}{{.DeletedAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
-          {{.Platform}}{{if .Environment}}/{{.Environment}}{{end}}
-        </td>
-        <td class="mdl-data-table__cell--non-numeric">
-          {{.PlatformVersion}}
+          {{.Platform}} / <br />{{.Environment}} / <br />{{.PlatformVersion}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">

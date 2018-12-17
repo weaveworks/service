@@ -210,9 +210,16 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
+	orgUsers, moreUsersCount, err := getUserMeta(a, r.Context(), organizations)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations":      organizations,
+		"OrganizationUsers":  orgUsers,
+		"MoreUsersCount":     moreUsersCount,
 		"Query":              r.FormValue("query"),
 		"Page":               page,
 		"NextPage":           page + 1,
@@ -245,9 +252,16 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, err)
 		return
 	}
+	orgUsers, moreUsersCount, err := getUserMeta(a, r.Context(), organizations)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations":      organizations,
+		"OrganizationUsers":  orgUsers,
+		"MoreUsersCount":     moreUsersCount,
 		"UserEmail":          user.Email,
 		"BillingFeatureFlag": featureflag.Billing,
 	})
@@ -477,6 +491,29 @@ func (a *API) adminGetUserToken(w http.ResponseWriter, r *http.Request) {
 		Token: tok,
 	})
 	return
+}
+
+func getUserMeta(a *API, ctx context.Context, organizations []*users.Organization) (map[string][]*users.User, map[string]int, error) {
+	orgUsers := make(map[string][]*users.User)
+	moreUsersCount := make(map[string]int)
+	for _, org := range organizations {
+		us, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		// If more than 3 users return the first 2 users leaving a spare line
+		// for a "and n more" message.
+		more := 0
+		if len(us) > 3 {
+			more = len(us) - 2
+			us = us[:2]
+		}
+
+		orgUsers[org.ExternalID] = us
+		moreUsersCount[org.ExternalID] = more
+	}
+
+	return orgUsers, moreUsersCount, nil
 }
 
 func getSpecificLogin(login string, logins []*login.Login) (*login.Login, error) {
