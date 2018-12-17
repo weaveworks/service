@@ -210,7 +210,7 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	orgUsers, moreUsersCount, err := a.GetUserMeta(r.Context(), organizations)
+	orgUsers, moreUsersCount, err := a.GetOrganizationsUsers(r.Context(), organizations, 3)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -252,7 +252,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, err)
 		return
 	}
-	orgUsers, moreUsersCount, err := a.GetUserMeta(r.Context(), organizations)
+	orgUsers, moreUsersCount, err := a.GetOrganizationsUsers(r.Context(), organizations, 3)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -529,7 +529,8 @@ func (a *API) MakeUserAdmin(ctx context.Context, userID string, admin bool) erro
 	return a.db.SetUserAdmin(ctx, userID, admin)
 }
 
-func (a *API) GetUserMeta(ctx context.Context, organizations []*users.Organization) (map[string][]*users.User, map[string]int, error) {
+// GetOrganizationsUsers gets the user meta
+func (a *API) GetOrganizationsUsers(ctx context.Context, organizations []*users.Organization, limit int) (map[string][]*users.User, map[string]int, error) {
 	orgUsers := make(map[string][]*users.User)
 	moreUsersCount := make(map[string]int)
 	for _, org := range organizations {
@@ -537,12 +538,13 @@ func (a *API) GetUserMeta(ctx context.Context, organizations []*users.Organizati
 		if err != nil {
 			return nil, nil, err
 		}
-		// If more than 3 users return the first 2 users leaving a spare line
-		// for a "and n more" message.
+		// If more than n users then return the first (n - 1) users
+		// leaving a spare line for a "and x more" message.
 		more := 0
-		if len(us) > 3 {
-			more = len(us) - 2
-			us = us[:2]
+		if len(us) > limit {
+			displayedUserCount := limit - 1
+			more = len(us) - displayedUserCount
+			us = us[:displayedUserCount]
 		}
 
 		orgUsers[org.ExternalID] = us
