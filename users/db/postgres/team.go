@@ -14,17 +14,6 @@ import (
 	"github.com/weaveworks/service/users/externalids"
 )
 
-// ListRoles returns all user roles
-func (d DB) ListRoles(ctx context.Context) ([]*users.Role, error) {
-	query := d.rolesQuery()
-	rows, err := query.QueryContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return d.scanRoles(rows)
-}
-
 // ListTeamsForUserID returns all teams belonging to userId
 func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error) {
 	query := d.teamQuery().

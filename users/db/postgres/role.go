@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
@@ -39,4 +40,15 @@ func (d DB) scanRole(row squirrel.RowScanner) (*users.Role, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+// ListRoles returns all user roles
+func (d DB) ListRoles(ctx context.Context) ([]*users.Role, error) {
+	query := d.rolesQuery()
+	rows, err := query.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanRoles(rows)
 }
