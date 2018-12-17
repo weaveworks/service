@@ -127,14 +127,17 @@ func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizati
 	return topWorkloads
 }
 
+// getReportInterval formats a human readable text representing
+// the date range the report covers.
 func getReportInterval(report *Report) string {
 	// Format the last day nicely (go back a day for inclusive interval).
 	lastDay := report.EndAt.AddDate(0, 0, -1)
 	firstDay := report.StartAt
 	if lastDay.Month() == firstDay.Month() {
+		// If months match don't repeat it
 		return fmt.Sprintf("%s–%s", firstDay.Format(dateShortFormat), lastDay.Format(dateDayFormat))
 	}
-	return fmt.Sprintf("%s–%s", firstDay.Format(dateShortFormat), lastDay.Format(dateShortFormat))
+	return fmt.Sprintf("%s – %s", firstDay.Format(dateShortFormat), lastDay.Format(dateShortFormat))
 }
 
 func getOrganizationCreationDayIfRecent(report *Report) string {
