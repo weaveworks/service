@@ -999,7 +999,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b112f1262dc3288b50f22c46e38b649fd4328d654da1628318137741c2ada00e"
+  digest = "1:fa2b52d225eb8701d7bd7610792ed61e827d6d5b3e2be8c48708dd78739ffbcd"
   name = "github.com/weaveworks/flux"
   packages = [
     ".",
@@ -1031,7 +1031,7 @@
     "update",
   ]
   pruneopts = "NUT"
-  revision = "5682da92e3cba6dbbc1ea48df0b612b1e3ba4572"
+  revision = "113e1280a27a4cec80465d1d0d0c69b696839f80"
 
 [[projects]]
   branch = "master"
