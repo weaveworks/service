@@ -364,12 +364,12 @@ func (a *API) adminMakeUserAdmin(w http.ResponseWriter, r *http.Request) {
 func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
 	commonuser.LogWith(r.Context(), logging.Global()).Infoln(r)
 	vars := mux.Vars(r)
-	userID, ok := vars["userID"]
+	becomeID, ok := vars["userID"]
 	if !ok {
 		renderError(w, r, users.ErrNotFound)
 		return
 	}
-	u, err := a.db.FindUserByID(r.Context(), userID)
+	u, err := a.db.FindUserByID(r.Context(), becomeID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -378,14 +378,10 @@ func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	impersonatingUserID := session.ImpersonatingUserID
-	if impersonatingUserID != "" {
-		// Impersonation already in progress ... unusual, but hang on to existing impersonator ID
-	} else {
-		// No existing impersonation ... store current user is impersonator
-		impersonatingUserID = session.UserID
-	}
-	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
+	// If we are already impersonating we will get the impersonating id
+	// here which we then keep as impersonator for the new user.
+	userID := session.GetActingUserID()
+	if err := a.sessions.Set(w, r, u.ID, userID); err != nil {
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -418,11 +414,7 @@ func (a *API) adminDeleteOrganization(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	userID := session.ImpersonatingUserID
-	if userID == "" {
-		userID = session.UserID
-	}
-
+	userID := session.GetActingUserID()
 	if err := a.db.DeleteOrganization(r.Context(), externalID, userID); err != nil {
 		renderError(w, r, err)
 		return

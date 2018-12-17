@@ -45,9 +45,19 @@ type Session struct {
 	UserID    string
 	CreatedAt time.Time
 
-	// User ID for whoever is doing the impersonating
-	// For 99+% cases will be empty ie no impersonation
+	// User ID for whoever is doing the impersonating.
+	// This is empty if no impersonation going on.
 	ImpersonatingUserID string
+}
+
+// GetActingUserID returns the id of the user doing the actions. In
+// case of a user impersonating another user it will return the
+// impersonating id.
+func (s Session) GetActingUserID() string {
+	if s.ImpersonatingUserID != "" {
+		return s.ImpersonatingUserID
+	}
+	return s.UserID
 }
 
 // Get fetches the current session for this request.
