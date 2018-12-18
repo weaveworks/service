@@ -115,6 +115,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 		"organizations.probe_token",
 		"organizations.created_at",
 		"organizations.deleted_at",
+		"organizations.deleted_by",
 		"organizations.feature_flags",
 		"organizations.refuse_data_access",
 		"organizations.refuse_data_upload",
@@ -510,6 +511,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
 	var deletedAt pq.NullTime
+	var deletedBy sql.NullString
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
@@ -524,6 +526,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&probeToken,
 		&createdAt,
 		&deletedAt,
+		&deletedBy,
 		pq.Array(&o.FeatureFlags),
 		&refuseDataAccess,
 		&refuseDataUpload,
@@ -560,6 +563,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
 	o.DeletedAt = deletedAt.Time
+	o.DeletedBy = deletedBy.String
 	o.RefuseDataAccess = refuseDataAccess
 	o.RefuseDataUpload = refuseDataUpload
 	o.RefuseDataReason = refuseDataReason.String
@@ -698,10 +702,10 @@ func (d DB) GetOrganizationName(ctx context.Context, externalID string) (string,
 }
 
 // DeleteOrganization deletes an organization
-func (d DB) DeleteOrganization(ctx context.Context, externalID string) error {
+func (d DB) DeleteOrganization(ctx context.Context, externalID string, userID string) error {
 	_, err := d.ExecContext(ctx,
-		`update organizations set deleted_at = $1 where external_id = lower($2) and deleted_at is null`,
-		d.Now(), externalID,
+		`update organizations set deleted_at = $1, deleted_by = $2 where external_id = lower($3) and deleted_at is null`,
+		d.Now(), userID, externalID,
 	)
 	return err
 }

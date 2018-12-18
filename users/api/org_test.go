@@ -467,7 +467,7 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Delete the org and check it is no longer available
-	err = database.DeleteOrganization(context.Background(), org.ExternalID)
+	err = database.DeleteOrganization(context.Background(), org.ExternalID, user.ID)
 	require.NoError(t, err)
 
 	{

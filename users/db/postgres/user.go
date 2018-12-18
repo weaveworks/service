@@ -127,7 +127,7 @@ having count(m.id)=1;
 		}
 
 		for _, externalID := range ids {
-			if err := d.DeleteOrganization(ctx, externalID); err != nil {
+			if err := d.DeleteOrganization(ctx, externalID, userID); err != nil {
 				return err
 			}
 		}

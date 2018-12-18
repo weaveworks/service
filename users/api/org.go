@@ -395,7 +395,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 
-	if err := a.db.DeleteOrganization(ctx, orgExternalID); err != nil {
+	if err := a.db.DeleteOrganization(ctx, orgExternalID, currentUser.ID); err != nil {
 		renderError(w, r, err)
 		return
 	}

@@ -146,3 +146,31 @@ func ParseOrgQuery(qs string) Organization {
 	}
 	return And(filters...)
 }
+
+// ParseUserQuery extracts filters and search from the 'query' form value.
+func ParseUserQuery(qs string) User {
+	filters := []Filter{}
+	search := []string{}
+	for _, p := range strings.Fields(qs) {
+		if strings.Contains(p, queryFilterDelim) {
+			kv := strings.SplitN(p, queryFilterDelim, 2)
+			switch kv[0] {
+			case "id":
+				filters = append(filters, UsersByID(strings.Split(kv[1], ",")))
+			case "is":
+				switch kv[1] {
+				case "admin":
+					filters = append(filters, Admin(true))
+				}
+			default:
+				search = append(search, p)
+			}
+		} else {
+			search = append(search, p)
+		}
+	}
+	if len(search) > 0 {
+		filters = append(filters, SearchEmail(strings.Join(search, " ")))
+	}
+	return And(filters...)
+}

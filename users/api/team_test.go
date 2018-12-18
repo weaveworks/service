@@ -26,7 +26,7 @@ func TestAPI_deleteTeam(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 	// delete org
-	err = database.DeleteOrganization(context.TODO(), org.ExternalID)
+	err = database.DeleteOrganization(context.TODO(), org.ExternalID, user.ID)
 	assert.NoError(t, err)
 	{ // now empty team
 		w := httptest.NewRecorder()

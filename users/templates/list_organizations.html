@@ -118,6 +118,7 @@
         </td>
         <td class="mdl-data-table__cell--non-numeric">
             {{if not .DeletedAt.IsZero}}{{.DeletedAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
+            {{if .DeletedBy}}<br /><a href="users?query=id:{{.DeletedBy}}">Deleted by</a>{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{.Platform}} / <br />{{.Environment}} / <br />{{.PlatformVersion}}
