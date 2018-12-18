@@ -7,8 +7,8 @@
 --   * The trial expiry date will be carried over as well
 --
 -- NOTE: This INSERT action will fail on any external ID conflicts so there should be none before the migration is ran.
---       We asbsolutely don't want to move orphan organizations into existing teams belonging to different users!
+--       We absolutely don't want to move orphan organizations into existing teams belonging to different users!
 
 INSERT INTO teams(name, external_id, trial_expires_at, deleted_at)
-SELECT CONCAT(name, ' Team') AS name, CONCAT(external_id, '-team') AS external_id, trial_expires_at, deleted_at
+SELECT CONCAT(LEFT(name, 95), ' Team') AS name, CONCAT(external_id, '-team') AS external_id, trial_expires_at, deleted_at
 FROM organizations WHERE team_id IS NULL;
