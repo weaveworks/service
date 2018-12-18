@@ -210,9 +210,16 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
+	orgUsers, moreUsersCount, err := a.GetOrganizationsUsers(r.Context(), organizations, 3)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations":      organizations,
+		"OrganizationUsers":  orgUsers,
+		"MoreUsersCount":     moreUsersCount,
 		"Query":              r.FormValue("query"),
 		"Page":               page,
 		"NextPage":           page + 1,
@@ -245,9 +252,16 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, err)
 		return
 	}
+	orgUsers, moreUsersCount, err := a.GetOrganizationsUsers(r.Context(), organizations, 3)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations":      organizations,
+		"OrganizationUsers":  orgUsers,
+		"MoreUsersCount":     moreUsersCount,
 		"UserEmail":          user.Email,
 		"BillingFeatureFlag": featureflag.Billing,
 	})
@@ -513,4 +527,29 @@ func redirectWithMessage(w http.ResponseWriter, r *http.Request, msg string) {
 // MakeUserAdmin makes a user an admin
 func (a *API) MakeUserAdmin(ctx context.Context, userID string, admin bool) error {
 	return a.db.SetUserAdmin(ctx, userID, admin)
+}
+
+// GetOrganizationsUsers gets the user meta
+func (a *API) GetOrganizationsUsers(ctx context.Context, organizations []*users.Organization, limit int) (map[string][]*users.User, map[string]int, error) {
+	orgUsers := make(map[string][]*users.User)
+	moreUsersCount := make(map[string]int)
+	for _, org := range organizations {
+		us, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		// If more than n users then return the first (n - 1) users
+		// leaving a spare line for a "and x more" message.
+		more := 0
+		if len(us) > limit {
+			displayedUserCount := limit - 1
+			more = len(us) - displayedUserCount
+			us = us[:displayedUserCount]
+		}
+
+		orgUsers[org.ExternalID] = us
+		moreUsersCount[org.ExternalID] = more
+	}
+
+	return orgUsers, moreUsersCount, nil
 }
