@@ -106,16 +106,46 @@ func Test_ListOrganizationUsers(t *testing.T) {
 
 	user, org := getOrg(t)
 
+	team := getTeam(t)
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+	assert.NoError(t, err)
+
+	err = database.MoveOrganizationToTeam(context.TODO(), org.ExternalID, team.ExternalID, "", "")
+	assert.NoError(t, err)
+
+	us, err := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(us))
+	assert.Equal(t, "admin", us[0].Role.ID)
+
 	fran := getUser(t)
-	fran, _, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID)
+	fran, _, err = database.InviteUser(context.Background(), fran.Email, org.ExternalID)
 	require.NoError(t, err)
+
+	us, err = database.ListTeamUsersWithRoles(context.TODO(), team.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(us))
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/users", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q},{"email":%q,"self":true}]}`, fran.Email, user.Email))
+	responseBody := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &responseBody))
+	assert.Equal(t, map[string]interface{}{
+		"users": []interface{}{
+			map[string]interface{}{
+				"email":     fran.Email,
+				"userRoles": []interface{}{"admin"},
+			},
+			map[string]interface{}{
+				"email":     user.Email,
+				"self":      true,
+				"userRoles": []interface{}{"admin"},
+			},
+		},
+	}, responseBody)
 }
 
 const (
@@ -394,7 +424,7 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	user, otherOrg := getOrg(t)
 
 	for id, errMsg := range map[string]string{
-		"": "ID cannot be blank",
+		"":                             "ID cannot be blank",
 		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
 		otherOrg.ExternalID:            "ID is already taken",
 	} {

@@ -57,6 +57,47 @@ func (d DB) teamHasOrganizations(ctx context.Context, teamID string) (bool, erro
 	return exists, err
 }
 
+func (d DB) scanUsersWithRole(rows *sql.Rows) ([]*users.UserWithRole, error) {
+	usersWithRole := []*users.UserWithRole{}
+	for rows.Next() {
+		user, err := d.scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		role, err := d.scanRole(rows)
+		if err != nil {
+			return nil, err
+		}
+		usersWithRole = append(usersWithRole, &users.UserWithRole{User: user, Role: role})
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return usersWithRole, nil
+}
+
+// ListTeamUsersWithRoles lists all the users in a team with their role
+func (d DB) ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+	rows, err := d.usersQuery().
+		Columns(`
+			roles.id,
+			roles.name
+		`).
+		Join("team_memberships on (team_memberships.user_id = users.id)").
+		Join("roles on (team_memberships.role_id = roles.id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where("roles.deleted_at is null").
+		Where(squirrel.Eq{
+			"team_memberships.team_id": teamID,
+		}).
+		QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return d.scanUsersWithRole(rows)
+}
+
 // ListTeamUsers lists all the users in a team
 func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().

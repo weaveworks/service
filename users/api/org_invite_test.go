@@ -206,8 +206,9 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"users": []interface{}{
 			map[string]interface{}{
-				"email": user.Email,
-				"self":  true,
+				"email":     user.Email,
+				"self":      true,
+				"userRoles": nil,
 			},
 		},
 	}, body)

@@ -34,6 +34,12 @@ type UserResponse struct {
 	Company   string `json:"company"`
 }
 
+// UserWithRole is a little struct for passing around a User's role in a org.
+type UserWithRole struct {
+	User *User
+	Role *Role
+}
+
 func formatTimestamp(t time.Time) string {
 	if t.IsZero() {
 		return ""

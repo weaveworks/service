@@ -120,6 +120,7 @@ type DB interface {
 
 	ListTeams(ctx context.Context, page uint64) ([]*users.Team, error)
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
+	ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	ListRoles(ctx context.Context) ([]*users.Role, error)
 	ListPermissionsForRoleID(ctx context.Context, roleID string) ([]*users.Permission, error)
