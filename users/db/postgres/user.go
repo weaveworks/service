@@ -249,20 +249,8 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 			return err
 		}
 
-		if o.TeamID == "" {
-			isMember, err := tx.UserIsMemberOf(ctx, u.ID, orgExternalID)
-			if err != nil || isMember {
-				return err
-			}
-			err = tx.addUserToOrganization(ctx, u.ID, o.ID)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := tx.AddUserToTeam(ctx, u.ID, o.TeamID)
-			if err != nil {
-				return nil
-			}
+		if err := tx.AddUserToTeam(ctx, u.ID, o.TeamID); err != nil {
+			return err
 		}
 		u, err = tx.FindUserByID(ctx, u.ID)
 		return err

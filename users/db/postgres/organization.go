@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -31,15 +30,6 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 			return err
 		}
 
-		_, err = tx.ExecContext(ctx,
-			"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
-			user.ID,
-			org.ID,
-		)
-		if err != nil {
-			return err
-		}
-
 		return tx.removeUserFromTeam(ctx, user.ID, org.TeamID)
 	})
 	return err
@@ -48,38 +38,6 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 // UserIsMemberOf checks if the user is a member of the organization.
 // This includes checking membership and team membership
 func (d DB) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
-	ok, err := d.userIsDirectMemberOf(ctx, userID, orgExternalID)
-	if err != nil {
-		return false, err
-	}
-	if ok {
-		return ok, nil
-	}
-	ok, err = d.userIsTeamMemberOf(ctx, userID, orgExternalID)
-	if err != nil {
-		return false, err
-	}
-	return ok, nil
-}
-
-func (d DB) userIsDirectMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
-	rows, err := d.organizationsQuery().
-		Join("memberships on (organizations.id = memberships.organization_id)").
-		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
-		Where("memberships.deleted_at is null").
-		QueryContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	ok := rows.Next()
-	if rows.Err() != nil {
-		return false, rows.Err()
-	}
-	defer rows.Close()
-	return ok, nil
-}
-
-func (d DB) userIsTeamMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where(squirrel.Eq{
@@ -197,45 +155,7 @@ func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, pag
 // ListOrganizationUsers lists all the users in an organization.
 // It supports options such as whether to consider deleted organizations or
 // whether to exclude new users that have never logged in.
-func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
-	orgUsers, err := d.listDirectOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
-	if err != nil {
-		return nil, err
-	}
-	teamUsers, err := d.listTeamOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
-	if err != nil {
-		return nil, err
-	}
-	users := mergeUsers(orgUsers, teamUsers)
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
-}
-
-func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
-	filter := squirrel.Eq{
-		"organizations.external_id": orgExternalID,
-		"memberships.deleted_at":    nil,
-	}
-	if !includeDeletedOrgs {
-		filter["organizations.deleted_at"] = nil
-	}
-	q := d.usersQuery().
-		Join("memberships on (memberships.user_id = users.id)").
-		Join("organizations on (memberships.organization_id = organizations.id)").
-		Where(filter).
-		OrderBy("users.created_at")
-	if excludeNewUsers {
-		q = q.Where("first_login_at is not null")
-	}
-	rows, err := q.QueryContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return d.scanUsers(rows)
-}
-
-func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
+func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool, excludeNewUsers bool) ([]*users.User, error) {
 	filter := squirrel.Eq{
 		"organizations.external_id":   orgExternalID,
 		"team_memberships.deleted_at": nil,
@@ -261,65 +181,17 @@ func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string,
 // ListOrganizationsForUserIDs lists the organizations these users belong to.
 // This includes direct membership and team membership.
 func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, false)
+	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, false)
 }
 
 // ListAllOrganizationsForUserIDs lists the organizations these users
-// belong to, including deleted ones.  This includes direct membership
-// and team membership.
+// belong to, including deleted ones.
 func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, true)
+	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, true)
 }
 
 func (d DB) listOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
-	// SQL UNIONs are not supported by github.com/Masterminds/squirrel
-	memberOrgs, err := d.listMemberOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
-	if err != nil {
-		return nil, err
-	}
-	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
-	if err != nil {
-		return nil, err
-	}
-	orgs := mergeOrgs(memberOrgs, teamOrgs)
-	sort.Sort(organizationsByCreatedAt(orgs))
-	return orgs, nil
-}
-
-// listMemberOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) listMemberOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
-	rows, err := d.organizationsQueryHelper(includeDeletedOrgs).
-		Join("memberships on (organizations.id = memberships.organization_id)").
-		Where(squirrel.Eq{"memberships.user_id": userIDs}).
-		Where("memberships.deleted_at is null").
-		QueryContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	orgs, err := d.scanOrganizations(rows)
-	if err != nil {
-		return nil, err
-	}
-	return orgs, err
-}
-
-// addUserToOrganization adds a user to the team of the organization,
-// if the organization belongs to a team, otherwise populates membership
-func (d DB) addUserToOrganization(ctx context.Context, userID, orgID string) error {
-	_, err := d.ExecContext(ctx, `
-			insert into memberships
-				(user_id, organization_id, created_at)
-				values ($1, $2, $3)`,
-		userID,
-		orgID,
-		d.Now(),
-	)
-	if err != nil {
-		if e, ok := err.(*pq.Error); ok && e.Constraint == "memberships_user_id_organization_id_idx" {
-			return nil
-		}
-	}
-	return err
+	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
 }
 
 // GenerateOrganizationExternalID returns an available organization external
@@ -389,20 +261,11 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		err = tx.QueryRowContext(ctx, `insert into organizations
+		return tx.QueryRowContext(ctx, `insert into organizations
 			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
 			values (lower($1), $2, $3, $4, $5, $6) returning id`,
 			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, toNullString(o.TeamID),
 		).Scan(&o.ID)
-		if err != nil {
-			return err
-		}
-
-		if o.TeamID == "" {
-			return tx.addUserToOrganization(ctx, ownerID, o.ID)
-		}
-
-		return err
 	})
 	if err != nil {
 		return nil, err
@@ -1052,41 +915,6 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		gcp_account_external_id, gcp_account_created_at, gcp_account_status, gcp_account_plan
 
 		FROM (
-		SELECT
-		teams.external_id AS team_external_id,
-		teams.name AS team_name,
-		organizations.id AS org_id,
-		organizations.external_id AS org_external_id,
-		organizations.name AS org_name,
-		users.email,
-		organizations.created_at AS org_created_at,
-		organizations.first_seen_connected_at,
-		organizations.platform,
-		organizations.environment,
-		organizations.trial_expires_at,
-		organizations.trial_pending_expiry_notified_at,
-		organizations.trial_expired_notified_at,
-		CASE WHEN array_position(organizations.feature_flags, 'billing') IS NULL THEN false ELSE true END AS billing_enabled,
-		organizations.refuse_data_access,
-		organizations.refuse_data_upload,
-		organizations.zuora_account_number,
-		organizations.zuora_account_created_at,
-		gcp_accounts.external_account_id AS gcp_account_external_id,
-		gcp_accounts.created_at AS gcp_account_created_at,
-		gcp_accounts.subscription_status AS gcp_account_status,
-		gcp_accounts.subscription_level AS gcp_account_plan
-		FROM organizations
-		LEFT JOIN teams        ON teams.id = organizations.team_id AND teams.deleted_at IS NULL
-		LEFT JOIN gcp_accounts ON gcp_accounts.id = organizations.gcp_account_id
-		INNER JOIN memberships  ON memberships.organization_id = organizations.id
-		INNER JOIN users        ON users.id = memberships.user_id
-		WHERE
-		users.deleted_at IS NULL AND
-		memberships.deleted_at IS NULL AND
-		organizations.deleted_at IS NULL
-
-		UNION
-
 		SELECT
 		teams.external_id AS team_external_id,
 		teams.name AS team_name,
