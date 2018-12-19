@@ -194,14 +194,15 @@ func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, pag
 	return d.scanOrganizations(rows)
 }
 
-// ListOrganizationUsers lists all the users in an organization
-// it will still return a user list for 'deleted' organizations
-func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error) {
-	orgUsers, err := d.listDirectOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs)
+// ListOrganizationUsers lists all the users in an organization.
+// It supports options such as whether to consider deleted organizations or
+// whether to exclude new users that have never logged in.
+func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
+	orgUsers, err := d.listDirectOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
 	if err != nil {
 		return nil, err
 	}
-	teamUsers, err := d.listTeamOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs)
+	teamUsers, err := d.listTeamOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -210,13 +211,16 @@ func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, inc
 	return users, nil
 }
 
-func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error) {
+func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
 	filter := squirrel.Eq{
 		"organizations.external_id": orgExternalID,
 		"memberships.deleted_at":    nil,
 	}
 	if !includeDeletedOrgs {
 		filter["organizations.deleted_at"] = nil
+	}
+	if excludeNewUsers {
+		filter["first_login_at"] = nil
 	}
 	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
@@ -231,13 +235,16 @@ func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID strin
 	return d.scanUsers(rows)
 }
 
-func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error) {
+func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
 	filter := squirrel.Eq{
 		"organizations.external_id":   orgExternalID,
 		"team_memberships.deleted_at": nil,
 	}
 	if !includeDeletedOrgs {
 		filter["organizations.deleted_at"] = nil
+	}
+	if excludeNewUsers {
+		filter["first_login_at"] = nil
 	}
 	rows, err := d.usersQuery().
 		Join("team_memberships on (team_memberships.user_id = users.id)").
