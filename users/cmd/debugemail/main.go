@@ -107,7 +107,7 @@ func main() {
 			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
 		},
 		"weekly": func() error {
-			return em.WeeklyReportEmail(dst, weeklyReport)
+			return em.WeeklyReportEmail([]*users.User{dst}, weeklyReport)
 		},
 	}
 
