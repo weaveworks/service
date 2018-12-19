@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/users"
 
 	"github.com/weaveworks/service/users/externalids"
