@@ -404,14 +404,6 @@ func (t timed) SetOrganizationGCP(ctx context.Context, externalID, externalAccou
 	})
 }
 
-func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
-	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
-		memberships, err = t.d.ListMemberships(ctx)
-		return err
-	})
-	return
-}
-
 func (t timed) ListRoles(ctx context.Context) (r []*users.Role, err error) {
 	t.timeRequest(ctx, "ListRoles", func(ctx context.Context) error {
 		r, err = t.d.ListRoles(ctx)

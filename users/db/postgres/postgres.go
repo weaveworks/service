@@ -16,7 +16,6 @@ import (
 	"gopkg.in/mattes/migrate.v1/migrate"
 
 	"github.com/weaveworks/service/common/dbwait"
-	"github.com/weaveworks/service/users"
 )
 
 // DB is a postgres db, for dev and production, it implements db.DB
@@ -124,36 +123,6 @@ func (d DB) Transaction(f func(DB) error) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-// ListMemberships lists memberships list memberships
-func (d DB) ListMemberships(ctx context.Context) ([]users.Membership, error) {
-	rows, err := d.dbProxy.QueryContext(ctx, `
-	SELECT
-		memberships.user_id,
-		memberships.organization_id
-	FROM memberships
-	WHERE memberships.deleted_at is null
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	memberships := []users.Membership{}
-	for rows.Next() {
-		membership := users.Membership{}
-		if err := rows.Scan(
-			&membership.UserID, &membership.OrganizationID,
-		); err != nil {
-			return nil, err
-		}
-		memberships = append(memberships, membership)
-	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-	return memberships, nil
 }
 
 // Close finishes using the db

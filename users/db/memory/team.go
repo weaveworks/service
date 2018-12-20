@@ -31,10 +31,10 @@ func (d *DB) ListTeamsForUserID(_ context.Context, userID string) ([]*users.Team
 func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	return d.listTeamUsers(ctx, teamID)
+	return d.listTeamUsers(ctx, teamID, false)
 }
 
-func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, error) {
+func (d *DB) listTeamUsers(_ context.Context, teamID string, excludeNewUsers bool) ([]*users.User, error) {
 	var users []*users.User
 	for m, teamRoles := range d.teamMemberships {
 		for tID := range teamRoles {
@@ -42,6 +42,9 @@ func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, err
 				u, err := d.findUserByID(m)
 				if err != nil {
 					return nil, err
+				}
+				if excludeNewUsers && u.FirstLoginAt.IsZero() {
+					continue
 				}
 				users = append(users, u)
 			}

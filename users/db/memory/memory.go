@@ -10,11 +10,10 @@ import (
 
 // DB is an in-memory database for testing, and local development
 type DB struct {
-	users                map[string]*users.User // map[userID]user
-	organizations        map[string]*users.Organization
-	deletedOrganizations map[string]*users.Organization
-	memberships          map[string][]string // map[orgID][]userID
-	logins               map[string]*login.Login
+	users                map[string]*users.User                // map[userID]user
+	organizations        map[string]*users.Organization        // map[id]Organization
+	deletedOrganizations map[string]*users.Organization        // map[id]Organization
+	logins               map[string]*login.Login               // map['provider-providerID']Login
 	gcpAccounts          map[string]*users.GoogleCloudPlatform // map[externalAccountID]GCP
 	teams                map[string]*users.Team                // map[id]team
 	teamMemberships      map[string]map[string]string          // map[userID][teamID]roleID
@@ -32,7 +31,6 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		users:                make(map[string]*users.User),
 		organizations:        make(map[string]*users.Organization),
 		deletedOrganizations: make(map[string]*users.Organization),
-		memberships:          make(map[string][]string),
 		logins:               make(map[string]*login.Login),
 		gcpAccounts:          make(map[string]*users.GoogleCloudPlatform),
 		teams:                make(map[string]*users.Team),
@@ -43,22 +41,6 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		webhooks:             make(map[string][]*users.Webhook),
 		passwordHashingCost:  passwordHashingCost,
 	}, nil
-}
-
-// ListMemberships lists memberships list memberships
-func (d *DB) ListMemberships(_ context.Context) ([]users.Membership, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	memberships := []users.Membership{}
-	for orgID, userIDs := range d.memberships {
-		for _, userID := range userIDs {
-			memberships = append(memberships, users.Membership{
-				UserID:         userID,
-				OrganizationID: orgID,
-			})
-		}
-	}
-	return memberships, nil
 }
 
 // Close finishes using the db. Noop.

@@ -288,11 +288,6 @@ func (t traced) SetOrganizationGCP(ctx context.Context, externalID, externalAcco
 	return t.d.SetOrganizationGCP(ctx, externalID, externalAccountID)
 }
 
-func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {
-	defer t.trace("ListMemberships", err)
-	return t.d.ListMemberships(ctx)
-}
-
 func (t traced) ListRoles(ctx context.Context) (r []*users.Role, err error) {
 	defer t.trace("ListRoles", r, err)
 	return t.d.ListRoles(ctx)

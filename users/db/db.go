@@ -118,8 +118,6 @@ type DB interface {
 	// It also enables the billing feature flag and sets platform/env.
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
-	ListMemberships(ctx context.Context) ([]users.Membership, error)
-
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	ListRoles(ctx context.Context) ([]*users.Role, error)

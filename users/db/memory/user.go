@@ -45,24 +45,32 @@ func (d *DB) UpdateUser(ctx context.Context, userID string, update *users.UserUp
 // DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
 // where the user was the lone member.
 func (d *DB) DeleteUser(ctx context.Context, userID, actingID string) error {
-	// All organizations with this user as sole member
-	for orgID, us := range d.memberships {
-		if len(us) == 1 && us[0] == userID {
-			d.deletedOrganizations[orgID] = d.organizations[orgID]
-			delete(d.organizations, orgID)
-			delete(d.memberships, orgID)
-		}
-	}
-
-	// Delete organization memberships
-	for orgID, us := range d.memberships {
-		var newus []string
-		for _, u := range us {
-			if u != userID {
-				newus = append(newus, u)
+	// map[teamID]int
+	members := map[string]int{}
+	for _, membership := range d.teamMemberships {
+		for team := range membership {
+			// Only count member if user to delete is actually member
+			if _, ok := d.teamMemberships[userID][team]; ok {
+				members[team]++
 			}
 		}
-		d.memberships[orgID] = newus
+	}
+	for team, count := range members {
+		if count == 1 {
+			// sole member, delete all orgs
+			for _, org := range d.organizations {
+				if org.TeamID == team {
+					if err := d.DeleteOrganization(ctx, org.ExternalID, actingID); err != nil {
+						return err
+					}
+				}
+			}
+
+			// and delete team
+			if err := d.DeleteTeam(ctx, team); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Delete team memberships
@@ -169,16 +177,12 @@ func (d *DB) InviteUser(ctx context.Context, email, orgExternalID string) (*user
 	if isMember {
 		return u, false, nil
 	}
-	if o.TeamID != "" {
-		// Make sure the submap has been initialized.
-		if d.teamMemberships[u.ID] == nil {
-			d.teamMemberships[u.ID] = map[string]string{}
-		}
-		// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
-		d.teamMemberships[u.ID][o.TeamID] = "admin"
-	} else {
-		d.memberships[o.ID] = append(d.memberships[o.ID], u.ID)
+	// Make sure the submap has been initialized.
+	if d.teamMemberships[u.ID] == nil {
+		d.teamMemberships[u.ID] = map[string]string{}
 	}
+	// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
+	d.teamMemberships[u.ID][o.TeamID] = "admin"
 	return u, created, nil
 }
 
