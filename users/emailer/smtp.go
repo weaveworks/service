@@ -56,13 +56,13 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 }
 
 // WeeklyReportEmail sends the weekly report email
-func (s SMTPEmailer) WeeklyReportEmail(u *users.User, report *weeklyreports.Report) error {
+func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyreports.Report) error {
 	organizationURL := organizationURL(s.Domain, report.Organization.ExternalID)
 	summary := weeklyreports.EmailSummaryFromReport(report, organizationURL)
 
 	e := email.NewEmail()
 	e.From = s.FromAddress
-	e.To = []string{u.Email}
+	e.To = collectEmails(members)
 	e.Subject = fmt.Sprintf("%s · %s Report", summary.DateInterval, summary.OrganizationName)
 	data := map[string]interface{}{
 		"Report": summary,

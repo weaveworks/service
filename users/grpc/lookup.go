@@ -387,9 +387,8 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 		return nil, err
 	}
 
-	// Iterate through the users and send emails to all of them
-	for _, user := range members {
-		a.emailer.WeeklyReportEmail(user, weeklyReport)
+	if err := a.emailer.WeeklyReportEmail(members, weeklyReport); err != nil {
+		return nil, err
 	}
 
 	// Persist weekly report timestamp in the db
