@@ -308,7 +308,7 @@ func TestDB_ListOrganizationWebhooks(t *testing.T) {
 
 	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
@@ -330,7 +330,7 @@ func TestDB_CreateOrganizationWebhook(t *testing.T) {
 
 	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
@@ -361,7 +361,7 @@ func TestDB_DeleteOrganizationWebhook(t *testing.T) {
 
 	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
@@ -386,7 +386,7 @@ func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
 
 	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	_, err = db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
@@ -412,7 +412,7 @@ func TestDB_SetOrganizationWebhookFirstSeenAt(t *testing.T) {
 
 	u, err := db.CreateUser(ctx, "joe@email.com", nil)
 	assert.NoError(t, err)
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)

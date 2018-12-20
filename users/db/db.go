@@ -60,7 +60,6 @@ type DB interface {
 	ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error)
 	ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error)
 
-
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
 	ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)

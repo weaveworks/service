@@ -19,13 +19,14 @@ import (
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
+	"github.com/weaveworks/service/users/db/dbtest"
 )
 
 func Test_Org(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
+	user, org, team := dbtest.GetOrgAndTeam(t, database)
 
 	// Check the user was added to the org
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
@@ -62,6 +63,7 @@ func Test_Org(t *testing.T) {
 		"zuoraAccountNumber":    "",
 		"zuoraAccountCreatedAt": nil,
 		"billingProvider":       "zuora",
+		"teamId":                team.ExternalID,
 	}, body)
 }
 
@@ -69,7 +71,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
+	user, org, team := dbtest.GetOrgAndTeam(t, database)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID, nil)
@@ -94,6 +96,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"zuoraAccountNumber":    "",
 		"zuoraAccountCreatedAt": nil,
 		"billingProvider":       "zuora",
+		"teamId":                team.ExternalID,
 	}, body)
 }
 
@@ -243,13 +246,13 @@ func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
+	user, org, team := dbtest.GetOrgAndTeam(t, database)
 
 	exteam := getTeam(t)
 	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID)
 	assert.NoError(t, err)
 
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: ""}).
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		AnyTimes().
 		Return(&grpc.BillingAccount{}, nil)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: exteam.ID}).
@@ -271,10 +274,8 @@ func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
 			assert.False(t, org.HasFeatureFlag(featureflag.Billing))
 		}
 	}
+
 	{ // move back to Zuora-billed team
-		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
-		assert.NoError(t, err)
 
 		billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 			AnyTimes().
@@ -393,7 +394,7 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	user, otherOrg := getOrg(t)
 
 	for id, errMsg := range map[string]string{
-		"": "ID cannot be blank",
+		"":                             "ID cannot be blank",
 		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
 		otherOrg.ExternalID:            "ID is already taken",
 	} {
@@ -457,7 +458,7 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "", "", user.TrialExpiresAt())
+	org, err := database.CreateOrganizationWithTeam(context.Background(), otherUser.ID, id, id, "", "", "Some Team", user.TrialExpiresAt())
 	require.NoError(t, err)
 
 	{
@@ -582,7 +583,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), user.ID, externalID, externalID, "", "", user.TrialExpiresAt())
+	org, err := database.CreateOrganizationWithTeam(context.Background(), user.ID, externalID, externalID, "", "", "Some Team", user.TrialExpiresAt())
 	require.NoError(t, err)
 
 	// Should 401 because otherUser doesn't have access
@@ -643,7 +644,7 @@ func Test_Organization_Name(t *testing.T) {
 	externalID, err := database.GenerateOrganizationExternalID(context.Background())
 	require.NoError(t, err)
 
-	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "", "", user.TrialExpiresAt())
+	_, err = database.CreateOrganizationWithTeam(context.Background(), user.ID, externalID, orgName100, "", "", "Some Team", user.TrialExpiresAt())
 	require.NoError(t, err)
 
 	foundName, err := database.GetOrganizationName(context.Background(), externalID)
@@ -658,7 +659,7 @@ func Test_Organization_Overlong_Name(t *testing.T) {
 		externalID, err := database.GenerateOrganizationExternalID(context.Background())
 		require.NoError(t, err)
 
-		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "", "", user.TrialExpiresAt())
+		_, err = database.CreateOrganizationWithTeam(context.Background(), user.ID, externalID, orgName101, "", "", "Some Team", user.TrialExpiresAt())
 		assert.IsType(t, &pq.Error{}, err)
 	}
 }
