@@ -303,6 +303,16 @@ func (t traced) ListTeamUsers(ctx context.Context, teamID string) (os []*users.U
 	return t.d.ListTeamUsers(ctx, teamID)
 }
 
+func (t traced) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, err error) {
+	defer t.trace("ListTeams", ts, err)
+	return t.d.ListTeams(ctx, page)
+}
+
+func (t traced) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
+	defer t.trace("ListTeamMemberships", ms, err)
+	return t.d.ListTeamMemberships(ctx)
+}
+
 func (t traced) CreateTeam(ctx context.Context, name string) (ut *users.Team, err error) {
 	defer t.trace("CreateTeam", name, ut, err)
 	return t.d.CreateTeam(ctx, name)

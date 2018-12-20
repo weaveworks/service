@@ -118,6 +118,7 @@ type DB interface {
 	// It also enables the billing feature flag and sets platform/env.
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
+	ListTeams(ctx context.Context, page uint64) ([]*users.Team, error)
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	ListRoles(ctx context.Context) ([]*users.Role, error)
@@ -140,6 +141,9 @@ type DB interface {
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
 	GetSummary(ctx context.Context) ([]*users.SummaryEntry, error)
+
+	// Primarily to provide data to BigQuery, use with care.
+	ListTeamMemberships(ctx context.Context) ([]*users.TeamMembership, error)
 
 	Close(ctx context.Context) error
 }

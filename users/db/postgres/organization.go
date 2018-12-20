@@ -113,7 +113,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 	return query
 }
 
-// ListOrganizations lists organizations
+// ListOrganizations lists organizations. Pagination starts at 1, provide 0 to disable.
 func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	q := d.organizationsQuery().Where(f.Where())
 	if page > 0 {

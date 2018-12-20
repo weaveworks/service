@@ -428,6 +428,22 @@ func (t timed) ListTeamUsers(ctx context.Context, teamID string) (us []*users.Us
 	return
 }
 
+func (t timed) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, err error) {
+	t.timeRequest(ctx, "ListTeams", func(ctx context.Context) error {
+		ts, err = t.d.ListTeams(ctx, page)
+		return err
+	})
+	return
+}
+
+func (t timed) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
+	t.timeRequest(ctx, "ListTeamMemberships", func(ctx context.Context) error {
+		ms, err = t.d.ListTeamMemberships(ctx)
+		return err
+	})
+	return
+}
+
 func (t timed) CreateTeam(ctx context.Context, name string) (ut *users.Team, err error) {
 	t.timeRequest(ctx, "CreateTeam", func(ctx context.Context) error {
 		ut, err = t.d.CreateTeam(ctx, name)

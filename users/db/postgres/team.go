@@ -11,12 +11,13 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalids"
 )
 
 // ListTeamsForUserID returns all teams belonging to userId
 func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error) {
-	query := d.teamQuery().
+	query := d.teamsQuery().
 		Join("team_memberships m ON teams.id = m.team_id").
 		Where(squirrel.Eq{"m.user_id": userID}).
 		Where("m.deleted_at IS NULL")
@@ -72,6 +73,37 @@ func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, er
 	return d.scanUsers(rows)
 }
 
+// ListTeamMemberships lists all memberships of the database. Use with care.
+func (d DB) ListTeamMemberships(ctx context.Context) ([]*users.TeamMembership, error) {
+	rows, err := d.QueryContext(ctx, `	
+ 	SELECT
+ 		user_id,
+ 		team_id,
+		role_id
+ 	FROM team_memberships
+ 	WHERE deleted_at is null
+ 	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var memberships []*users.TeamMembership
+	for rows.Next() {
+		m := &users.TeamMembership{}
+		if err := rows.Scan(
+			&m.UserID, &m.TeamID, &m.RoleID,
+		); err != nil {
+			return nil, err
+		}
+		memberships = append(memberships, m)
+	}
+	if rows.Err() != nil {
+		return nil, err
+	}
+	return memberships, nil
+}
+
 // CreateTeam creates a team
 func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	if name == "" {
@@ -95,6 +127,21 @@ func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 		return nil, err
 	}
 	return t, nil
+}
+
+// ListTeams lists teams. Pagination starts at 1, provide 0 to disable.
+func (d DB) ListTeams(ctx context.Context, page uint64) ([]*users.Team, error) {
+	q := d.teamsQuery()
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
+
+	rows, err := q.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanTeams(rows)
 }
 
 // UserIsMemberOfTeam returns true if the user has a membership.
@@ -236,7 +283,7 @@ func (d DB) removeUserFromTeam(ctx context.Context, userID, teamID string) error
 // FindTeamByExternalID finds team by its external ID
 func (d DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	team, err := d.scanTeam(
-		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRowContext(ctx),
+		d.teamsQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -247,7 +294,7 @@ func (d DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users
 	return team, nil
 }
 
-func (d DB) teamQuery() squirrel.SelectBuilder {
+func (d DB) teamsQuery() squirrel.SelectBuilder {
 	return d.Select(`
 		teams.id,
 		teams.external_id,
