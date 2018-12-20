@@ -97,8 +97,22 @@ func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	return t, nil
 }
 
+// UserIsMemberOfTeam returns true if the user has a membership.
+func (d DB) UserIsMemberOfTeam(ctx context.Context, userID, teamID string) (bool, error) {
+	var exists bool
+	err := d.QueryRowContext(ctx,
+		`select exists(select 1 from team_memberships where deleted_at is null and user_id=$1 and team_id=$2)`,
+		userID, teamID,
+	).Scan(&exists)
+	return exists, err
+}
+
 // AddUserToTeam links a user to the team
 func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
+	if exists, err := d.UserIsMemberOfTeam(ctx, userID, teamID); exists || err != nil {
+		return err
+	}
+
 	_, err := d.ExecContext(ctx, `
 			insert into team_memberships
 				(user_id, team_id)

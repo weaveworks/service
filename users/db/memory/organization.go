@@ -124,6 +124,21 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 	return orgs, nil
 }
 
+// ListOrganizationsInTeam returns all organizations that are part of given team.
+func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	orgs := []*users.Organization{}
+
+	for _, org := range d.organizations {
+		if org.TeamID == teamID {
+			orgs = append(orgs, org)
+		}
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
 // ListOrganizationUsers lists all the users in an organization
 func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error) {
 	d.mtx.Lock()
@@ -281,68 +296,6 @@ var (
 		// Routine:  "varchar",
 	}
 )
-
-// CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	if _, err := d.findUserByID(ownerID); err != nil {
-		return nil, err
-	}
-	if len(name) > organizationMaxLength {
-		return nil, errorOrgNameLengthConstraint
-	}
-	now := time.Now().UTC()
-	var teamExternalID string
-	for _, team := range d.teams {
-		if team.ID == teamID {
-			teamExternalID = team.ExternalID
-			break
-		}
-	}
-	o := &users.Organization{
-		ID:             fmt.Sprint(len(d.organizations)),
-		ExternalID:     externalID,
-		Name:           name,
-		CreatedAt:      now,
-		TrialExpiresAt: trialExpiresAt,
-		TeamID:         teamID,
-		TeamExternalID: teamExternalID,
-	}
-	if err := o.Valid(); err != nil {
-		return nil, err
-	}
-	if exists, err := d.organizationExists(o.ExternalID, true); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, users.ErrOrgExternalIDIsTaken
-	}
-	for exists := true; exists; {
-		if token != "" {
-			o.ProbeToken = token
-		} else {
-			if err := o.RegenerateProbeToken(); err != nil {
-				return nil, err
-			}
-		}
-		exists = false
-		for _, org := range d.organizations {
-			if org.ProbeToken == o.ProbeToken {
-				exists = true
-				break
-			}
-		}
-		if token != "" && exists {
-			return nil, users.ErrOrgTokenIsTaken
-		}
-	}
-
-	if o.TeamID == "" {
-		d.memberships[o.ID] = []string{ownerID}
-	}
-	d.organizations[o.ID] = o
-	return o, nil
-}
 
 // FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
 func (d *DB) FindUncleanedOrgIDs(_ context.Context) ([]string, error) {

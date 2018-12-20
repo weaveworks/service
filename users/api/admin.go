@@ -415,7 +415,12 @@ func (a *API) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.db.DeleteUser(r.Context(), userID); err != nil {
+	session, err := a.sessions.Get(r)
+	if err != nil {
+		return
+	}
+	actingID := session.GetActingUserID()
+	if err := a.db.DeleteUser(r.Context(), userID, actingID); err != nil {
 		renderError(w, r, err)
 		return
 	}

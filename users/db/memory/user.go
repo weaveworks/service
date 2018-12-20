@@ -44,7 +44,7 @@ func (d *DB) UpdateUser(ctx context.Context, userID string, update *users.UserUp
 
 // DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
 // where the user was the lone member.
-func (d *DB) DeleteUser(ctx context.Context, userID string) error {
+func (d *DB) DeleteUser(ctx context.Context, userID, actingID string) error {
 	// All organizations with this user as sole member
 	for orgID, us := range d.memberships {
 		if len(us) == 1 && us[0] == userID {

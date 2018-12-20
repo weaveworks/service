@@ -165,7 +165,7 @@ func TestDB_FindOrganizationByInternalID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	o, err := db.CreateOrganizationWithTeam(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", "Some Team", u.TrialExpiresAt())
 
 	if err != nil {
 		t.Fatal(err)

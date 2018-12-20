@@ -152,6 +152,18 @@ func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, pag
 	return d.scanOrganizations(rows)
 }
 
+// ListOrganizationsInTeam returns all organizations that are part of given team.
+func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
+	q := d.organizationsQuery().Where(squirrel.Eq{"team_id": teamID})
+
+	rows, err := q.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanOrganizations(rows)
+}
+
 // ListOrganizationUsers lists all the users in an organization.
 // It supports options such as whether to consider deleted organizations or
 // whether to exclude new users that have never logged in.
@@ -218,8 +230,8 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 	return externalID, err
 }
 
-// CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
+// createOrganization creates a new organization owned by the user
+func (d DB) createOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	now := d.Now()
 	o := &users.Organization{
 		ExternalID:     externalID,
@@ -264,7 +276,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		return tx.QueryRowContext(ctx, `insert into organizations
 			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
 			values (lower($1), $2, $3, $4, $5, $6) returning id`,
-			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, toNullString(o.TeamID),
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, o.TeamID,
 		).Scan(&o.ID)
 	})
 	if err != nil {
@@ -825,7 +837,7 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 			return fmt.Errorf("team should not be nil: %v, %v", teamExternalID, teamName)
 		}
 
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID, trialExpiresAt)
+		org, err = tx.createOrganization(ctx, ownerID, externalID, name, token, team.ID, trialExpiresAt)
 		if err != nil {
 			return err
 		}
@@ -856,48 +868,6 @@ func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.Goo
 	}
 
 	return gcp, nil
-}
-
-func mergeOrgs(orgsSlice ...[]*users.Organization) []*users.Organization {
-	m := make(map[string]*users.Organization)
-	for _, orgs := range orgsSlice {
-		for _, org := range orgs {
-			if _, exists := m[org.ID]; !exists {
-				m[org.ID] = org
-			}
-		}
-	}
-	uniqueOrgs := make([]*users.Organization, 0, len(m))
-	for _, org := range m {
-		uniqueOrgs = append(uniqueOrgs, org)
-	}
-	return uniqueOrgs
-}
-
-func mergeUsers(usersSlice ...[]*users.User) []*users.User {
-	m := make(map[string]*users.User)
-	for _, users := range usersSlice {
-		for _, user := range users {
-			if _, exists := m[user.ID]; !exists {
-				m[user.ID] = user
-			}
-		}
-	}
-	uniqueUsers := make([]*users.User, 0, len(m))
-	for _, user := range m {
-		uniqueUsers = append(uniqueUsers, user)
-	}
-	return uniqueUsers
-}
-
-type organizationsByCreatedAt []*users.Organization
-
-func (o organizationsByCreatedAt) Len() int           { return len(o) }
-func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
-func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.After(o[j].CreatedAt) }
-
-func toNullString(s string) sql.NullString {
-	return sql.NullString{String: s, Valid: s != ""}
 }
 
 // GetSummary exports a summary of the DB.

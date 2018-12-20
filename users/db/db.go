@@ -28,7 +28,7 @@ type DB interface {
 	// Create a user. The driver should set ID to some default only when it is "".
 	CreateUser(ctx context.Context, email string, details *users.UserUpdate) (*users.User, error)
 	UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error)
-	DeleteUser(ctx context.Context, userID string) error
+	DeleteUser(ctx context.Context, userID, actingID string) error
 
 	users.FindUserByIDer
 	FindUserByEmail(ctx context.Context, email string) (*users.User, error)
@@ -58,6 +58,8 @@ type DB interface {
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error)
+	ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error)
+
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
@@ -80,10 +82,6 @@ type DB interface {
 	// GenerateOrganizationExternalID generates a new, available organization ExternalID
 	GenerateOrganizationExternalID(ctx context.Context) (string, error)
 
-	// Create a new organization owned by the user. ExternalID and name cannot be blank.
-	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
-	// be chosen.
-	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error)
 	FindUncleanedOrgIDs(ctx context.Context) ([]string, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)

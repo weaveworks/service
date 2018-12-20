@@ -504,7 +504,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(r.Context(), invitee)
 	if err != nil {
-		renderError(w, r, fmt.Errorf("cannot send invite email: %s", err))
+		renderError(w, r, fmt.Errorf("cannot generate user token: %s", err))
 		return
 	}
 	orgName, err := a.db.GetOrganizationName(r.Context(), orgExternalID)
