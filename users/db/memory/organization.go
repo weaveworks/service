@@ -105,7 +105,7 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 }
 
 // ListAllOrganizations lists all organizations including deleted ones
-func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, s filter.Sort, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}

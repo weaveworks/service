@@ -147,8 +147,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
-		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null").
-		OrderBy("organizations.created_at DESC")
+		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null")
 	if !deleted {
 		query = query.Where("organizations.deleted_at is null")
 	}
@@ -171,7 +170,7 @@ func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page u
 }
 
 // ListAllOrganizations lists all organizations including deleted ones
-func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, s filter.Sort, page uint64) ([]*users.Organization, error) {
 	// check that query is not empty, otherwise q might be like "... where order by ..."
 	queryStr, _, err := f.Where().ToSql()
 	if err != nil {
@@ -181,6 +180,8 @@ func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, pag
 	if queryStr != "" {
 		q = q.Where(f.Where())
 	}
+
+	q = q.OrderBy(s.OrderBy())
 
 	if page > 0 {
 		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)

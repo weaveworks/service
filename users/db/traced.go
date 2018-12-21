@@ -89,9 +89,9 @@ func (t traced) ListOrganizations(ctx context.Context, f filter.Organization, pa
 	return t.d.ListOrganizations(ctx, f, page)
 }
 
-func (t traced) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
+func (t traced) ListAllOrganizations(ctx context.Context, f filter.Organization, s filter.Sort, page uint64) (os []*users.Organization, err error) {
 	defer t.trace("ListAllOrganizations", page, os, err)
-	return t.d.ListAllOrganizations(ctx, f, page)
+	return t.d.ListAllOrganizations(ctx, f, s, page)
 }
 
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) (us []*users.User, err error) {

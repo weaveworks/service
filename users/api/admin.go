@@ -205,7 +205,8 @@ func (a *API) adminWeeklyReportsPreview(w http.ResponseWriter, r *http.Request) 
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
-	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
+	sort := filter.NewSort("id", filter.SortAsc)
+	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), sort, page)
 	if err != nil {
 		renderError(w, r, err)
 		return
