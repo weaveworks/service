@@ -107,7 +107,7 @@ func (c *AttributeSyncer) EnqueueOrgsSync(ctx context.Context, orgExternalIDs []
 	for _, externalID := range orgExternalIDs {
 		// We request memberships for deleted orgs too so that we update users who
 		// were connected to the deleted orgs
-		users, err := c.db.ListOrganizationUsers(ctx, externalID, true)
+		users, err := c.db.ListOrganizationUsers(ctx, externalID, true, false)
 		if err != nil {
 			return err
 		}

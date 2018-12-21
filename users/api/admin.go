@@ -104,7 +104,7 @@ func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	us, err := a.db.ListOrganizationUsers(r.Context(), orgID, true)
+	us, err := a.db.ListOrganizationUsers(r.Context(), orgID, true, false)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -129,7 +129,7 @@ func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Req
 	orgExternalID := vars["orgExternalID"]
 	userID := vars["userID"]
 
-	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false); err != nil {
+	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false, false); err != nil {
 		renderError(w, r, err)
 		return
 	} else if len(members) == 1 {
@@ -535,7 +535,7 @@ func (a *API) GetOrganizationsUsers(ctx context.Context, organizations []*users.
 	orgUsers := make(map[string][]*users.User)
 	moreUsersCount := make(map[string]int)
 	for _, org := range organizations {
-		us, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, true)
+		us, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, true, false)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -143,9 +143,9 @@ func (t timed) ListAllOrganizations(ctx context.Context, f filter.Organization, 
 	return
 }
 
-func (t timed) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) (us []*users.User, err error) {
+func (t timed) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListOrganizationUsers", func(ctx context.Context) error {
-		us, err = t.d.ListOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs)
+		us, err = t.d.ListOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
 		return err
 	})
 	return
