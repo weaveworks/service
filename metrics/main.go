@@ -54,6 +54,7 @@ type bqInstance struct {
 	FirstSeenConnectedAt *time.Time
 	Platform             string
 	Environment          string
+	PlatformVersion      string
 	BillingProvider      string
 	RefuseDataAccess     string
 	RefuseDataUpload     string
@@ -191,6 +192,7 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 			CreatedAt:            instance.CreatedAt,
 			FirstSeenConnectedAt: instance.FirstSeenConnectedAt,
 			Platform:             instance.Platform,
+			PlatformVersion:      instance.PlatformVersion,
 			Environment:          instance.Environment,
 			BillingProvider:      instance.BillingProvider(),
 			RefuseDataAccess:     boolString(instance.RefuseDataAccess),
