@@ -57,18 +57,41 @@ func (d DB) teamHasOrganizations(ctx context.Context, teamID string) (bool, erro
 	return exists, err
 }
 
+func (d DB) scanUserWithRole(row squirrel.RowScanner) (*users.UserWithRole, error) {
+	u := &users.User{}
+	r := &users.Role{}
+
+	var (
+		token sql.NullString
+
+		createdAt,
+		firstLoginAt,
+		lastLoginAt,
+		tokenCreatedAt pq.NullTime
+	)
+	if err := row.Scan(
+		&u.ID, &u.Email, &u.Company, &u.Name, &token, &tokenCreatedAt, &createdAt,
+		&u.Admin, &firstLoginAt, &lastLoginAt, &u.FirstName, &u.LastName, &r.ID, &r.Name,
+	); err != nil {
+		return nil, err
+	}
+	u.Token = token.String
+	u.TokenCreatedAt = tokenCreatedAt.Time
+	u.CreatedAt = createdAt.Time
+	u.FirstLoginAt = firstLoginAt.Time
+	u.LastLoginAt = lastLoginAt.Time
+
+	return &users.UserWithRole{User: *u, Role: *r}, nil
+}
+
 func (d DB) scanUsersWithRole(rows *sql.Rows) ([]*users.UserWithRole, error) {
 	usersWithRole := []*users.UserWithRole{}
 	for rows.Next() {
-		user, err := d.scanUser(rows)
+		ur, err := d.scanUserWithRole(rows)
 		if err != nil {
 			return nil, err
 		}
-		role, err := d.scanRole(rows)
-		if err != nil {
-			return nil, err
-		}
-		usersWithRole = append(usersWithRole, &users.UserWithRole{User: *user, Role: *role})
+		usersWithRole = append(usersWithRole, ur)
 	}
 	if rows.Err() != nil {
 		return nil, rows.Err()
