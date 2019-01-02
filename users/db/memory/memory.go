@@ -36,9 +36,9 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		teams:                make(map[string]*users.Team),
 		teamMemberships:      make(map[string]map[string]string),
 		roles: map[string]*users.Role{
-			"admin":  &users.Role{ID: "admin", Name: "Admin"},
-			"editor": &users.Role{ID: "editor", Name: "Editor"},
-			"viewer": &users.Role{ID: "viewer", Name: "Viewer"},
+			"admin":  {ID: "admin", Name: "Admin"},
+			"editor": {ID: "editor", Name: "Editor"},
+			"viewer": {ID: "viewer", Name: "Viewer"},
 		},
 		permissions:         make(map[string]*users.Permission),
 		rolesPermissions:    make(map[string][]string),
