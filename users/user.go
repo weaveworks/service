@@ -36,8 +36,8 @@ type UserResponse struct {
 
 // UserWithRole is a little struct for passing around a User's role in a org.
 type UserWithRole struct {
-	User *User
-	Role *Role
+	User User
+	Role Role
 }
 
 func formatTimestamp(t time.Time) string {

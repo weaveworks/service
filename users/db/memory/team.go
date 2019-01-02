@@ -76,7 +76,7 @@ func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users
 	sort.Sort(usersByCreatedAt(us))
 	var usersWithRole []*users.UserWithRole
 	for _, u := range us {
-		usersWithRole = append(usersWithRole, &users.UserWithRole{User: u, Role: roles[u.ID]})
+		usersWithRole = append(usersWithRole, &users.UserWithRole{User: *u, Role: *roles[u.ID]})
 	}
 	log.Infof("OUT %v", usersWithRole)
 	return usersWithRole, nil

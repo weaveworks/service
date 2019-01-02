@@ -68,7 +68,7 @@ func (d DB) scanUsersWithRole(rows *sql.Rows) ([]*users.UserWithRole, error) {
 		if err != nil {
 			return nil, err
 		}
-		usersWithRole = append(usersWithRole, &users.UserWithRole{User: user, Role: role})
+		usersWithRole = append(usersWithRole, &users.UserWithRole{User: *user, Role: *role})
 	}
 	if rows.Err() != nil {
 		return nil, rows.Err()

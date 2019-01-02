@@ -136,13 +136,13 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"users": []interface{}{
 			map[string]interface{}{
-				"email":     fran.Email,
-				"userRoles": []interface{}{"admin"},
+				"email": fran.Email,
+				"role":  "admin",
 			},
 			map[string]interface{}{
-				"email":     user.Email,
-				"self":      true,
-				"userRoles": []interface{}{"admin"},
+				"email": user.Email,
+				"self":  true,
+				"role":  "admin",
 			},
 		},
 	}, responseBody)

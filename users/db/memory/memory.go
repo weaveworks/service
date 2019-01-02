@@ -38,7 +38,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		roles: map[string]*users.Role{
 			"admin":  &users.Role{ID: "admin", Name: "Admin"},
 			"editor": &users.Role{ID: "editor", Name: "Editor"},
-			"viewer": &users.Role{ID: "admin", Name: "Viewer"},
+			"viewer": &users.Role{ID: "viewer", Name: "Viewer"},
 		},
 		permissions:         make(map[string]*users.Permission),
 		rolesPermissions:    make(map[string][]string),
