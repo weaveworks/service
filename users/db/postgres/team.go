@@ -215,17 +215,18 @@ func (d DB) UserIsMemberOfTeam(ctx context.Context, userID, teamID string) (bool
 }
 
 // AddUserToTeam links a user to the team
-func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
+func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, role string) error {
 	if exists, err := d.UserIsMemberOfTeam(ctx, userID, teamID); exists || err != nil {
 		return err
 	}
 
 	_, err := d.ExecContext(ctx, `
 			insert into team_memberships
-				(user_id, team_id)
-				values ($1, $2)`,
+				(user_id, team_id, role_id)
+				values ($1, $2, $3)`,
 		userID,
 		teamID,
+		role,
 	)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok && e.Constraint == "team_memberships_user_id_team_id_idx" {
@@ -233,6 +234,21 @@ func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
 		}
 	}
 	return err
+}
+
+// CreateTeamAsUser creates a team from a name and sets user to be admin
+func (d *DB) CreateTeamAsUser(ctx context.Context, name string, userID string) (*users.Team, error) {
+	team, err := d.CreateTeam(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.AddUserToTeam(ctx, userID, team.ID, "admin")
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
 }
 
 // DeleteTeam marks the given team as deleted.
@@ -451,11 +467,7 @@ func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName s
 	}
 
 	// teams does not exists for the user, create it!
-	team, err := d.CreateTeam(ctx, teamName)
-	if err != nil {
-		return nil, err
-	}
-	err = d.AddUserToTeam(ctx, userID, team.ID)
+	team, err := d.CreateTeamAsUser(ctx, teamName, userID)
 	if err != nil {
 		return nil, err
 	}

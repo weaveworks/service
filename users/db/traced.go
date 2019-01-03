@@ -69,9 +69,9 @@ func (t traced) DetachLoginFromUser(ctx context.Context, userID, provider string
 	return t.d.DetachLoginFromUser(ctx, userID, provider)
 }
 
-func (t traced) InviteUser(ctx context.Context, email, orgExternalID string) (u *users.User, created bool, err error) {
-	defer t.trace("InviteUser", email, orgExternalID, u, created, err)
-	return t.d.InviteUser(ctx, email, orgExternalID)
+func (t traced) InviteUser(ctx context.Context, email, orgExternalID string, role string) (u *users.User, created bool, err error) {
+	defer t.trace("InviteUser", email, orgExternalID, role, u, created, err)
+	return t.d.InviteUser(ctx, email, orgExternalID, role)
 }
 
 func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) (err error) {
@@ -323,9 +323,9 @@ func (t traced) CreateTeam(ctx context.Context, name string) (ut *users.Team, er
 	return t.d.CreateTeam(ctx, name)
 }
 
-func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string) (err error) {
-	defer t.trace("AddUserToTeam", userID, teamID, err)
-	return t.d.AddUserToTeam(ctx, userID, teamID)
+func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string, role string) (err error) {
+	defer t.trace("AddUserToTeam", userID, teamID, role, err)
+	return t.d.AddUserToTeam(ctx, userID, teamID, role)
 }
 
 func (t traced) DeleteTeam(ctx context.Context, teamID string) (err error) {

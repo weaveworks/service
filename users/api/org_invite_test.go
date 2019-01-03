@@ -45,7 +45,7 @@ func getOrgWithMembers(t *testing.T, count int) (*users.User, []*users.User, *us
 	members := []*users.User{}
 	for ; count > 1; count-- {
 		u := getUser(t)
-		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID)
+		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID, "admin")
 		require.NoError(t, err)
 		members = append(members, u)
 	}
@@ -67,7 +67,7 @@ func Test_InviteNonExistentUser(t *testing.T) {
 	user, org := getOrg(t)
 	franEmail := "fran@weave.works"
 	body := requestInvite(t, user, org, franEmail, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": franEmail}, body)
+	assert.Equal(t, map[string]interface{}{"email": franEmail, "role": "admin"}, body)
 
 	fran, err := database.FindUserByEmail(context.Background(), franEmail)
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	fran := getUser(t)
 
 	body := requestInvite(t, user, org, fran.Email, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": fran.Email}, body)
+	assert.Equal(t, map[string]interface{}{"email": fran.Email, "role": "admin"}, body)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := database.CreateUser(context.Background(), "fran@weave.works", nil)
 	require.NoError(t, err)
-	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID)
+	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID, "admin")
 	require.NoError(t, err)
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)

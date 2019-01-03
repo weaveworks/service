@@ -96,6 +96,7 @@ var (
 	ErrNotFound                   = errors.New("not found")
 	ErrEmailIsTaken               = ValidationErrorf("email is already taken")
 	ErrEmailIsInvalid             = ValidationErrorf("email is not valid")
+	ErrRoleIsInvalid              = ValidationErrorf("role is not valid, must be one of: 'admin', 'editor', 'viewer'")
 	ErrInvalidAuthenticationData  = errors.New("invalid authentication data")
 	ErrOrgExternalIDIsTaken       = ValidationErrorf("ID is already taken")
 	ErrOrgExternalIDCannotBeBlank = ValidationErrorf("ID cannot be blank")

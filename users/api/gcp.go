@@ -54,8 +54,8 @@ func (a *API) GCPSSOLogin(currentUser *users.User, externalAccountID string, w h
 		logger.Infof("User already has access to organization [%v]", org.ExternalID)
 		return org, nil
 	}
-	log.Infof("Now granting user access to organization [%v]", org.ExternalID)
-	if _, _, err = a.db.InviteUser(r.Context(), currentUser.Email, org.ExternalID); err != nil {
+	log.Infof("Now granting user admin access to organization [%v]", org.ExternalID)
+	if _, _, err = a.db.InviteUser(r.Context(), currentUser.Email, org.ExternalID, "admin"); err != nil {
 		return nil, err
 	}
 	return org, nil

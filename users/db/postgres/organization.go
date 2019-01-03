@@ -531,10 +531,7 @@ func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternal
 	var team *users.Team
 	var err error
 	if teamName != "" {
-		if team, err = d.CreateTeam(ctx, teamName); err != nil {
-			return err
-		}
-		if err = d.AddUserToTeam(ctx, userID, team.ID); err != nil {
+		if team, err = d.CreateTeamAsUser(ctx, teamName, userID); err != nil {
 			return err
 		}
 	} else {

@@ -23,7 +23,7 @@ func TestDB_RemoveOtherUsersAccess(t *testing.T) {
 
 	_, org := dbtest.GetOrg(t, db)
 	otherUser := dbtest.GetUser(t, db)
-	otherUser, _, err := db.InviteUser(context.Background(), otherUser.Email, org.ExternalID)
+	otherUser, _, err := db.InviteUser(context.Background(), otherUser.Email, org.ExternalID, "admin")
 	require.NoError(t, err)
 	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestDB_RemoveOtherUsersAccessWithTeams(t *testing.T) {
 	require.Len(t, userTeams, 1)
 	require.Equal(t, team.ID, userTeams[0].ID)
 
-	otherUser, _, err = db.InviteUser(ctx, otherUser.Email, org.ExternalID)
+	otherUser, _, err = db.InviteUser(ctx, otherUser.Email, org.ExternalID, "admin")
 	require.NoError(t, err)
 	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
@@ -264,7 +264,7 @@ func TestDB_DoubleTeamMembershipEntry(t *testing.T) {
 	require.Equal(t, team.ID, userTeams[0].ID)
 
 	// re-add user to the same team
-	err = db.AddUserToTeam(ctx, user.ID, team.ID)
+	err = db.AddUserToTeam(ctx, user.ID, team.ID, "admin")
 	require.NoError(t, err)
 }
 

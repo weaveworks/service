@@ -506,12 +506,18 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 	render.JSON(w, http.StatusOK, view)
 }
 
+// InviteUserResponse is the message sent as the result of an invite request
+type InviteUserResponse struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
 	defer r.Body.Close()
-	var resp SignupResponse
+	var resp InviteUserResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		renderError(w, r, users.NewMalformedInputError(err))
 		return
@@ -519,6 +525,17 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	email := strings.TrimSpace(resp.Email)
 	if email == "" || !validation.ValidateEmail(email) {
 		renderError(w, r, users.ErrEmailIsInvalid)
+		return
+	}
+
+	role := strings.TrimSpace(resp.Role)
+	if role == "" {
+		// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
+		role = "admin"
+		resp.Role = role
+	}
+	if !validation.ValidateRole(role) {
+		renderError(w, r, users.ErrRoleIsInvalid)
 		return
 	}
 
@@ -531,7 +548,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		renderError(w, r, err)
 		return
 	}
-	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID)
+	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID, role)
 	if err != nil {
 		renderError(w, r, err)
 		return
