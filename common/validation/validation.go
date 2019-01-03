@@ -12,6 +12,7 @@ func ValidateEmail(email string) bool {
 	return re.MatchString(strings.ToLower(email))
 }
 
+// ValidateRole returns true if role is valid
 func ValidateRole(role string) bool {
 	return role == "admin" || role == "editor" || role == "viewer"
 }
