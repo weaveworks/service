@@ -166,15 +166,21 @@ func (a *API) adminWeeklyReportsControlPanel(w http.ResponseWriter, r *http.Requ
 }
 
 func (a *API) adminWeeklyReportsTriggerJob(w http.ResponseWriter, r *http.Request) {
-	a.usersSyncClient.EnforceWeeklyReporterJob(r.Context(), &users_sync.EnforceWeeklyReporterJobRequest{})
+	if _, err := a.usersSyncClient.EnforceWeeklyReporterJob(r.Context(), &users_sync.EnforceWeeklyReporterJobRequest{}); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	http.Redirect(w, r, "/admin/users/weeklyreports", http.StatusFound)
 }
 
 func (a *API) adminWeeklyReportsSendSingle(w http.ResponseWriter, r *http.Request) {
-	a.grpc.SendOutWeeklyReport(r.Context(), &users.SendOutWeeklyReportRequest{
+	if _, err := a.grpc.SendOutWeeklyReport(r.Context(), &users.SendOutWeeklyReportRequest{
 		Now:        time.Now(),
 		ExternalID: r.FormValue("OrgExternalID"),
-	})
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	http.Redirect(w, r, "/admin/users/weeklyreports", http.StatusFound)
 }
 
