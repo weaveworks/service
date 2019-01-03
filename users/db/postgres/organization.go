@@ -219,15 +219,15 @@ func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID strin
 	if !includeDeletedOrgs {
 		filter["organizations.deleted_at"] = nil
 	}
-	if excludeNewUsers {
-		filter["first_login_at"] = nil
-	}
-	rows, err := d.usersQuery().
+	q := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
 		Where(filter).
-		OrderBy("users.created_at").
-		QueryContext(ctx)
+		OrderBy("users.created_at")
+	if excludeNewUsers {
+		q = q.Where("first_login_at is not null")
+	}
+	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -243,14 +243,14 @@ func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string,
 	if !includeDeletedOrgs {
 		filter["organizations.deleted_at"] = nil
 	}
-	if excludeNewUsers {
-		filter["first_login_at"] = nil
-	}
-	rows, err := d.usersQuery().
+	q := d.usersQuery().
 		Join("team_memberships on (team_memberships.user_id = users.id)").
 		Join("organizations on (team_memberships.team_id = organizations.team_id)").
-		Where(filter).
-		QueryContext(ctx)
+		Where(filter)
+	if excludeNewUsers {
+		q = q.Where("first_login_at is not null")
+	}
+	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
