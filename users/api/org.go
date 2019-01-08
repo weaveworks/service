@@ -22,6 +22,7 @@ import (
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
+	"github.com/weaveworks/service/common/permissions"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/notification-eventmanager/types"
@@ -516,6 +517,16 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
+		return
+	}
+
+	canInvite, err := permissions.CanInviteTeamMembers(r.Context(), a.db, currentUser.ID, orgExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	if !canInvite {
+		renderError(w, r, fmt.Errorf("user %s has no permissions to invite new team members to %s", currentUser.Email, orgExternalID))
 		return
 	}
 
