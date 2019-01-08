@@ -193,17 +193,13 @@ func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, inc
 // ListOrganizationsForUserIDs lists the organizations these users belong to.
 // This includes direct membership and team membership.
 func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, false)
+	return d.listOrganizationsForUserIDs(ctx, userIDs, false)
 }
 
 // ListAllOrganizationsForUserIDs lists the organizations these users
 // belong to, including deleted ones.
 func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, true)
-}
-
-func (d DB) listOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
-	return d.listTeamOrganizationsForUserIDs(ctx, userIDs, includeDeletedOrgs)
+	return d.listOrganizationsForUserIDs(ctx, userIDs, true)
 }
 
 // GenerateOrganizationExternalID returns an available organization external

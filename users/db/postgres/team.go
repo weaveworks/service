@@ -29,7 +29,7 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 	return d.scanTeams(rows)
 }
 
-func (d DB) listTeamOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
+func (d DB) listOrganizationsForUserIDs(ctx context.Context, userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
 	rows, err := d.organizationsQueryHelper(includeDeletedOrgs).
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where("team_memberships.deleted_at IS NULL").
@@ -75,14 +75,10 @@ func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, er
 
 // ListTeamMemberships lists all memberships of the database. Use with care.
 func (d DB) ListTeamMemberships(ctx context.Context) ([]*users.TeamMembership, error) {
-	rows, err := d.QueryContext(ctx, `	
- 	SELECT
- 		user_id,
- 		team_id,
-		role_id
- 	FROM team_memberships
- 	WHERE deleted_at is null
- 	`)
+	rows, err := d.Select("user_id", "team_id", "role_id").
+		From("team_memberships").
+		Where(squirrel.Eq{"deleted_at": nil}).
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
