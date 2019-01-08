@@ -71,7 +71,7 @@ func (d *DB) ListTeamMemberships(_ context.Context) ([]*users.TeamMembership, er
 }
 
 func (d *DB) listTeamUsers(_ context.Context, teamID string, excludeNewUsers bool) ([]*users.User, error) {
-	var users []*users.User
+	var us []*users.User
 	for m, teamRoles := range d.teamMemberships {
 		for tID := range teamRoles {
 			if tID == teamID {
@@ -82,13 +82,13 @@ func (d *DB) listTeamUsers(_ context.Context, teamID string, excludeNewUsers boo
 				if excludeNewUsers && u.FirstLoginAt.IsZero() {
 					continue
 				}
-				users = append(users, u)
+				us = append(us, u)
 			}
 		}
 	}
 
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
+	sort.Sort(usersByCreatedAt(us))
+	return us, nil
 }
 
 func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
@@ -112,7 +112,7 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	// no lock needed: caller must acquire lock.
 	if name == "" {
-		return nil, errors.New("Team name cannot be blank")
+		return nil, errors.New("team name cannot be blank")
 	}
 
 	now := time.Now()

@@ -107,7 +107,7 @@ func (d DB) ListTeamMemberships(ctx context.Context) ([]*users.TeamMembership, e
 // CreateTeam creates a team
 func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	if name == "" {
-		return nil, errors.New("Team name cannot be blank")
+		return nil, errors.New("team name cannot be blank")
 	}
 	now := d.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
@@ -312,7 +312,7 @@ func (d DB) teamsQuery() squirrel.SelectBuilder {
 }
 
 func (d DB) scanTeams(rows *sql.Rows) ([]*users.Team, error) {
-	teams := []*users.Team{}
+	var teams []*users.Team
 	for rows.Next() {
 		team, err := d.scanTeam(rows)
 		if err != nil {

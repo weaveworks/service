@@ -244,14 +244,14 @@ func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.After(u[j]
 func (d *DB) ListUsers(_ context.Context, f filter.User, page uint64) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	users := []*users.User{}
+	var us []*users.User
 	for _, user := range d.users {
 		if f.MatchesUser(*user) {
-			users = append(users, user)
+			us = append(us, user)
 		}
 	}
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
+	sort.Sort(usersByCreatedAt(us))
+	return us, nil
 }
 
 // ListLoginsForUserIDs lists the logins for these users

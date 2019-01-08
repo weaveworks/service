@@ -31,7 +31,7 @@ func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email 
 		return nil
 	}
 
-	var newTeams map[string]string
+	newTeams := map[string]string{}
 	for teamID, roleID := range d.teamMemberships[u.ID] {
 		if teamID != o.TeamID {
 			newTeams[teamID] = roleID
@@ -71,7 +71,7 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 
 	for _, org := range d.organizations {
 		if f.MatchesOrg(*org) {
@@ -86,7 +86,7 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 
 	for _, org := range d.organizations {
 		if f.MatchesOrg(*org) {
@@ -106,7 +106,7 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 
 	for _, org := range d.organizations {
 		if org.TeamID == teamID {
@@ -133,19 +133,19 @@ func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string, in
 		return nil, err
 	}
 
-	var users []*users.User
+	var us []*users.User
 	if !o.DeletedAt.IsZero() && !includeDeletedOrgs {
-		return users, nil
+		return us, nil
 	}
 
 	teamUsers, err := d.listTeamUsers(ctx, o.TeamID, excludeNewUsers)
 	if err != nil {
 		return nil, err
 	}
-	users = append(users, teamUsers...)
+	us = append(us, teamUsers...)
 
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
+	sort.Sort(usersByCreatedAt(us))
+	return us, nil
 }
 
 type organizationsByCreatedAt []*users.Organization
@@ -750,7 +750,7 @@ func (d *DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	entries := []*users.SummaryEntry{}
+	var entries []*users.SummaryEntry
 	for _, org := range d.organizations {
 		team := d.teams[org.TeamID]
 		orgUsers, err := d.listOrganizationUsers(ctx, org.ExternalID, false, false)

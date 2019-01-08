@@ -168,17 +168,17 @@ func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*user
 // It supports options such as whether to consider deleted organizations or
 // whether to exclude new users that have never logged in.
 func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool, excludeNewUsers bool) ([]*users.User, error) {
-	filter := squirrel.Eq{
+	f := squirrel.Eq{
 		"organizations.external_id":   orgExternalID,
 		"team_memberships.deleted_at": nil,
 	}
 	if !includeDeletedOrgs {
-		filter["organizations.deleted_at"] = nil
+		f["organizations.deleted_at"] = nil
 	}
 	q := d.usersQuery().
 		Join("team_memberships on (team_memberships.user_id = users.id)").
 		Join("organizations on (team_memberships.team_id = organizations.team_id)").
-		Where(filter)
+		Where(f)
 	if excludeNewUsers {
 		q = q.Where("first_login_at is not null")
 	}
@@ -374,7 +374,7 @@ func (d DB) FindOrganizationByInternalID(ctx context.Context, internalID string)
 }
 
 func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 	for rows.Next() {
 		org, err := d.scanOrganization(rows)
 		if err != nil {
@@ -936,7 +936,7 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 }
 
 func (d DB) scanSummaryEntries(rows *sql.Rows) ([]*users.SummaryEntry, error) {
-	entries := []*users.SummaryEntry{}
+	var entries []*users.SummaryEntry
 	for rows.Next() {
 		entry, err := d.scanSummaryEntry(rows)
 		if err != nil {

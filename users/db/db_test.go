@@ -139,7 +139,7 @@ func TestDB_ListByFeatureFlag(t *testing.T) {
 	{
 		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag, 0)
 		require.NoError(t, err)
-		assert.Equal(t, []*users.Organization{}, orgsWithFlag)
+		assert.Nil(t, orgsWithFlag)
 	}
 
 	db.AddFeatureFlag(ctx, org.ExternalID, flag)
