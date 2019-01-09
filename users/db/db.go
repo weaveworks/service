@@ -28,7 +28,7 @@ type DB interface {
 	// Create a user. The driver should set ID to some default only when it is "".
 	CreateUser(ctx context.Context, email string, details *users.UserUpdate) (*users.User, error)
 	UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error)
-	DeleteUser(ctx context.Context, userID string) error
+	DeleteUser(ctx context.Context, userID, actingID string) error
 
 	users.FindUserByIDer
 	FindUserByEmail(ctx context.Context, email string) (*users.User, error)
@@ -58,6 +58,7 @@ type DB interface {
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error)
+	ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
@@ -80,10 +81,6 @@ type DB interface {
 	// GenerateOrganizationExternalID generates a new, available organization ExternalID
 	GenerateOrganizationExternalID(ctx context.Context) (string, error)
 
-	// Create a new organization owned by the user. ExternalID and name cannot be blank.
-	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
-	// be chosen.
-	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error)
 	FindUncleanedOrgIDs(ctx context.Context) ([]string, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
@@ -93,7 +90,7 @@ type DB interface {
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
-	DeleteOrganization(ctx context.Context, externalID string, userID string) error
+	DeleteOrganization(ctx context.Context, externalID string, actingID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
 	SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
@@ -121,8 +118,7 @@ type DB interface {
 	// It also enables the billing feature flag and sets platform/env.
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
-	ListMemberships(ctx context.Context) ([]users.Membership, error)
-
+	ListTeams(ctx context.Context, page uint64) ([]*users.Team, error)
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	ListRoles(ctx context.Context) ([]*users.Role, error)
@@ -145,6 +141,9 @@ type DB interface {
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
 	GetSummary(ctx context.Context) ([]*users.SummaryEntry, error)
+
+	// Primarily to provide data to BigQuery, use with care.
+	ListTeamMemberships(ctx context.Context) ([]*users.TeamMembership, error)
 
 	Close(ctx context.Context) error
 }

@@ -109,7 +109,7 @@ func (d DB) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID stri
 }
 
 func (d DB) scanWebhooks(rows *sql.Rows) ([]*users.Webhook, error) {
-	webhooks := []*users.Webhook{}
+	var webhooks []*users.Webhook
 	for rows.Next() {
 		webhook, err := d.scanWebhook(rows)
 		if err != nil {

@@ -55,9 +55,9 @@ func (t timed) UpdateUser(ctx context.Context, userID string, update *users.User
 	})
 	return
 }
-func (t timed) DeleteUser(ctx context.Context, userID string) error {
+func (t timed) DeleteUser(ctx context.Context, userID, actingID string) error {
 	return t.timeRequest(ctx, "DeleteUser", func(ctx context.Context) error {
-		return t.d.DeleteUser(ctx, userID)
+		return t.d.DeleteUser(ctx, userID, actingID)
 	})
 }
 
@@ -143,6 +143,14 @@ func (t timed) ListAllOrganizations(ctx context.Context, f filter.Organization, 
 	return
 }
 
+func (t timed) ListOrganizationsInTeam(ctx context.Context, teamID string) (os []*users.Organization, err error) {
+	t.timeRequest(ctx, "ListOrganizaitonsInTeam", func(ctx context.Context) error {
+		os, err = t.d.ListOrganizationsInTeam(ctx, teamID)
+		return err
+	})
+	return
+}
+
 func (t timed) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListOrganizationUsers", func(ctx context.Context) error {
 		us, err = t.d.ListOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
@@ -196,14 +204,6 @@ func (t timed) SetUserLastLoginAt(ctx context.Context, id string) error {
 func (t timed) GenerateOrganizationExternalID(ctx context.Context) (s string, err error) {
 	t.timeRequest(ctx, "GenerateOrganizationExternalID", func(ctx context.Context) error {
 		s, err = t.d.GenerateOrganizationExternalID(ctx)
-		return err
-	})
-	return
-}
-
-func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (o *users.Organization, err error) {
-	t.timeRequest(ctx, "CreateOrganization", func(ctx context.Context) error {
-		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID, trialExpiresAt)
 		return err
 	})
 	return
@@ -404,14 +404,6 @@ func (t timed) SetOrganizationGCP(ctx context.Context, externalID, externalAccou
 	})
 }
 
-func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
-	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
-		memberships, err = t.d.ListMemberships(ctx)
-		return err
-	})
-	return
-}
-
 func (t timed) ListRoles(ctx context.Context) (r []*users.Role, err error) {
 	t.timeRequest(ctx, "ListRoles", func(ctx context.Context) error {
 		r, err = t.d.ListRoles(ctx)
@@ -431,6 +423,22 @@ func (t timed) ListTeamsForUserID(ctx context.Context, userID string) (us []*use
 func (t timed) ListTeamUsers(ctx context.Context, teamID string) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListTeamUsers", func(ctx context.Context) error {
 		us, err = t.d.ListTeamUsers(ctx, teamID)
+		return err
+	})
+	return
+}
+
+func (t timed) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, err error) {
+	t.timeRequest(ctx, "ListTeams", func(ctx context.Context) error {
+		ts, err = t.d.ListTeams(ctx, page)
+		return err
+	})
+	return
+}
+
+func (t timed) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
+	t.timeRequest(ctx, "ListTeamMemberships", func(ctx context.Context) error {
+		ms, err = t.d.ListTeamMemberships(ctx)
 		return err
 	})
 	return

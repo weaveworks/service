@@ -63,18 +63,7 @@ func AddGoogleLoginToUser(t *testing.T, db db.DB, userID string) *oauth2.Token {
 
 // CreateOrgForUser creates a new random organization for this user
 func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization {
-	externalID, err := db.GenerateOrganizationExternalID(context.Background())
-	require.NoError(t, err)
-
-	name := strings.Replace(externalID, "-", " ", -1)
-	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "", "", u.TrialExpiresAt())
-	require.NoError(t, err)
-
-	assert.NotEqual(t, "", org.ID)
-	assert.NotEqual(t, "", org.Name)
-	assert.Equal(t, externalID, org.ExternalID)
-
-	return org
+	return CreateOrgForTeam(t, db, u, GetTeam(t, db))
 }
 
 // CreateOrgForTeam creates a new random organization for this team

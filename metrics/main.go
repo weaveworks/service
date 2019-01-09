@@ -58,11 +58,23 @@ type bqInstance struct {
 	BillingProvider      string
 	RefuseDataAccess     string
 	RefuseDataUpload     string
+	TeamID               string
 }
 
-type bqMembership struct {
-	UserID     string
-	InstanceID string
+type bqTeamMembership struct {
+	UserID string
+	TeamID string
+	RoleID string
+}
+
+type bqTeam struct {
+	ID                           string
+	Name                         string
+	ExternalID                   string
+	TrialExpiresAt               time.Time
+	TrialPendingExpiryNotifiedAt *time.Time
+	TrialExpiredNotifiedAt       *time.Time
+	CreatedAt                    time.Time
 }
 
 func main() {
@@ -111,7 +123,8 @@ func main() {
 				get func(context.Context, db.DB) ([]interface{}, error)
 			}{
 				{"users", getUsers},
-				{"memberships", getMemberships},
+				{"team_memberships", getTeamMemberships},
+				{"teams", getTeams},
 				{"instances", getInstances},
 			} {
 				objs, err := getter.get(ctx, d)
@@ -162,16 +175,38 @@ func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
 	return results, nil
 }
 
-func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
-	memberships, err := d.ListMemberships(ctx)
+func getTeamMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
+	memberships, err := d.ListTeamMemberships(ctx)
 	if err != nil {
 		return nil, err
 	}
-	results := []interface{}{}
-	for _, membership := range memberships {
-		result := bqMembership{
-			UserID:     membership.UserID,
-			InstanceID: membership.OrganizationID,
+	var results []interface{}
+	for _, m := range memberships {
+		result := bqTeamMembership{
+			UserID: m.UserID,
+			TeamID: m.TeamID,
+			RoleID: m.RoleID,
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func getTeams(ctx context.Context, d db.DB) ([]interface{}, error) {
+	teams, err := d.ListTeams(ctx, 0)
+	if err != nil {
+		return nil, err
+	}
+	var results []interface{}
+	for _, t := range teams {
+		result := bqTeam{
+			ID:                           t.ID,
+			Name:                         t.Name,
+			ExternalID:                   t.ExternalID,
+			TrialExpiresAt:               t.TrialExpiresAt,
+			TrialPendingExpiryNotifiedAt: t.TrialPendingExpiryNotifiedAt,
+			TrialExpiredNotifiedAt:       t.TrialExpiredNotifiedAt,
+			CreatedAt:                    t.CreatedAt,
 		}
 		results = append(results, result)
 	}

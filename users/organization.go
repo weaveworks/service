@@ -47,10 +47,11 @@ var (
 	}
 )
 
-// Membership represents a users membership of an organization.
-type Membership struct {
-	UserID         string
-	OrganizationID string
+// TeamMembership represents a users membership of a team.
+type TeamMembership struct {
+	UserID string
+	TeamID string
+	RoleID string
 }
 
 // OrgWriteView represents an update for an organization with optional fields.

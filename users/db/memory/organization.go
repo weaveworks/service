@@ -31,26 +31,13 @@ func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email 
 		return nil
 	}
 
-	memberships, ok := d.memberships[o.ID]
-	if ok {
-		var newMemberships []string
-		for _, m := range memberships {
-			if m != u.ID {
-				newMemberships = append(newMemberships, m)
-			}
+	newTeams := map[string]string{}
+	for teamID, roleID := range d.teamMemberships[u.ID] {
+		if teamID != o.TeamID {
+			newTeams[teamID] = roleID
 		}
-		d.memberships[o.ID] = newMemberships
 	}
-
-	if o.TeamID != "" {
-		var newTeams map[string]string
-		for teamID, roleID := range d.teamMemberships[u.ID] {
-			if teamID != o.TeamID {
-				newTeams[teamID] = roleID
-			}
-		}
-		d.teamMemberships[u.ID] = newTeams
-	}
+	d.teamMemberships[u.ID] = newTeams
 
 	return nil
 }
@@ -71,18 +58,9 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 		return false, err
 	}
 
-	if o.TeamID != "" {
-		teamIDs, _ := d.teamMemberships[userID]
-		for teamID := range teamIDs {
-			if teamID == o.TeamID {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-
-	for _, m := range d.memberships[o.ID] {
-		if m == userID {
+	teamIDs, _ := d.teamMemberships[userID]
+	for teamID := range teamIDs {
+		if teamID == o.TeamID {
 			return true, nil
 		}
 	}
@@ -93,7 +71,7 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 
 	for _, org := range d.organizations {
 		if f.MatchesOrg(*org) {
@@ -108,7 +86,7 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	orgs := []*users.Organization{}
+	var orgs []*users.Organization
 
 	for _, org := range d.organizations {
 		if f.MatchesOrg(*org) {
@@ -117,6 +95,21 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 	}
 	for _, org := range d.deletedOrganizations {
 		if f.MatchesOrg(*org) {
+			orgs = append(orgs, org)
+		}
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
+// ListOrganizationsInTeam returns all organizations that are part of given team.
+func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	var orgs []*users.Organization
+
+	for _, org := range d.organizations {
+		if org.TeamID == teamID {
 			orgs = append(orgs, org)
 		}
 	}
@@ -140,32 +133,19 @@ func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string, in
 		return nil, err
 	}
 
-	var users []*users.User
+	var us []*users.User
 	if !o.DeletedAt.IsZero() && !includeDeletedOrgs {
-		return users, nil
+		return us, nil
 	}
 
-	for _, m := range d.memberships[o.ID] {
-		u, err := d.findUserByID(m)
-		if err != nil {
-			return nil, err
-		}
-		if excludeNewUsers && u.FirstLoginAt.IsZero() {
-			continue
-		}
-		users = append(users, u)
+	teamUsers, err := d.listTeamUsers(ctx, o.TeamID, excludeNewUsers)
+	if err != nil {
+		return nil, err
 	}
+	us = append(us, teamUsers...)
 
-	if o.TeamID != "" {
-		teamUsers, err := d.listTeamUsers(ctx, o.TeamID)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, teamUsers...)
-	}
-
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
+	sort.Sort(usersByCreatedAt(us))
+	return us, nil
 }
 
 type organizationsByCreatedAt []*users.Organization
@@ -189,19 +169,6 @@ func (d *DB) listOrganizationsForUserIDs(userIDs []string, includeDeletedOrgs bo
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgIDs := map[string]struct{}{}
-	checkOrg := func(orgID string, members []string) {
-		for _, m := range members {
-			for _, userID := range userIDs {
-				if m == userID {
-					orgIDs[orgID] = struct{}{}
-					return
-				}
-			}
-		}
-	}
-	for orgID, members := range d.memberships {
-		checkOrg(orgID, members)
-	}
 
 	for _, userID := range userIDs {
 		for teamID := range d.teamMemberships[userID] {
@@ -281,68 +248,6 @@ var (
 		// Routine:  "varchar",
 	}
 )
-
-// CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	if _, err := d.findUserByID(ownerID); err != nil {
-		return nil, err
-	}
-	if len(name) > organizationMaxLength {
-		return nil, errorOrgNameLengthConstraint
-	}
-	now := time.Now().UTC()
-	var teamExternalID string
-	for _, team := range d.teams {
-		if team.ID == teamID {
-			teamExternalID = team.ExternalID
-			break
-		}
-	}
-	o := &users.Organization{
-		ID:             fmt.Sprint(len(d.organizations)),
-		ExternalID:     externalID,
-		Name:           name,
-		CreatedAt:      now,
-		TrialExpiresAt: trialExpiresAt,
-		TeamID:         teamID,
-		TeamExternalID: teamExternalID,
-	}
-	if err := o.Valid(); err != nil {
-		return nil, err
-	}
-	if exists, err := d.organizationExists(o.ExternalID, true); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, users.ErrOrgExternalIDIsTaken
-	}
-	for exists := true; exists; {
-		if token != "" {
-			o.ProbeToken = token
-		} else {
-			if err := o.RegenerateProbeToken(); err != nil {
-				return nil, err
-			}
-		}
-		exists = false
-		for _, org := range d.organizations {
-			if org.ProbeToken == o.ProbeToken {
-				exists = true
-				break
-			}
-		}
-		if token != "" && exists {
-			return nil, users.ErrOrgTokenIsTaken
-		}
-	}
-
-	if o.TeamID == "" {
-		d.memberships[o.ID] = []string{ownerID}
-	}
-	d.organizations[o.ID] = o
-	return o, nil
-}
 
 // FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
 func (d *DB) FindUncleanedOrgIDs(_ context.Context) ([]string, error) {
@@ -530,7 +435,7 @@ func (d *DB) GetOrganizationName(_ context.Context, externalID string) (string, 
 }
 
 // DeleteOrganization deletes an organization
-func (d *DB) DeleteOrganization(_ context.Context, externalID string, userID string) error {
+func (d *DB) DeleteOrganization(_ context.Context, externalID, actingID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)
@@ -542,12 +447,11 @@ func (d *DB) DeleteOrganization(_ context.Context, externalID string, userID str
 	}
 	d.deletedOrganizations[o.ID] = o
 	delete(d.organizations, o.ID)
-	delete(d.memberships, o.ID)
 	return nil
 }
 
 // AddFeatureFlag adds a new feature flag to an organization.
-func (d *DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
+func (d *DB) AddFeatureFlag(_ context.Context, externalID, featureFlag string) error {
 	return changeOrg(d, externalID, func(o *users.Organization) error {
 		o.FeatureFlags = append(o.FeatureFlags, featureFlag)
 		return nil
@@ -819,9 +723,6 @@ func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID
 		}
 	}
 
-	if o.TeamID == "" {
-		d.memberships[o.ID] = []string{ownerID}
-	}
 	d.organizations[o.ID] = o
 	return o, nil
 }
@@ -849,7 +750,7 @@ func (d *DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	entries := []*users.SummaryEntry{}
+	var entries []*users.SummaryEntry
 	for _, org := range d.organizations {
 		team := d.teams[org.TeamID]
 		orgUsers, err := d.listOrganizationUsers(ctx, org.ExternalID, false, false)

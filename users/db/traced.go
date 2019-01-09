@@ -34,9 +34,9 @@ func (t traced) UpdateUser(ctx context.Context, userID string, update *users.Use
 	return t.d.UpdateUser(ctx, userID, update)
 }
 
-func (t traced) DeleteUser(ctx context.Context, userID string) (err error) {
-	defer t.trace("DeleteUser", userID, err)
-	return t.d.DeleteUser(ctx, userID)
+func (t traced) DeleteUser(ctx context.Context, userID, actingID string) (err error) {
+	defer t.trace("DeleteUser", userID, actingID, err)
+	return t.d.DeleteUser(ctx, userID, actingID)
 }
 
 func (t traced) FindUserByID(ctx context.Context, id string) (u *users.User, err error) {
@@ -94,6 +94,11 @@ func (t traced) ListAllOrganizations(ctx context.Context, f filter.Organization,
 	return t.d.ListAllOrganizations(ctx, f, page)
 }
 
+func (t traced) ListOrganizationsInTeam(ctx context.Context, teamID string) (os []*users.Organization, err error) {
+	defer t.trace("ListOrganizationsInTeam", teamID)
+	return t.d.ListOrganizationsInTeam(ctx, teamID)
+}
+
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) (us []*users.User, err error) {
 	defer t.trace("ListOrganizationUsers", orgExternalID, us, err)
 	return t.d.ListOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs, excludeNewUsers)
@@ -132,13 +137,6 @@ func (t traced) SetUserLastLoginAt(ctx context.Context, id string) (err error) {
 func (t traced) GenerateOrganizationExternalID(ctx context.Context) (s string, err error) {
 	defer t.trace("GenerateOrganizationExternalID", s, err)
 	return t.d.GenerateOrganizationExternalID(ctx)
-}
-
-func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (o *users.Organization, err error) {
-	defer func() {
-		t.trace("CreateOrganization", ownerID, externalID, name, token, teamID, trialExpiresAt, o, err)
-	}()
-	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID, trialExpiresAt)
 }
 
 func (t traced) FindUncleanedOrgIDs(ctx context.Context) (ids []string, err error) {
@@ -290,11 +288,6 @@ func (t traced) SetOrganizationGCP(ctx context.Context, externalID, externalAcco
 	return t.d.SetOrganizationGCP(ctx, externalID, externalAccountID)
 }
 
-func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {
-	defer t.trace("ListMemberships", err)
-	return t.d.ListMemberships(ctx)
-}
-
 func (t traced) ListRoles(ctx context.Context) (r []*users.Role, err error) {
 	defer t.trace("ListRoles", r, err)
 	return t.d.ListRoles(ctx)
@@ -308,6 +301,16 @@ func (t traced) ListTeamsForUserID(ctx context.Context, userID string) (os []*us
 func (t traced) ListTeamUsers(ctx context.Context, teamID string) (os []*users.User, err error) {
 	defer t.trace("ListTeamUsers", teamID, os, err)
 	return t.d.ListTeamUsers(ctx, teamID)
+}
+
+func (t traced) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, err error) {
+	defer t.trace("ListTeams", ts, err)
+	return t.d.ListTeams(ctx, page)
+}
+
+func (t traced) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
+	defer t.trace("ListTeamMemberships", ms, err)
+	return t.d.ListTeamMemberships(ctx)
 }
 
 func (t traced) CreateTeam(ctx context.Context, name string) (ut *users.Team, err error) {

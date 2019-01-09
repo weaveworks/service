@@ -99,18 +99,19 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 	return user, nil
 }
 
-// DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
-// where the user was the lone member.
-func (d DB) DeleteUser(ctx context.Context, userID string) error {
+// DeleteUser marks a user as deleted. It also removes the user from
+// memberships and triggers a deletion of teams and organizations where
+// the user was the lone member.
+func (d DB) DeleteUser(ctx context.Context, userID, actingID string) error {
 	deleted := d.Now()
 	return d.Transaction(func(tx DB) error {
-		// All organizations with this user as sole member
+		// All teams with this user as sole member
 		rows, err := d.QueryContext(ctx, `
-select o.external_id from organizations o join memberships m on m.organization_id=o.id
-where exists(select 1 from memberships mi where mi.user_id=$1 and o.id=mi.organization_id and mi.deleted_at is null)
-      and o.deleted_at is null
+select t.id from teams t join team_memberships m on m.team_id=t.id
+where exists(select 1 from team_memberships mi where mi.user_id=$1 and t.id=mi.team_id and mi.deleted_at is null)
+      and t.deleted_at is null
       and m.deleted_at is null
-group by o.id
+group by t.id
 having count(m.id)=1;
 `, userID)
 		if err != nil {
@@ -118,28 +119,27 @@ having count(m.id)=1;
 		}
 
 		var ids []string
-		var externalID string
+		var teamID string
 		for rows.Next() {
-			if err := rows.Scan(&externalID); err != nil {
+			if err := rows.Scan(&teamID); err != nil {
 				return err
 			}
-			ids = append(ids, externalID)
+			ids = append(ids, teamID)
 		}
 
-		for _, externalID := range ids {
-			if err := d.DeleteOrganization(ctx, externalID, userID); err != nil {
+		for _, id := range ids {
+			orgs, err := d.ListOrganizationsInTeam(ctx, id)
+			if err != nil {
 				return err
 			}
-		}
-
-		// Delete organization memberships
-		if _, err = d.ExecContext(ctx,
-			`update memberships
-			set deleted_at=$1
-			where user_id=$2
-			and deleted_at is null`,
-			deleted, userID); err != nil {
-			return err
+			for _, org := range orgs {
+				if err := d.DeleteOrganization(ctx, org.ExternalID, actingID); err != nil {
+					return err
+				}
+			}
+			if err := d.DeleteTeam(ctx, id); err != nil {
+				return err
+			}
 		}
 
 		// Delete team memberships
@@ -249,21 +249,10 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 			return err
 		}
 
-		if o.TeamID == "" {
-			isMember, err := tx.UserIsMemberOf(ctx, u.ID, orgExternalID)
-			if err != nil || isMember {
-				return err
-			}
-			err = tx.addUserToOrganization(ctx, u.ID, o.ID)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := tx.AddUserToTeam(ctx, u.ID, o.TeamID)
-			if err != nil {
-				return nil
-			}
+		if err := tx.AddUserToTeam(ctx, u.ID, o.TeamID); err != nil {
+			return err
 		}
+		// Fetch rest of user data in case the user already existed
 		u, err = tx.FindUserByID(ctx, u.ID)
 		return err
 	})

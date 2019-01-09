@@ -20,7 +20,7 @@ func (d DB) rolesQuery() squirrel.SelectBuilder {
 }
 
 func (d DB) scanRoles(rows *sql.Rows) ([]*users.Role, error) {
-	roles := []*users.Role{}
+	var roles []*users.Role
 	for rows.Next() {
 		role, err := d.scanRole(rows)
 		if err != nil {
