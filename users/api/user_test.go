@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +20,7 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 	assert.Equal(t, "", user.Company)
 	assert.Equal(t, "", user.Name)
 
-	{ // update all fields
+	t.Run("update all fields", func(t *testing.T) {
 		user = getUser(t)
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{
@@ -33,16 +34,15 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp *users.User
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		user, err := database.FindUserByEmail(context.TODO(), user.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, "Dave", user.FirstName)
+		assert.Equal(t, "DAVE", user.LastName)
+		assert.Equal(t, "Dave DAVE", user.Name)
+		assert.Equal(t, "Evil Corp", user.Company)
+	})
 
-		assert.Equal(t, "Dave", resp.FirstName)
-		assert.Equal(t, "DAVE", resp.LastName)
-		assert.Equal(t, "Dave DAVE", resp.Name)
-		assert.Equal(t, "Evil Corp", resp.Company)
-	}
-
-	{ // update single field
+	t.Run("update single field", func(t *testing.T) {
 		user = getUser(t)
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{"company": "Wayne Enterprises"})
@@ -51,12 +51,32 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp *users.User
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		user, err := database.FindUserByEmail(context.TODO(), user.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, "Wayne Enterprises", user.Company)
+	})
 
-		assert.Equal(t, user.Name, resp.Name)
-		assert.Equal(t, "Wayne Enterprises", resp.Company)
-	}
+	t.Run("update strips HTML", func(t *testing.T) {
+		user = getUser(t)
+		w := httptest.NewRecorder()
+		body, _ := json.Marshal(map[string]string{
+			"company":   "<img>Evil Corp",
+			"name":      "Dave <img>DAVE",
+			"firstName": "Dave<img>",
+			"lastName":  "DA<img>VE",
+		})
+		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
+		app.ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		user, err := database.FindUserByEmail(context.TODO(), user.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, "Dave", user.FirstName)
+		assert.Equal(t, "DAVE", user.LastName)
+		assert.Equal(t, "Dave DAVE", user.Name)
+		assert.Equal(t, "Evil Corp", user.Company)
+	})
 }
 
 func TestAPI_User_GetCurrentUser(t *testing.T) {
