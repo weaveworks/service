@@ -453,6 +453,7 @@ type organizationUsersView struct {
 type organizationUserView struct {
 	Email string `json:"email"`
 	Self  bool   `json:"self,omitempty"`
+	Role  string `json:"role"`
 }
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -462,16 +463,38 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 		return
 	}
 
-	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false, false)
+	us, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false, false)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
+
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	teamMembers, err := a.db.ListTeamUsersWithRoles(r.Context(), org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	teamMemberIndex := map[string]*users.UserWithRole{}
+	for _, u := range teamMembers {
+		teamMemberIndex[u.User.ID] = u
+	}
+
 	view := organizationUsersView{}
-	for _, u := range users {
+	for _, u := range us {
+		var role string
+		if teamMemberIndex[u.ID] != nil {
+			role = teamMemberIndex[u.ID].Role.ID
+		}
 		view.Users = append(view.Users, organizationUserView{
 			Email: u.Email,
 			Self:  u.ID == currentUser.ID,
+			Role:  role,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)

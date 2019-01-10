@@ -46,6 +46,38 @@ func (d *DB) ListTeams(_ context.Context, page uint64) ([]*users.Team, error) {
 	return teams, nil
 }
 
+// ListTeamUsersWithRoles lists all the users in a team with their role
+func (d DB) ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.listTeamUsersWithRoles(ctx, teamID)
+}
+
+func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+	var us []*users.User
+	roles := map[string]*users.Role{}
+	for m, teamRoles := range d.teamMemberships {
+		for tID, rID := range teamRoles {
+			if tID == teamID {
+				u, err := d.findUserByID(m)
+				if err != nil {
+					return nil, err
+				}
+				us = append(us, u)
+				r := d.roles[rID]
+				roles[m] = r
+			}
+		}
+	}
+
+	sort.Sort(usersByCreatedAt(us))
+	var usersWithRole []*users.UserWithRole
+	for _, u := range us {
+		usersWithRole = append(usersWithRole, &users.UserWithRole{User: *u, Role: *roles[u.ID]})
+	}
+	return usersWithRole, nil
+}
+
 // ListTeamUsers lists all the users in an team
 func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	d.mtx.Lock()

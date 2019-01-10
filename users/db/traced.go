@@ -298,6 +298,11 @@ func (t traced) ListTeamsForUserID(ctx context.Context, userID string) (os []*us
 	return t.d.ListTeamsForUserID(ctx, userID)
 }
 
+func (t traced) ListTeamUsersWithRoles(ctx context.Context, teamID string) (os []*users.UserWithRole, err error) {
+	defer t.trace("ListTeamUsersWithRoles", teamID, os, err)
+	return t.d.ListTeamUsersWithRoles(ctx, teamID)
+}
+
 func (t traced) ListTeamUsers(ctx context.Context, teamID string) (os []*users.User, err error) {
 	defer t.trace("ListTeamUsers", teamID, os, err)
 	return t.d.ListTeamUsers(ctx, teamID)

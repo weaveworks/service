@@ -57,6 +57,70 @@ func (d DB) teamHasOrganizations(ctx context.Context, teamID string) (bool, erro
 	return exists, err
 }
 
+func (d DB) scanUserWithRole(row squirrel.RowScanner) (*users.UserWithRole, error) {
+	u := users.User{}
+	r := users.Role{}
+
+	var (
+		token sql.NullString
+
+		createdAt,
+		firstLoginAt,
+		lastLoginAt,
+		tokenCreatedAt pq.NullTime
+	)
+	if err := row.Scan(
+		&u.ID, &u.Email, &u.Company, &u.Name, &token, &tokenCreatedAt, &createdAt,
+		&u.Admin, &firstLoginAt, &lastLoginAt, &u.FirstName, &u.LastName, &r.ID, &r.Name,
+	); err != nil {
+		return nil, err
+	}
+	u.Token = token.String
+	u.TokenCreatedAt = tokenCreatedAt.Time
+	u.CreatedAt = createdAt.Time
+	u.FirstLoginAt = firstLoginAt.Time
+	u.LastLoginAt = lastLoginAt.Time
+
+	return &users.UserWithRole{User: u, Role: r}, nil
+}
+
+func (d DB) scanUsersWithRole(rows *sql.Rows) ([]*users.UserWithRole, error) {
+	usersWithRole := []*users.UserWithRole{}
+	for rows.Next() {
+		ur, err := d.scanUserWithRole(rows)
+		if err != nil {
+			return nil, err
+		}
+		usersWithRole = append(usersWithRole, ur)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return usersWithRole, nil
+}
+
+// ListTeamUsersWithRoles lists all the users in a team with their role
+func (d DB) ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+	rows, err := d.usersQuery().
+		Columns(`
+			roles.id,
+			roles.name
+		`).
+		Join("team_memberships on (team_memberships.user_id = users.id)").
+		Join("roles on (team_memberships.role_id = roles.id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where("roles.deleted_at is null").
+		Where(squirrel.Eq{
+			"team_memberships.team_id": teamID,
+		}).
+		QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return d.scanUsersWithRole(rows)
+}
+
 // ListTeamUsers lists all the users in a team
 func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().

@@ -208,6 +208,7 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 			map[string]interface{}{
 				"email": user.Email,
 				"self":  true,
+				"role":  "admin",
 			},
 		},
 	}, body)

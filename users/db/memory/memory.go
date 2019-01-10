@@ -35,11 +35,15 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		gcpAccounts:          make(map[string]*users.GoogleCloudPlatform),
 		teams:                make(map[string]*users.Team),
 		teamMemberships:      make(map[string]map[string]string),
-		roles:                make(map[string]*users.Role),
-		permissions:          make(map[string]*users.Permission),
-		rolesPermissions:     make(map[string][]string),
-		webhooks:             make(map[string][]*users.Webhook),
-		passwordHashingCost:  passwordHashingCost,
+		roles: map[string]*users.Role{
+			"admin":  {ID: "admin", Name: "Admin"},
+			"editor": {ID: "editor", Name: "Editor"},
+			"viewer": {ID: "viewer", Name: "Viewer"},
+		},
+		permissions:         make(map[string]*users.Permission),
+		rolesPermissions:    make(map[string][]string),
+		webhooks:            make(map[string][]*users.Webhook),
+		passwordHashingCost: passwordHashingCost,
 	}, nil
 }
 

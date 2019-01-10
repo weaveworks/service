@@ -420,6 +420,14 @@ func (t timed) ListTeamsForUserID(ctx context.Context, userID string) (us []*use
 	return
 }
 
+func (t timed) ListTeamUsersWithRoles(ctx context.Context, teamID string) (us []*users.UserWithRole, err error) {
+	t.timeRequest(ctx, "ListTeamUsersWithRoles", func(ctx context.Context) error {
+		us, err = t.d.ListTeamUsersWithRoles(ctx, teamID)
+		return err
+	})
+	return
+}
+
 func (t timed) ListTeamUsers(ctx context.Context, teamID string) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListTeamUsers", func(ctx context.Context) error {
 		us, err = t.d.ListTeamUsers(ctx, teamID)
