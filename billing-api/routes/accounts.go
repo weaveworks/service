@@ -20,6 +20,7 @@ import (
 	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/orgs"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/common/zuora"
@@ -34,6 +35,11 @@ type createAccountRequest struct {
 	BillToContact      zuora.Contact `json:"billToContact"`
 	PaymentMethodID    string        `json:"paymentMethodId"`
 	SubscriptionPlanID string        `json:"subscriptionPlanId"`
+}
+
+func getRequestUserID(r *http.Request) string {
+	// TODO(fbarl): Figure a nicer way how to extract this info.
+	return r.Header["X-Scope-Userid"][0]
 }
 
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
@@ -211,6 +217,15 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 
 // CreateAccount creates an account on Zuora and uploads any pending usage data.
 func (a *API) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.Users.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
+		UserID:        getRequestUserID(r),
+		OrgExternalID: mux.Vars(r)["id"],
+		PermissionID:  permission.UpdateBilling,
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	err := a.createAccount(w, r)
 	if err != nil {
 		renderError(w, r, err)
@@ -263,6 +278,15 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["id"]
+
+	if _, err := a.Users.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		UserID:        getRequestUserID(r),
+		OrgExternalID: orgExternalID,
+		PermissionID:  permission.UpdateBilling,
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	req := &zuora.Account{}
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
