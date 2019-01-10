@@ -81,11 +81,11 @@ service Users {
     // InformOrganizationBillingConfigured informs external integrations that a user has begun a paid subscription for an organization
     rpc InformOrganizationBillingConfigured(InformOrganizationBillingConfiguredRequest) returns (Empty) {};
 
-    // HasTeamMemberPermissionTo checks if team member has a permission for specific action.
-    rpc HasTeamMemberPermissionTo(HasTeamMemberPermissionToRequest) returns (PermissionResponse) {};
+    // RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
+    rpc RequireTeamMemberPermissionTo(RequireTeamMemberPermissionToRequest) returns (Empty) {};
 
-    // HasTeamMemberPermissionTo checks if instance member has a permission for specific action.
-    rpc HasOrgMemberPermissionTo(HasOrgMemberPermissionToRequest) returns (PermissionResponse) {};
+    // RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
+    rpc RequireOrgMemberPermissionTo(RequireOrgMemberPermissionToRequest) returns (Empty) {};
 }
 
 enum AuthorizedAction {
@@ -437,18 +437,14 @@ message Role {
     string Name = 2;
 }
 
-message HasTeamMemberPermissionToRequest {
+message RequireTeamMemberPermissionToRequest {
     string UserID = 1;
     string TeamID = 2;
     string PermissionID = 3;
 }
 
-message HasOrgMemberPermissionToRequest {
+message RequireOrgMemberPermissionToRequest {
     string UserID = 1;
     string OrgExternalID = 2;
     string PermissionID = 3;
-}
-
-message PermissionResponse {
-    bool HasPermission = 1;
 }

@@ -373,14 +373,8 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
-	canDelete, err := HasOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteInstance)
-	if err != nil {
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteInstance); err != nil {
 		renderError(w, r, err)
-		return
-	}
-	if !canDelete {
-		log.Warnf("User %s has no permissions to delete instance %s", currentUser.Email, orgExternalID)
-		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
@@ -517,14 +511,8 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
-	canInvite, err := HasOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.InviteTeamMember)
-	if err != nil {
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.InviteTeamMember); err != nil {
 		renderError(w, r, err)
-		return
-	}
-	if !canInvite {
-		log.Warnf("User %s has no permissions to invite new team members to %s", currentUser.Email, orgExternalID)
-		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 

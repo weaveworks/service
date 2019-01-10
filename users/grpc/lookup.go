@@ -465,20 +465,10 @@ func (a *usersServer) InformOrganizationBillingConfigured(ctx context.Context, r
 	return &users.Empty{}, nil
 }
 
-func (a *usersServer) HasTeamMemberPermissionTo(ctx context.Context, req *users.HasTeamMemberPermissionToRequest) (*users.PermissionResponse, error) {
-	hasPermission, err := api.HasTeamMemberPermissionTo(ctx, a.db, req.UserID, req.TeamID, req.PermissionID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &users.PermissionResponse{HasPermission: hasPermission}, nil
+func (a *usersServer) RequireTeamMemberPermissionTo(ctx context.Context, req *users.RequireTeamMemberPermissionToRequest) (*users.Empty, error) {
+	return &users.Empty{}, api.RequireTeamMemberPermissionTo(ctx, a.db, req.UserID, req.TeamID, req.PermissionID)
 }
 
-func (a *usersServer) HasOrgMemberPermissionTo(ctx context.Context, req *users.HasOrgMemberPermissionToRequest) (*users.PermissionResponse, error) {
-	hasPermission, err := api.HasOrgMemberPermissionTo(ctx, a.db, req.UserID, req.OrgExternalID, req.PermissionID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &users.PermissionResponse{HasPermission: hasPermission}, nil
+func (a *usersServer) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest) (*users.Empty, error) {
+	return &users.Empty{}, api.RequireOrgMemberPermissionTo(ctx, a.db, req.UserID, req.OrgExternalID, req.PermissionID)
 }

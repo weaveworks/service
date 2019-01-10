@@ -2,37 +2,38 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users/db"
 )
 
-func hasPermission(ctx context.Context, d db.DB, userID, teamID, permissionID string) (bool, error) {
+func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionID string) error {
 	// Get all team permissions for the user
 	role, err := d.GetUserRoleInTeam(ctx, userID, teamID)
 	if err != nil {
-		return false, err
+		return err
 	}
 	permissions, err := d.ListPermissionsForRoleID(ctx, role.ID)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Check if the given permission is in the list
 	for _, permission := range permissions {
 		if permission.ID == permissionID {
-			return true, nil
+			return nil
 		}
 	}
-	return false, nil
+	return fmt.Errorf("Permission denied (userID: %s, teamID: %s, permissionID: %s)", userID, teamID, permissionID)
 }
 
-// HasTeamMemberPermissionTo checks whether the user has a specific permission within the team.
-func HasTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID, permissionID string) (bool, error) {
+// RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
+func RequireTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID, permissionID string) error {
 	// Get all team organizations
 	orgs, err := d.ListOrganizationsInTeam(ctx, teamID)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Assume team has the feature flag if any of its organizations have it.
@@ -44,24 +45,24 @@ func HasTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID, per
 	}
 	// If the permissions are not enabled, everything is allowed.
 	if !hasFeatureFlag {
-		return true, nil
+		return nil
 	}
 
-	return hasPermission(ctx, d, userID, teamID, permissionID)
+	return requirePermission(ctx, d, userID, teamID, permissionID)
 }
 
-// HasOrgMemberPermissionTo checks whether the user has a specific permission within the organization.
-func HasOrgMemberPermissionTo(ctx context.Context, d db.DB, userID, orgExternalID, permissionID string) (bool, error) {
+// RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
+func RequireOrgMemberPermissionTo(ctx context.Context, d db.DB, userID, orgExternalID, permissionID string) error {
 	// Find the organization from its external ID.
 	org, err := d.FindOrganizationByID(ctx, orgExternalID)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// If the permissions are not enabled, everything is allowed.
 	if !org.HasFeatureFlag(featureflag.Permissions) {
-		return true, nil
+		return nil
 	}
 
-	return hasPermission(ctx, d, userID, org.TeamID, permissionID)
+	return requirePermission(ctx, d, userID, org.TeamID, permissionID)
 }

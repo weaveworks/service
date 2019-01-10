@@ -150,12 +150,12 @@ func (MockClient) InformOrganizationBillingConfigured(ctx context.Context, req *
 	return &users.Empty{}, nil
 }
 
-// HasTeamMemberPermissionTo checks whether a team member has a permission for a specific action
-func (MockClient) HasTeamMemberPermissionTo(ctx context.Context, req *users.HasTeamMemberPermissionToRequest, opts ...grpc.CallOption) (*users.PermissionResponse, error) {
-	return &users.PermissionResponse{}, nil
+// RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
+func (MockClient) RequireTeamMemberPermissionTo(ctx context.Context, req *users.RequireTeamMemberPermissionToRequest, opts ...grpc.CallOption) (*users.Empty, error) {
+	return &users.Empty{}, nil
 }
 
-// HasOrgMemberPermissionTo checks whether an instance member has a permission for a specific action
-func (MockClient) HasOrgMemberPermissionTo(ctx context.Context, req *users.HasOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.PermissionResponse, error) {
-	return &users.PermissionResponse{}, nil
+// RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
+func (MockClient) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.Empty, error) {
+	return &users.Empty{}, nil
 }
