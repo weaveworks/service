@@ -181,7 +181,6 @@ func (d *DB) InviteUser(ctx context.Context, email, orgExternalID string, role s
 	if d.teamMemberships[u.ID] == nil {
 		d.teamMemberships[u.ID] = map[string]string{}
 	}
-	// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
 	d.teamMemberships[u.ID][o.TeamID] = role
 	return u, created, nil
 }

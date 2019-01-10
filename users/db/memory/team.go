@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/users"
 
 	"github.com/weaveworks/service/users/externalids"
@@ -178,7 +177,7 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string, role string
 	if teamRoles == nil {
 		teamRoles = map[string]string{}
 	}
-	teamRoles[teamID] = "role"
+	teamRoles[teamID] = role
 	d.teamMemberships[userID] = teamRoles
 	return nil
 }

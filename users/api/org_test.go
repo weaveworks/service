@@ -107,7 +107,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	user, org := getOrg(t)
 
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
 	assert.NoError(t, err)
 
 	err = database.MoveOrganizationToTeam(context.TODO(), org.ExternalID, team.ExternalID, "", "")
@@ -424,7 +424,7 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	user, otherOrg := getOrg(t)
 
 	for id, errMsg := range map[string]string{
-		"": "ID cannot be blank",
+		"":                             "ID cannot be blank",
 		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
 		otherOrg.ExternalID:            "ID is already taken",
 	} {
