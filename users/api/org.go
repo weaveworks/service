@@ -22,6 +22,7 @@ import (
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/notification-eventmanager/types"
@@ -371,6 +372,7 @@ func ptostr(pstr *string) string {
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
+
 	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err == users.ErrNotFound {
 		w.WriteHeader(http.StatusNoContent)
@@ -395,6 +397,10 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteInstance); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	if err := a.db.DeleteOrganization(ctx, orgExternalID, currentUser.ID); err != nil {
 		renderError(w, r, err)
 		return
@@ -501,6 +507,9 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 }
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+
 	defer r.Body.Close()
 	var resp SignupResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
@@ -513,24 +522,27 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	invitee, created, err := a.db.InviteUser(r.Context(), email, orgExternalID)
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.InviteTeamMember); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := a.generateUserToken(r.Context(), invitee)
+	token, err := a.generateUserToken(ctx, invitee)
 	if err != nil {
 		renderError(w, r, fmt.Errorf("cannot generate user token: %s", err))
 		return
 	}
-	orgName, err := a.db.GetOrganizationName(r.Context(), orgExternalID)
+	orgName, err := a.db.GetOrganizationName(ctx, orgExternalID)
 	if err != nil {
 		renderError(w, r, fmt.Errorf("cannot get organization name: %s", err))
 	}

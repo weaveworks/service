@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
+	"github.com/weaveworks/service/users"
 )
 
 // GetAuthToken is a HTTP handler to retrieve the auth token.
@@ -41,6 +44,15 @@ func (a *API) GetPaymentMethod(w http.ResponseWriter, r *http.Request) {
 
 // UpdatePaymentMethod is a HTTP handler to update a payment method.
 func (a *API) UpdatePaymentMethod(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.Users.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
+		UserID:        r.Header.Get(user.UserIDHeaderName),
+		OrgExternalID: mux.Vars(r)["id"],
+		PermissionID:  permission.UpdateBilling,
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	if err := a.Zuora.UpdatePaymentMethod(r.Context(), mux.Vars(r)["payment_id"]); err != nil {
 		renderError(w, r, err)
 		return

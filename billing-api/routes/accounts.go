@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/weaveworks/service/billing-api/api"
 	"math"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/weaveworks/service/billing-api/api"
 
 	"github.com/gorilla/mux"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/orgs"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/common/zuora"
@@ -210,6 +212,15 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 
 // CreateAccount creates an account on Zuora and uploads any pending usage data.
 func (a *API) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.Users.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
+		UserID:        r.Header.Get(user.UserIDHeaderName),
+		OrgExternalID: mux.Vars(r)["id"],
+		PermissionID:  permission.UpdateBilling,
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	err := a.createAccount(w, r)
 	if err != nil {
 		renderError(w, r, err)
@@ -260,18 +271,30 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAccount updates the account on Zuora.
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	orgExternalID := mux.Vars(r)["id"]
+
+	if _, err := a.Users.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		UserID:        r.Header.Get(user.UserIDHeaderName),
+		OrgExternalID: orgExternalID,
+		PermissionID:  permission.UpdateBilling,
+	}); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	req := &zuora.Account{}
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	resp, err := a.getOrganization(r.Context(), mux.Vars(r)["id"])
+	resp, err := a.getOrganization(ctx, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 	org := resp.Organization
-	account, err := a.Zuora.UpdateAccount(r.Context(), org.ZuoraAccountNumber, req)
+	account, err := a.Zuora.UpdateAccount(ctx, org.ZuoraAccountNumber, req)
 	if err != nil {
 		renderError(w, r, err)
 		return

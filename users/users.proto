@@ -80,6 +80,12 @@ service Users {
 
     // InformOrganizationBillingConfigured informs external integrations that a user has begun a paid subscription for an organization
     rpc InformOrganizationBillingConfigured(InformOrganizationBillingConfiguredRequest) returns (Empty) {};
+
+    // RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
+    rpc RequireTeamMemberPermissionTo(RequireTeamMemberPermissionToRequest) returns (Empty) {};
+
+    // RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
+    rpc RequireOrgMemberPermissionTo(RequireOrgMemberPermissionToRequest) returns (Empty) {};
 }
 
 enum AuthorizedAction {
@@ -429,4 +435,16 @@ message Permission {
 message Role {
     string ID = 1;
     string Name = 2;
+}
+
+message RequireTeamMemberPermissionToRequest {
+    string UserID = 1;
+    string TeamID = 2;
+    string PermissionID = 3;
+}
+
+message RequireOrgMemberPermissionToRequest {
+    string UserID = 1;
+    string OrgExternalID = 2;
+    string PermissionID = 3;
 }

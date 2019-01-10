@@ -13,3 +13,6 @@ const NoBilling = "no-billing"
 
 // WeeklyReportable feature flag enables weekly reports to be sent to the members of an organization
 const WeeklyReportable = "weekly-reportable"
+
+// Permissions feature flag enables permissions management for the organization
+const Permissions = "permissions"

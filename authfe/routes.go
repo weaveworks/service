@@ -23,6 +23,7 @@ import (
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
 )
@@ -130,6 +131,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 	gcpLoginSecretMiddleware := users_client.GCPLoginSecretMiddleware{
 		Secret: c.gcpSSOSecret,
+	}
+
+	userPermissionsMiddleware := users_client.UserPermissionsMiddleware{
+		UsersClient:  authenticator,
+		UserIDHeader: userIDHeader,
+		Permissions: []users_client.RequestPermission{
+			{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
+		},
 	}
 
 	// middleware to set header to disable caching if path == "/" exactly
@@ -246,6 +255,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			},
 			middleware.Merge(
 				authUserOrgDataAccessMiddleware,
+				userPermissionsMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
 			),
