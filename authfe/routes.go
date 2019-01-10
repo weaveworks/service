@@ -137,7 +137,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
 		Permissions: []users_client.RequestPermission{
-			users_client.RequestPermission{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
+			{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
 		},
 	}
 
