@@ -149,3 +149,13 @@ func (MockClient) SetOrganizationWebhookFirstSeenAt(ctx context.Context, in *use
 func (MockClient) InformOrganizationBillingConfigured(ctx context.Context, req *users.InformOrganizationBillingConfiguredRequest, opts ...grpc.CallOption) (*users.Empty, error) {
 	return &users.Empty{}, nil
 }
+
+// HasTeamMemberPermissionTo checks whether a team member has a permission for a specific action
+func (MockClient) HasTeamMemberPermissionTo(ctx context.Context, req *users.HasTeamMemberPermissionToRequest, opts ...grpc.CallOption) (*users.PermissionResponse, error) {
+	return &users.PermissionResponse{}, nil
+}
+
+// HasOrgMemberPermissionTo checks whether an instance member has a permission for a specific action
+func (MockClient) HasOrgMemberPermissionTo(ctx context.Context, req *users.HasOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.PermissionResponse, error) {
+	return &users.PermissionResponse{}, nil
+}

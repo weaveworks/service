@@ -1,4 +1,4 @@
-package permissions
+package api
 
 import (
 	"context"
@@ -27,8 +27,8 @@ func hasPermission(ctx context.Context, d db.DB, userID, teamID, permissionID st
 	return false, nil
 }
 
-// HasUserTeamPermissionTo checks whether the user has a specific permission within the team.
-func HasUserTeamPermissionTo(ctx context.Context, d db.DB, userID, teamID, permissionID string) (bool, error) {
+// HasTeamMemberPermissionTo checks whether the user has a specific permission within the team.
+func HasTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID, permissionID string) (bool, error) {
 	// Get all team organizations
 	orgs, err := d.ListOrganizationsInTeam(ctx, teamID)
 	if err != nil {
@@ -50,8 +50,8 @@ func HasUserTeamPermissionTo(ctx context.Context, d db.DB, userID, teamID, permi
 	return hasPermission(ctx, d, userID, teamID, permissionID)
 }
 
-// HasUserOrgPermissionTo checks whether the user has a specific permission within the organization.
-func HasUserOrgPermissionTo(ctx context.Context, d db.DB, userID, orgExternalID, permissionID string) (bool, error) {
+// HasOrgMemberPermissionTo checks whether the user has a specific permission within the organization.
+func HasOrgMemberPermissionTo(ctx context.Context, d db.DB, userID, orgExternalID, permissionID string) (bool, error) {
 	// Find the organization from its external ID.
 	org, err := d.FindOrganizationByID(ctx, orgExternalID)
 	if err != nil {

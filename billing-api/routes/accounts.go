@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/weaveworks/service/billing-api/api"
 	"math"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/weaveworks/service/billing-api/api"
 
 	"github.com/gorilla/mux"
 
@@ -260,18 +261,21 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAccount updates the account on Zuora.
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	orgExternalID := mux.Vars(r)["id"]
+
 	req := &zuora.Account{}
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	resp, err := a.getOrganization(r.Context(), mux.Vars(r)["id"])
+	resp, err := a.getOrganization(ctx, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 	org := resp.Organization
-	account, err := a.Zuora.UpdateAccount(r.Context(), org.ZuoraAccountNumber, req)
+	account, err := a.Zuora.UpdateAccount(ctx, org.ZuoraAccountNumber, req)
 	if err != nil {
 		renderError(w, r, err)
 		return
