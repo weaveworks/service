@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 
@@ -32,10 +33,10 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	update.Name = stripHTML(update.Name)
-	update.Company = stripHTML(update.Company)
-	update.FirstName = stripHTML(update.FirstName)
-	update.LastName = stripHTML(update.LastName)
+	update.Name = strings.TrimSpace(stripHTML(update.Name))
+	update.Company = strings.TrimSpace(stripHTML(update.Company))
+	update.FirstName = strings.TrimSpace(stripHTML(update.FirstName))
+	update.LastName = strings.TrimSpace(stripHTML(update.LastName))
 
 	user, err := a.db.UpdateUser(r.Context(), currentUser.ID, update)
 	if err != nil {
@@ -46,9 +47,9 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 	resp := users.UserResponse{
 		Email:     user.Email,
 		Name:      user.Name,
-		Company:   stripHTML(user.Company),
-		FirstName: stripHTML(user.FirstName),
-		LastName:  stripHTML(user.LastName),
+		Company:   user.Company,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
 	}
 
 	render.JSON(w, http.StatusOK, resp)
