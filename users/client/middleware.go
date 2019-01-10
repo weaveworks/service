@@ -409,3 +409,46 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 		finishRequest(next, w, r, response.Webhook.OrganizationID)
 	})
 }
+
+// UserPermissionsMiddleware is a middleware.Interface which grants permissions based on team member role.
+type UserPermissionsMiddleware struct {
+	UsersClient  users.UsersClient
+	UserIDHeader string
+	Permissions  []RequestPermission
+}
+
+// RequestPermission describes a permission check to be performed on the requests.
+type RequestPermission struct {
+	RequestURIMatcher string
+	RequestMethods    []string
+	PermissionID      string
+}
+
+// Wrap implements middleware.Interface
+func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, p := range a.Permissions {
+			// TODO(fbarl): Find a better way to check for the API route.
+			URIMatched := regexp.MustCompile(p.RequestURIMatcher).MatchString(r.RequestURI)
+
+			MethodMatched := false
+			for _, m := range p.RequestMethods {
+				if m == r.Method {
+					MethodMatched = true
+				}
+			}
+
+			if MethodMatched && URIMatched {
+				if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
+					UserID:        r.Header.Get(a.UserIDHeader),
+					OrgExternalID: mux.Vars(r)["orgExternalID"],
+					PermissionID:  p.PermissionID,
+				}); err != nil {
+					handleError(err, w, r)
+					return
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}

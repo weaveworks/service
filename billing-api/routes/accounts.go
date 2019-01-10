@@ -37,11 +37,6 @@ type createAccountRequest struct {
 	SubscriptionPlanID string        `json:"subscriptionPlanId"`
 }
 
-func getRequestUserID(r *http.Request) string {
-	// TODO(fbarl): Figure a nicer way how to extract this info.
-	return r.Header["X-Scope-Userid"][0]
-}
-
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	logger := user.LogWith(ctx, logging.Global())
@@ -218,7 +213,7 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 // CreateAccount creates an account on Zuora and uploads any pending usage data.
 func (a *API) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	if _, err := a.Users.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
-		UserID:        getRequestUserID(r),
+		UserID:        r.Header.Get(user.UserIDHeaderName),
 		OrgExternalID: mux.Vars(r)["id"],
 		PermissionID:  permission.UpdateBilling,
 	}); err != nil {
@@ -280,7 +275,7 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["id"]
 
 	if _, err := a.Users.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
-		UserID:        getRequestUserID(r),
+		UserID:        r.Header.Get(user.UserIDHeaderName),
 		OrgExternalID: orgExternalID,
 		PermissionID:  permission.UpdateBilling,
 	}); err != nil {
