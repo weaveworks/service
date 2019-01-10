@@ -58,8 +58,8 @@ func (d DB) teamHasOrganizations(ctx context.Context, teamID string) (bool, erro
 }
 
 func (d DB) scanUserWithRole(row squirrel.RowScanner) (*users.UserWithRole, error) {
-	u := &users.User{}
-	r := &users.Role{}
+	u := users.User{}
+	r := users.Role{}
 
 	var (
 		token sql.NullString
@@ -81,7 +81,7 @@ func (d DB) scanUserWithRole(row squirrel.RowScanner) (*users.UserWithRole, erro
 	u.FirstLoginAt = firstLoginAt.Time
 	u.LastLoginAt = lastLoginAt.Time
 
-	return &users.UserWithRole{User: *u, Role: *r}, nil
+	return &users.UserWithRole{User: u, Role: r}, nil
 }
 
 func (d DB) scanUsersWithRole(rows *sql.Rows) ([]*users.UserWithRole, error) {

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/users"
 
 	"github.com/weaveworks/service/users/externalids"
@@ -59,7 +58,6 @@ func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users
 	roles := map[string]*users.Role{}
 	for m, teamRoles := range d.teamMemberships {
 		for tID, rID := range teamRoles {
-			log.Infof("TEAMMMM %v %v", tID, rID)
 			if tID == teamID {
 				u, err := d.findUserByID(m)
 				if err != nil {
@@ -67,7 +65,6 @@ func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users
 				}
 				us = append(us, u)
 				r := d.roles[rID]
-				log.Infof("d roles? %v %v", d.roles, rID)
 				roles[m] = r
 			}
 		}
@@ -78,7 +75,6 @@ func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users
 	for _, u := range us {
 		usersWithRole = append(usersWithRole, &users.UserWithRole{User: *u, Role: *roles[u.ID]})
 	}
-	log.Infof("OUT %v", usersWithRole)
 	return usersWithRole, nil
 }
 
