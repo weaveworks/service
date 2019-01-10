@@ -373,11 +373,6 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
-	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteInstance); err != nil {
-		renderError(w, r, err)
-		return
-	}
-
 	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err == users.ErrNotFound {
 		w.WriteHeader(http.StatusNoContent)
@@ -402,6 +397,10 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteInstance); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	if err := a.db.DeleteOrganization(ctx, orgExternalID, currentUser.ID); err != nil {
 		renderError(w, r, err)
 		return
@@ -511,11 +510,6 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
-	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.InviteTeamMember); err != nil {
-		renderError(w, r, err)
-		return
-	}
-
 	defer r.Body.Close()
 	var resp SignupResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
@@ -533,6 +527,10 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.InviteTeamMember); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
