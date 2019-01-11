@@ -434,9 +434,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/users/org/platform_version",               // Also validated by explicit token
 		"/webhooks",                                     // POSTed to by external services
 
-		"/admin/corp-atlantis/events", // GitHub webhook
-		"/admin/grafana",              // grafana does not know to inject CSRF header into requests. Without whitelisting,
-		"/admin/dev-grafana",          // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
+		"/admin/corp-atlantis", // GitHub webhook (/events) & discarding locks (/locks)
+		"/admin/grafana",       // grafana does not know to inject CSRF header into requests. Without whitelisting,
+		"/admin/dev-grafana",   // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
 		"/admin/prod-grafana",
 		"/admin/kibana", // kibana has the same issue with CSRF tokens as grafana
 	)
