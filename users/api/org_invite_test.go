@@ -35,8 +35,25 @@ func requestOrgAs(t *testing.T, user *users.User, method string, org string, ema
 	return responseBody
 }
 
-func requestInvite(t *testing.T, user *users.User, org *users.Organization, email string, expectedStatus int) map[string]interface{} {
-	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email}.Reader(t), expectedStatus)
+func requestTeam(t *testing.T, user *users.User, method string, team string, email string, body io.Reader, expectedStatus int) map[string]interface{} {
+	w := httptest.NewRecorder()
+	path := "/api/users/teams/" + team + "/users"
+	if email != "" {
+		path = path + "/" + email
+	}
+	r := requestAs(t, user, method, path, body)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, expectedStatus, w.Code)
+	if w.Body.Len() == 0 {
+		return nil
+	}
+	responseBody := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &responseBody))
+	return responseBody
+}
+
+func requestInvite(t *testing.T, user *users.User, org *users.Organization, email, role string, expectedStatus int) map[string]interface{} {
+	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email, "role": role}.Reader(t), expectedStatus)
 }
 
 // getOrgWithMembers populates the organization with given member count.
@@ -66,7 +83,7 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	user, org := getOrg(t)
 	franEmail := "fran@weave.works"
-	body := requestInvite(t, user, org, franEmail, http.StatusOK)
+	body := requestInvite(t, user, org, franEmail, "admin", http.StatusOK)
 	assert.Equal(t, map[string]interface{}{"email": franEmail, "role": "admin"}, body)
 
 	fran, err := database.FindUserByEmail(context.Background(), franEmail)
@@ -87,7 +104,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	user, org := getOrg(t)
 	fran := getUser(t)
 
-	body := requestInvite(t, user, org, fran.Email, http.StatusOK)
+	body := requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
 	assert.Equal(t, map[string]interface{}{"email": fran.Email, "role": "admin"}, body)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
@@ -96,6 +113,33 @@ func Test_InviteExistingUser(t *testing.T) {
 	assert.Equal(t, org.ID, organizations[0].ID)
 
 	assertEmailSent(t, fran.Email, "has granted you access")
+}
+
+func Test_InviteExistingUserWithNewRole(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, us, org := getOrgWithMembers(t, 2)
+	otherUser := us[0]
+
+	assert.Len(t, sentEmails, 0)
+
+	requestTeam(t, user, "PUT", org.TeamExternalID, otherUser.Email, jsonBody{"role": "editor"}.Reader(t), http.StatusNoContent)
+
+	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
+	assert.Equal(t, map[string]interface{}{
+		"users": []interface{}{
+			map[string]interface{}{
+				"email": otherUser.Email,
+				"role":  "editor",
+			},
+			map[string]interface{}{
+				"email": user.Email,
+				"self":  true,
+				"role":  "admin",
+			},
+		},
+	}, body)
 }
 
 func Test_Invite_WithInvalidJSON(t *testing.T) {
@@ -115,7 +159,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	body := requestInvite(t, user, org, "", http.StatusBadRequest)
+	body := requestInvite(t, user, org, "", "admin", http.StatusBadRequest)
 	assert.Equal(t, map[string]interface{}{
 		"errors": []interface{}{
 			map[string]interface{}{
@@ -142,7 +186,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	assert.Equal(t, org.ID, organizations[0].ID)
 	assert.Equal(t, created, false)
 
-	requestInvite(t, user, org, fran.Email, http.StatusOK)
+	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
 
 	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -160,7 +204,7 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	otherUser := getUser(t)
 	_, otherOrg := getOrg(t)
 
-	requestInvite(t, user, otherOrg, otherUser.Email, http.StatusForbidden)
+	requestInvite(t, user, otherOrg, otherUser.Email, "admin", http.StatusForbidden)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
@@ -175,7 +219,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	user, org := getOrg(t)
 	fran, _ := getOrg(t)
 
-	requestInvite(t, user, org, fran.Email, http.StatusOK)
+	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)

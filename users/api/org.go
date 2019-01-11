@@ -457,9 +457,9 @@ type organizationUsersView struct {
 }
 
 type organizationUserView struct {
-	Email string `json:"email"`
-	Self  bool   `json:"self,omitempty"`
-	Role  string `json:"role"`
+	Email  string `json:"email"`
+	Self   bool   `json:"self,omitempty"`
+	RoleID string `json:"role"`
 }
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -498,9 +498,9 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 			roleID = teamMemberIndex[u.ID].Role.ID
 		}
 		view.Users = append(view.Users, organizationUserView{
-			Email: u.Email,
-			Self:  u.ID == currentUser.ID,
-			Role:  roleID,
+			Email:  u.Email,
+			Self:   u.ID == currentUser.ID,
+			RoleID: roleID,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
@@ -508,8 +508,8 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 // InviteUserResponse is the message sent as the result of an invite request
 type InviteUserResponse struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Email  string `json:"email"`
+	RoleID string `json:"role"`
 }
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -528,10 +528,10 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	roleID := strings.TrimSpace(resp.Role)
+	roleID := strings.TrimSpace(resp.RoleID)
 	if roleID == "" {
 		roleID = users.DefaultRoleID
-		resp.Role = roleID
+		resp.RoleID = roleID
 	}
 
 	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
