@@ -323,7 +323,7 @@ func (t traced) CreateTeam(ctx context.Context, name string) (ut *users.Team, er
 	return t.d.CreateTeam(ctx, name)
 }
 
-func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string, roleID string) (err error) {
+func (t traced) AddUserToTeam(ctx context.Context, userID, teamID, roleID string) (err error) {
 	defer t.trace("AddUserToTeam", userID, teamID, roleID, err)
 	return t.d.AddUserToTeam(ctx, userID, teamID, roleID)
 }

@@ -215,7 +215,7 @@ func (d DB) UserIsMemberOfTeam(ctx context.Context, userID, teamID string) (bool
 }
 
 // AddUserToTeam links a user to the team
-func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, roleID string) error {
+func (d DB) AddUserToTeam(ctx context.Context, userID, teamID, roleID string) error {
 	if exists, err := d.UserIsMemberOfTeam(ctx, userID, teamID); exists || err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, roleID str
 }
 
 // CreateTeamAsUser creates a team from a name and sets user to be admin
-func (d *DB) CreateTeamAsUser(ctx context.Context, name string, userID string) (*users.Team, error) {
+func (d *DB) CreateTeamAsUser(ctx context.Context, name, userID string) (*users.Team, error) {
 	team, err := d.CreateTeam(ctx, name)
 	if err != nil {
 		return nil, err

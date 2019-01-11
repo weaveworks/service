@@ -460,7 +460,7 @@ func (t timed) CreateTeam(ctx context.Context, name string) (ut *users.Team, err
 	return
 }
 
-func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string, roleID string) (err error) {
+func (t timed) AddUserToTeam(ctx context.Context, userID, teamID, roleID string) (err error) {
 	t.timeRequest(ctx, "AddUserToTeam", func(ctx context.Context) error {
 		err = t.d.AddUserToTeam(ctx, userID, teamID, roleID)
 		return err
