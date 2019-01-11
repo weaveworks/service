@@ -493,14 +493,14 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 	view := organizationUsersView{}
 	for _, u := range us {
-		var role string
+		var roleID string
 		if teamMemberIndex[u.ID] != nil {
-			role = teamMemberIndex[u.ID].Role.ID
+			roleID = teamMemberIndex[u.ID].Role.ID
 		}
 		view.Users = append(view.Users, organizationUserView{
 			Email: u.Email,
 			Self:  u.ID == currentUser.ID,
-			Role:  role,
+			Role:  roleID,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
@@ -528,15 +528,10 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	role := strings.TrimSpace(resp.Role)
-	if role == "" {
-		// TODO(fbarl): Change this to 'viewer' once permissions UI is in place.
-		role = "admin"
-		resp.Role = role
-	}
-	if !validation.ValidateRole(role) {
-		renderError(w, r, users.ErrRoleIsInvalid)
-		return
+	roleID := strings.TrimSpace(resp.Role)
+	if roleID == "" {
+		roleID = users.DefaultRoleID
+		resp.Role = roleID
 	}
 
 	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
@@ -548,7 +543,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		renderError(w, r, err)
 		return
 	}
-	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID, role)
+	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID, roleID)
 	if err != nil {
 		renderError(w, r, err)
 		return

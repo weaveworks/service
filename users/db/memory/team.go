@@ -165,7 +165,7 @@ func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 }
 
 // AddUserToTeam links a user to the team
-func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string, role string) error {
+func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string, roleID string) error {
 	// no lock needed: caller must acquire lock.
 	teamRoles, _ := d.teamMemberships[userID]
 	for tID := range teamRoles {
@@ -177,7 +177,7 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string, role string
 	if teamRoles == nil {
 		teamRoles = map[string]string{}
 	}
-	teamRoles[teamID] = role
+	teamRoles[teamID] = roleID
 	d.teamMemberships[userID] = teamRoles
 	return nil
 }

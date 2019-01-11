@@ -215,7 +215,7 @@ func (d DB) UserIsMemberOfTeam(ctx context.Context, userID, teamID string) (bool
 }
 
 // AddUserToTeam links a user to the team
-func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, role string) error {
+func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, roleID string) error {
 	if exists, err := d.UserIsMemberOfTeam(ctx, userID, teamID); exists || err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string, role strin
 				values ($1, $2, $3)`,
 		userID,
 		teamID,
-		role,
+		roleID,
 	)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok && e.Constraint == "team_memberships_user_id_team_id_idx" {
