@@ -30,7 +30,7 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 			return err
 		}
 
-		return tx.removeUserFromTeam(ctx, user.ID, org.TeamID)
+		return tx.RemoveUserFromTeam(ctx, user.ID, org.TeamID)
 	})
 	return err
 }

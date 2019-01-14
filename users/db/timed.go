@@ -572,6 +572,12 @@ func (t timed) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID s
 	return
 }
 
+func (t timed) RemoveUserFromTeam(ctx context.Context, userID, teamID string) error {
+	return t.timeRequest(ctx, "RemoveUserFromTeam", func(ctx context.Context) error {
+		return t.d.RemoveUserFromTeam(ctx, userID, teamID)
+	})
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

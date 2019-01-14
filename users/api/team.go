@@ -196,3 +196,28 @@ func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter
 
 	render.JSON(w, http.StatusOK, renderPermissions(permissions))
 }
+
+func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	teamExternalID := mux.Vars(r)["teamExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+	ctx := r.Context()
+
+	team, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if err = a.db.RemoveUserFromTeam(ctx, user.ID, team.ID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, nil)
+}

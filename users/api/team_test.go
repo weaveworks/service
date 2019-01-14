@@ -56,6 +56,23 @@ func TestAPI_deleteTeam(t *testing.T) {
 	assert.Len(t, teams, 0)
 }
 
+func TestAPI_RemoveUserFromTeam(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org, _ := dbtest.GetOrgAndTeam(t, database)
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), user.ID)
+	assert.Len(t, teams, 1)
+
+	err := database.RemoveUserFromTeam(context.TODO(), user.ID, org.TeamID)
+	assert.NoError(t, err)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), user.ID)
+
+	assert.Len(t, teams, 0)
+}
+
 func TestAPI_changeRole(t *testing.T) {
 	setup(t)
 	defer cleanup(t)

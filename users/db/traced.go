@@ -79,6 +79,11 @@ func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, e
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 }
 
+func (t traced) RemoveUserFromTeam(ctx context.Context, userID, teamID string) (err error) {
+	defer t.trace("RemoveUserFromTeam", userID, teamID, err)
+	return t.d.RemoveUserFromTeam(ctx, userID, teamID)
+}
+
 func (t traced) ListUsers(ctx context.Context, f filter.User, page uint64) (us []*users.User, err error) {
 	defer t.trace("ListUsers", page, us, err)
 	return t.d.ListUsers(ctx, f, page)

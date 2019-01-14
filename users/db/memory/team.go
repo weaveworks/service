@@ -290,3 +290,11 @@ func (d *DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName 
 
 	return team, nil
 }
+
+// RemoveUserFromTeam removes a user from a team
+func (d *DB) RemoveUserFromTeam(ctx context.Context, userID, teamID string) error {
+
+	delete(d.teamMemberships[userID], teamID)
+
+	return nil
+}
