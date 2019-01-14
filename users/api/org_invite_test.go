@@ -35,8 +35,8 @@ func requestOrgAs(t *testing.T, user *users.User, method string, org string, ema
 	return responseBody
 }
 
-func requestInvite(t *testing.T, user *users.User, org *users.Organization, email string, expectedStatus int) map[string]interface{} {
-	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email}.Reader(t), expectedStatus)
+func requestInvite(t *testing.T, user *users.User, org *users.Organization, email, role string, expectedStatus int) map[string]interface{} {
+	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email, "roleId": role}.Reader(t), expectedStatus)
 }
 
 // getOrgWithMembers populates the organization with given member count.
@@ -45,7 +45,7 @@ func getOrgWithMembers(t *testing.T, count int) (*users.User, []*users.User, *us
 	members := []*users.User{}
 	for ; count > 1; count-- {
 		u := getUser(t)
-		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID)
+		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID, "admin")
 		require.NoError(t, err)
 		members = append(members, u)
 	}
@@ -66,8 +66,8 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	user, org := getOrg(t)
 	franEmail := "fran@weave.works"
-	body := requestInvite(t, user, org, franEmail, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": franEmail}, body)
+	body := requestInvite(t, user, org, franEmail, "admin", http.StatusOK)
+	assert.Equal(t, map[string]interface{}{"email": franEmail, "roleId": "admin"}, body)
 
 	fran, err := database.FindUserByEmail(context.Background(), franEmail)
 	require.NoError(t, err)
@@ -87,8 +87,8 @@ func Test_InviteExistingUser(t *testing.T) {
 	user, org := getOrg(t)
 	fran := getUser(t)
 
-	body := requestInvite(t, user, org, fran.Email, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": fran.Email}, body)
+	body := requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
+	assert.Equal(t, map[string]interface{}{"email": fran.Email, "roleId": "admin"}, body)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -115,7 +115,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	body := requestInvite(t, user, org, "", http.StatusBadRequest)
+	body := requestInvite(t, user, org, "", "admin", http.StatusBadRequest)
 	assert.Equal(t, map[string]interface{}{
 		"errors": []interface{}{
 			map[string]interface{}{
@@ -134,7 +134,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := database.CreateUser(context.Background(), "fran@weave.works", nil)
 	require.NoError(t, err)
-	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID)
+	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID, "admin")
 	require.NoError(t, err)
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	assert.Equal(t, org.ID, organizations[0].ID)
 	assert.Equal(t, created, false)
 
-	requestInvite(t, user, org, fran.Email, http.StatusOK)
+	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
 
 	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -160,7 +160,7 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	otherUser := getUser(t)
 	_, otherOrg := getOrg(t)
 
-	requestInvite(t, user, otherOrg, otherUser.Email, http.StatusForbidden)
+	requestInvite(t, user, otherOrg, otherUser.Email, "admin", http.StatusForbidden)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
@@ -175,7 +175,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	user, org := getOrg(t)
 	fran, _ := getOrg(t)
 
-	requestInvite(t, user, org, fran.Email, http.StatusOK)
+	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -206,9 +206,9 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"users": []interface{}{
 			map[string]interface{}{
-				"email": user.Email,
-				"self":  true,
-				"role":  "admin",
+				"email":  user.Email,
+				"self":   true,
+				"roleId": "admin",
 			},
 		},
 	}, body)

@@ -107,7 +107,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	user, org := getOrg(t)
 
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
 	assert.NoError(t, err)
 
 	err = database.MoveOrganizationToTeam(context.TODO(), org.ExternalID, team.ExternalID, "", "")
@@ -119,7 +119,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Equal(t, "admin", us[0].Role.ID)
 
 	fran := getUser(t)
-	fran, _, err = database.InviteUser(context.Background(), fran.Email, org.ExternalID)
+	fran, _, err = database.InviteUser(context.Background(), fran.Email, org.ExternalID, "admin")
 	require.NoError(t, err)
 
 	us, err = database.ListTeamUsersWithRoles(context.TODO(), team.ID)
@@ -136,13 +136,13 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"users": []interface{}{
 			map[string]interface{}{
-				"email": fran.Email,
-				"role":  "admin",
+				"email":  fran.Email,
+				"roleId": "admin",
 			},
 			map[string]interface{}{
-				"email": user.Email,
-				"self":  true,
-				"role":  "admin",
+				"email":  user.Email,
+				"self":   true,
+				"roleId": "admin",
 			},
 		},
 	}, responseBody)
@@ -228,7 +228,7 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 
 	{ // move from no-team to team
 		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
 		assert.NoError(t, err)
 
 		body := map[string]interface{}{"teamId": team.ExternalID}
@@ -245,7 +245,7 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 	}
 	{ // move from team to team
 		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
 		assert.NoError(t, err)
 
 		body := map[string]interface{}{"teamId": team.ExternalID}
@@ -279,7 +279,7 @@ func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
 	user, org, team := dbtest.GetOrgAndTeam(t, database)
 
 	exteam := getTeam(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID)
+	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID, "admin")
 	assert.NoError(t, err)
 
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
@@ -759,7 +759,7 @@ func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAble
 
 	// Create a team, and simulate the fact that team is marked as "billed externally":
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, "admin")
 	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
@@ -798,7 +798,7 @@ func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNot
 
 	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, "admin")
 	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{}, nil)

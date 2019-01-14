@@ -105,9 +105,9 @@ func (t timed) DetachLoginFromUser(ctx context.Context, userID, provider string)
 	})
 }
 
-func (t timed) InviteUser(ctx context.Context, email, orgExternalID string) (u *users.User, created bool, err error) {
+func (t timed) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (u *users.User, created bool, err error) {
 	t.timeRequest(ctx, "InviteUser", func(ctx context.Context) error {
-		u, created, err = t.d.InviteUser(ctx, email, orgExternalID)
+		u, created, err = t.d.InviteUser(ctx, email, orgExternalID, roleID)
 		return err
 	})
 	return
@@ -460,9 +460,9 @@ func (t timed) CreateTeam(ctx context.Context, name string) (ut *users.Team, err
 	return
 }
 
-func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string) (err error) {
+func (t timed) AddUserToTeam(ctx context.Context, userID, teamID, roleID string) (err error) {
 	t.timeRequest(ctx, "AddUserToTeam", func(ctx context.Context) error {
-		err = t.d.AddUserToTeam(ctx, userID, teamID)
+		err = t.d.AddUserToTeam(ctx, userID, teamID, roleID)
 		return err
 	})
 	return

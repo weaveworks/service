@@ -229,7 +229,7 @@ func (d DB) DetachLoginFromUser(ctx context.Context, userID, provider string) er
 
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
-func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error) {
+func (d DB) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (*users.User, bool, error) {
 	var u *users.User
 	userCreated := false
 	err := d.Transaction(func(tx DB) error {
@@ -249,7 +249,7 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 			return err
 		}
 
-		if err := tx.AddUserToTeam(ctx, u.ID, o.TeamID); err != nil {
+		if err := tx.AddUserToTeam(ctx, u.ID, o.TeamID, roleID); err != nil {
 			return err
 		}
 		// Fetch rest of user data in case the user already existed

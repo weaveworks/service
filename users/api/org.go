@@ -457,9 +457,9 @@ type organizationUsersView struct {
 }
 
 type organizationUserView struct {
-	Email string `json:"email"`
-	Self  bool   `json:"self,omitempty"`
-	Role  string `json:"role"`
+	Email  string `json:"email"`
+	Self   bool   `json:"self,omitempty"`
+	RoleID string `json:"roleId"`
 }
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -493,17 +493,23 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 	view := organizationUsersView{}
 	for _, u := range us {
-		var role string
+		var roleID string
 		if teamMemberIndex[u.ID] != nil {
-			role = teamMemberIndex[u.ID].Role.ID
+			roleID = teamMemberIndex[u.ID].Role.ID
 		}
 		view.Users = append(view.Users, organizationUserView{
-			Email: u.Email,
-			Self:  u.ID == currentUser.ID,
-			Role:  role,
+			Email:  u.Email,
+			Self:   u.ID == currentUser.ID,
+			RoleID: roleID,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
+}
+
+// InviteUserResponse is the message sent as the result of an invite request
+type InviteUserResponse struct {
+	Email  string `json:"email"`
+	RoleID string `json:"roleId"`
 }
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -511,7 +517,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 
 	defer r.Body.Close()
-	var resp SignupResponse
+	var resp InviteUserResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		renderError(w, r, users.NewMalformedInputError(err))
 		return
@@ -520,6 +526,12 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	if email == "" || !validation.ValidateEmail(email) {
 		renderError(w, r, users.ErrEmailIsInvalid)
 		return
+	}
+
+	roleID := strings.TrimSpace(resp.RoleID)
+	if roleID == "" {
+		roleID = users.DefaultRoleID
+		resp.RoleID = roleID
 	}
 
 	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
@@ -531,7 +543,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		renderError(w, r, err)
 		return
 	}
-	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID)
+	invitee, created, err := a.db.InviteUser(ctx, email, orgExternalID, roleID)
 	if err != nil {
 		renderError(w, r, err)
 		return

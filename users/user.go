@@ -11,6 +11,11 @@ import (
 // period before we start charging for it.
 const TrialDuration = 14 * 24 * time.Hour
 
+// DefaultRoleID is the role given to a new team member if no role is specified
+// used in entry points to the system like API endpoints.
+// TODO(fbarl): Change DefaultRoleID to 'viewer' once permissions UI is in place.
+const DefaultRoleID = "admin"
+
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
 // things to the db.DB
 type FindUserByIDer interface {

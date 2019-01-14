@@ -128,6 +128,11 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 		return
 	}
 
+	if userEmail == currentUser.Email {
+		renderError(w, r, users.ErrForbidden)
+		return
+	}
+
 	// This query might fail for a couple of reasons:
 	//   1. The user is not part of the team
 	//   2. Role ID is not valid (`admin`, `editor`, `viewer`)
