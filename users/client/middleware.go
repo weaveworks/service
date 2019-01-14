@@ -440,9 +440,9 @@ func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 
 			if MethodMatched && URIMatched {
 				if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
-					UserID:        r.Header.Get(a.UserIDHeader),
-					OrgExternalID: mux.Vars(r)["orgExternalID"],
-					PermissionID:  p.PermissionID,
+					OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{mux.Vars(r)["orgExternalID"]},
+					UserID:       r.Header.Get(a.UserIDHeader),
+					PermissionID: p.PermissionID,
 				}); err != nil {
 					handleError(err, w, r)
 					return

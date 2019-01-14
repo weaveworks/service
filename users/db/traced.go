@@ -343,6 +343,11 @@ func (t traced) FindTeamByExternalID(ctx context.Context, externalID string) (te
 	return t.d.FindTeamByExternalID(ctx, externalID)
 }
 
+func (t traced) FindTeamByInternalID(ctx context.Context, internalID string) (team *users.Team, err error) {
+	defer t.trace("FindTeamByInternalID", internalID, team, err)
+	return t.d.FindTeamByInternalID(ctx, internalID)
+}
+
 func (t traced) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (r *users.Role, err error) {
 	defer t.trace("GetUserRoleInTeam", userID, teamID, r, err)
 	return t.d.GetUserRoleInTeam(ctx, userID, teamID)

@@ -45,9 +45,9 @@ func (a *API) GetPaymentMethod(w http.ResponseWriter, r *http.Request) {
 // UpdatePaymentMethod is a HTTP handler to update a payment method.
 func (a *API) UpdatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	if _, err := a.Users.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
-		UserID:        r.Header.Get(user.UserIDHeaderName),
-		OrgExternalID: mux.Vars(r)["id"],
-		PermissionID:  permission.UpdateBilling,
+		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{OrgExternalID: mux.Vars(r)["id"]},
+		UserID:       r.Header.Get(user.UserIDHeaderName),
+		PermissionID: permission.UpdateBilling,
 	}); err != nil {
 		renderError(w, r, err)
 		return

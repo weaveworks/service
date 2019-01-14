@@ -370,6 +370,20 @@ func (d DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users
 	return team, nil
 }
 
+// FindTeamByInternalID finds team by its internal ID
+func (d DB) FindTeamByInternalID(ctx context.Context, internalID string) (*users.Team, error) {
+	team, err := d.scanTeam(
+		d.teamsQuery().Where("id = $1", internalID).QueryRowContext(ctx),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return team, nil
+}
+
 func (d DB) teamsQuery() squirrel.SelectBuilder {
 	return d.Select(`
 		teams.id,

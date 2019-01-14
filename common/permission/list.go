@@ -21,5 +21,14 @@ const RemoveTeamMember = "team.member.remove"
 // ViewTeamMembers permission allows viewing all the team members and their roles
 const ViewTeamMembers = "team.members.view"
 
-// TransferInstance permission allows transfering instance between the teams
+// TransferInstance permission allows transferring instances between the teams
 const TransferInstance = "instance.transfer"
+
+// CreateNotebook permission allows creating new notebooks
+const CreateNotebook = "notebook.create"
+
+// UpdateNotebook permission allows updating notebooks
+const UpdateNotebook = "notebook.update"
+
+// DeleteNotebook permission allows deleting notebooks
+const DeleteNotebook = "notebook.delete"

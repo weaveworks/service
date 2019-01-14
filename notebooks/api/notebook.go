@@ -8,7 +8,9 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/notebooks"
+	"github.com/weaveworks/service/users"
 )
 
 // NotebooksView describes a collection of notebooks
@@ -62,7 +64,9 @@ type NotebookWriteView struct {
 
 // createNotebook creates a notebook
 func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
-	logger := user.LogWith(r.Context(), logging.Global())
+	ctx := r.Context()
+
+	logger := user.LogWith(ctx, logging.Global())
 	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -82,6 +86,15 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
+		UserID:       userID,
+		PermissionID: permission.CreateNotebook,
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	notebook := notebooks.Notebook{
 		OrgID:       orgID,
 		CreatedBy:   userID,
@@ -92,7 +105,6 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		QueryRange:  input.QueryRange,
 		TrailingNow: input.TrailingNow,
 	}
-
 	id, err := a.db.CreateNotebook(notebook)
 	if err != nil {
 		logger.Errorf("Error creating notebook: %v", err)
@@ -139,9 +151,10 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 
 // updateNotebook updates a notebook with the same id
 func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
-	logger := user.LogWith(r.Context(), logging.Global())
-	vars := mux.Vars(r)
-	notebookID, ok := vars["notebookID"]
+	ctx := r.Context()
+	logger := user.LogWith(ctx, logging.Global())
+
+	notebookID, ok := mux.Vars(r)["notebookID"]
 	if !ok {
 		logger.Errorln("Missing notebookID var")
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
@@ -175,6 +188,15 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
+		UserID:       userID,
+		PermissionID: permission.UpdateNotebook,
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	notebook := notebooks.Notebook{
 		UpdatedBy:   userID,
 		Title:       input.Title,
@@ -183,7 +205,6 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		QueryRange:  input.QueryRange,
 		TrailingNow: input.TrailingNow,
 	}
-
 	err = a.db.UpdateNotebook(notebookID, orgID, notebook, version[0])
 	if err == notebooks.ErrNotebookVersionMismatch {
 		http.Error(w, "Notebook version mismatch", http.StatusConflict)
@@ -207,9 +228,10 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 
 // deleteNotebook deletes the notebook with the id
 func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
-	logger := user.LogWith(r.Context(), logging.Global())
-	vars := mux.Vars(r)
-	notebookID, ok := vars["notebookID"]
+	ctx := r.Context()
+	logger := user.LogWith(ctx, logging.Global())
+
+	notebookID, ok := mux.Vars(r)["notebookID"]
 	if !ok {
 		logger.Errorln("Missing notebookID var")
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
@@ -218,6 +240,21 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 
 	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	userID, _, err := user.ExtractUserIDFromHTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
+		UserID:       userID,
+		PermissionID: permission.DeleteNotebook,
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}

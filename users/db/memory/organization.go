@@ -388,6 +388,16 @@ func (d *DB) FindTeamByExternalID(ctx context.Context, externalID string) (*user
 	return nil, users.ErrNotFound
 }
 
+// FindTeamByInternalID finds team by its internal ID
+func (d *DB) FindTeamByInternalID(ctx context.Context, internalID string) (*users.Team, error) {
+	for _, t := range d.teams {
+		if t.ID == internalID {
+			return t, nil
+		}
+	}
+	return nil, users.ErrNotFound
+}
+
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
 func (d *DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {

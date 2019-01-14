@@ -127,6 +127,7 @@ type DB interface {
 	GetUserRoleInTeam(ctx context.Context, userID, teamID string) (*users.Role, error)
 	UpdateUserRoleInTeam(ctx context.Context, userID, teamID, roleID string) error
 	FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error)
+	FindTeamByInternalID(ctx context.Context, internalID string) (*users.Team, error)
 	CreateTeam(_ context.Context, name string) (*users.Team, error)
 	AddUserToTeam(_ context.Context, userID, teamID, roleID string) error
 	DeleteTeam(ctx context.Context, teamID string) error
