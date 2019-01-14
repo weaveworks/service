@@ -459,7 +459,7 @@ type organizationUsersView struct {
 type organizationUserView struct {
 	Email  string `json:"email"`
 	Self   bool   `json:"self,omitempty"`
-	RoleID string `json:"role"`
+	RoleID string `json:"roleId"`
 }
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -509,7 +509,7 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 // InviteUserResponse is the message sent as the result of an invite request
 type InviteUserResponse struct {
 	Email  string `json:"email"`
-	RoleID string `json:"role"`
+	RoleID string `json:"roleId"`
 }
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
