@@ -14,3 +14,12 @@ const UpdateAlertingSettings = "alert.settings.update"
 
 // UpdateTeamMemberRole permission allows updating team role of other team members
 const UpdateTeamMemberRole = "team.member.update"
+
+// RemoveTeamMember permission allows removing members from the team
+const RemoveTeamMember = "team.member.remove"
+
+// ViewTeamMembers permission allows viewing all the team members and their roles
+const ViewTeamMembers = "team.members.view"
+
+// TransferInstance permission allows transfering instance between the teams
+const TransferInstance = "instance.transfer"
