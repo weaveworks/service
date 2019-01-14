@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
@@ -133,6 +134,10 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 		return
 	}
 
+	if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, teamExternalID, permission.UpdateTeamMemberRole); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	// This query might fail for a couple of reasons:
 	//   1. The user is not part of the team
 	//   2. Role ID is not valid (`admin`, `editor`, `viewer`)

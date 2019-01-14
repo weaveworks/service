@@ -439,7 +439,7 @@ message Role {
 
 message RequireTeamMemberPermissionToRequest {
     string UserID = 1;
-    string TeamID = 2;
+    string TeamExternalID = 2;
     string PermissionID = 3;
 }
 

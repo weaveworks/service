@@ -466,7 +466,7 @@ func (a *usersServer) InformOrganizationBillingConfigured(ctx context.Context, r
 }
 
 func (a *usersServer) RequireTeamMemberPermissionTo(ctx context.Context, req *users.RequireTeamMemberPermissionToRequest) (*users.Empty, error) {
-	return &users.Empty{}, api.RequireTeamMemberPermissionTo(ctx, a.db, req.UserID, req.TeamID, req.PermissionID)
+	return &users.Empty{}, api.RequireTeamMemberPermissionTo(ctx, a.db, req.UserID, req.TeamExternalID, req.PermissionID)
 }
 
 func (a *usersServer) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest) (*users.Empty, error) {
