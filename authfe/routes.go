@@ -151,6 +151,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			{"/api/flux/v9/update-manifests", []string{"POST"}, permission.DeployImage},
 			{"/api/flux/v6/update-images", []string{"POST"}, permission.DeployImage},
 			{"/api/flux/v6/policies", []string{"PATCH"}, permission.UpdateDeploymentPolicy},
+			// Notifications
+			{"/api/notification/config/.*", []string{"POST", "PUT"}, permission.UpdateNotificationSettings},
 		},
 	}
 

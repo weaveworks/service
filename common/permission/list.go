@@ -53,3 +53,6 @@ const DeployImage = "flux.image.deploy"
 
 // UpdateDeploymentPolicy permission allows updating policies of Flux workloads
 const UpdateDeploymentPolicy = "flux.policy.update"
+
+// UpdateNotificationSettings permission allows updating notification settings
+const UpdateNotificationSettings = "notification.settings.update"
