@@ -47,3 +47,9 @@ const UpdateReplicaCount = "scope.replicas.update"
 
 // DeletePod permission allows deleting pods
 const DeletePod = "scope.pod.delete"
+
+// DeployImage permission allows deploying new images
+const DeployImage = "flux.image.deploy"
+
+// UpdateDeploymentPolicy permission allows updating policies of Flux workloads
+const UpdateDeploymentPolicy = "flux.policy.update"

@@ -145,6 +145,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			{"/api/control/.*/.*/docker_attach_container", []string{"POST"}, permission.AttachToContainer},
 			{"/api/control/.*/.*/kubernetes_scale_(up|down)", []string{"POST"}, permission.UpdateReplicaCount},
 			{"/api/control/.*/.*/kubernetes_delete_pod", []string{"POST"}, permission.DeletePod},
+			// Flux
+			// TODO(fbarl): At the moment, `update-manifests` API is only used for pushing releases in the Flux UI,
+			// so setting the permission here works, but in the future, we should probably introduce case branching.
+			{"/api/flux/v9/update-manifests", []string{"POST"}, permission.DeployImage},
+			{"/api/flux/v6/update-images", []string{"POST"}, permission.DeployImage},
+			{"/api/flux/v6/policies", []string{"PATCH"}, permission.UpdateDeploymentPolicy},
 		},
 	}
 
