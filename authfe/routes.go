@@ -137,7 +137,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
 		Permissions: []users_client.RequestPermission{
+			// Prometheus
 			{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
+			// Scope
+			{"/api/control/.*/.*/host_exec", []string{"POST"}, permission.OpenHostShell},
+			{"/api/control/.*/.*/docker_exec_container", []string{"POST"}, permission.OpenContainerShell},
+			{"/api/control/.*/.*/docker_attach_container", []string{"POST"}, permission.AttachToContainer},
+			{"/api/control/.*/.*/kubernetes_scale_(up|down)", []string{"POST"}, permission.UpdateReplicaCount},
+			{"/api/control/.*/.*/kubernetes_delete_pod", []string{"POST"}, permission.DeletePod},
 		},
 	}
 

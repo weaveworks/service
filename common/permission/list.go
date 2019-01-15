@@ -32,3 +32,18 @@ const UpdateNotebook = "notebook.update"
 
 // DeleteNotebook permission allows deleting notebooks
 const DeleteNotebook = "notebook.delete"
+
+// OpenHostShell permission allows opening shell on Scope host nodes
+const OpenHostShell = "scope.host.exec"
+
+// OpenContainerShell permission allows opening shell on Scope container nodes
+const OpenContainerShell = "scope.container.exec"
+
+// AttachToContainer permission allows attaching to Scope container nodes (just read-only mode is currently supported)
+const AttachToContainer = "scope.container.attach.out"
+
+// UpdateReplicaCount permission allows updating the number of K8s replicas
+const UpdateReplicaCount = "scope.replicas.update"
+
+// DeletePod permission allows deleting pods
+const DeletePod = "scope.pod.delete"
