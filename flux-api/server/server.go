@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/flux"
@@ -394,7 +395,14 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 	}()
 	if err != nil {
 		s.logger.Log("component", "server", "action", "connDB.Connect", "err", err)
-		return err
+		// The database is made read-only for short periods during certain
+		// maintenance operations, at which time PostgreSQL will return 42501 /
+		// "permission denied for relation" errors for write operations. If
+		// such an error happens whilst trying to update the connection time,
+		// log it but allow the registration to proceed.
+		if err, ok := err.(*pq.Error); !ok || ok && err.Code != "42501" {
+			return err
+		}
 	}
 
 	// Register the daemon with our message bus, waiting for it to be
