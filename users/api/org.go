@@ -227,14 +227,18 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	if update.TeamExternalID != nil || update.TeamName != nil {
 		newTeamExternalID := ptostr(update.TeamExternalID)
 		newTeamName := ptostr(update.TeamName)
-		// When moving an instance from team A into team B, the user needs to have instance transfer permissions in both teams A & B.
+		// When moving an instance from team A into team B, the user needs to have instance transfer permissions in both teams A & B...
 		if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, org.TeamExternalID, permission.TransferInstance); err != nil {
 			renderError(w, r, err)
 			return
 		}
-		if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, newTeamExternalID, permission.TransferInstance); err != nil {
-			renderError(w, r, err)
-			return
+		// ... however, if B is a new team (its external ID not being set), we already know the
+		// user will have the same role as in A, so we don't need the extra permission check.
+		if newTeamExternalID != "" {
+			if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, newTeamExternalID, permission.TransferInstance); err != nil {
+				renderError(w, r, err)
+				return
+			}
 		}
 		if err := a.MoveOrg(ctx, currentUser, org, newTeamExternalID, newTeamName); err != nil {
 			renderError(w, r, err)
