@@ -29,9 +29,13 @@ func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionI
 }
 
 // RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
-func RequireTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID, permissionID string) error {
+func RequireTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamExternalID, permissionID string) error {
 	// Get all team organizations
-	orgs, err := d.ListOrganizationsInTeam(ctx, teamID)
+	team, err := d.FindTeamByExternalID(ctx, teamExternalID)
+	if err != nil {
+		return err
+	}
+	orgs, err := d.ListOrganizationsInTeam(ctx, team.ID)
 	if err != nil {
 		return err
 	}
@@ -48,7 +52,7 @@ func RequireTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamID,
 		return nil
 	}
 
-	return requirePermission(ctx, d, userID, teamID, permissionID)
+	return requirePermission(ctx, d, userID, team.ID, permissionID)
 }
 
 // RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).

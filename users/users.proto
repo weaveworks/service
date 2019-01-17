@@ -439,12 +439,18 @@ message Role {
 
 message RequireTeamMemberPermissionToRequest {
     string UserID = 1;
-    string TeamID = 2;
+    oneof TeamID {
+        string TeamExternalID = 2;
+        string TeamInternalID = 4;
+    }
     string PermissionID = 3;
 }
 
 message RequireOrgMemberPermissionToRequest {
     string UserID = 1;
-    string OrgExternalID = 2;
+    oneof OrgID {
+        string OrgExternalID = 2;
+        string OrgInternalID = 4;
+    }
     string PermissionID = 3;
 }

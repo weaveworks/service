@@ -47,13 +47,13 @@ func (d *DB) ListTeams(_ context.Context, page uint64) ([]*users.Team, error) {
 }
 
 // ListTeamUsersWithRoles lists all the users in a team with their role
-func (d DB) ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+func (d *DB) ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.listTeamUsersWithRoles(ctx, teamID)
 }
 
-func (d DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
+func (d *DB) listTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error) {
 	var us []*users.User
 	roles := map[string]*users.Role{}
 	for m, teamRoles := range d.teamMemberships {

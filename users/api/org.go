@@ -202,20 +202,22 @@ func (a *API) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalI
 }
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+
 	defer r.Body.Close()
 	var update users.OrgWriteView
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
-	orgExternalID := mux.Vars(r)["orgExternalID"]
 
 	// Update.
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	org, err := a.db.UpdateOrganization(r.Context(), orgExternalID, update)
+	org, err := a.db.UpdateOrganization(ctx, orgExternalID, update)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -223,7 +225,22 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 	// Move teams?
 	if update.TeamExternalID != nil || update.TeamName != nil {
-		if err := a.MoveOrg(r.Context(), currentUser, org, ptostr(update.TeamExternalID), ptostr(update.TeamName)); err != nil {
+		newTeamExternalID := ptostr(update.TeamExternalID)
+		newTeamName := ptostr(update.TeamName)
+		// When moving an instance from team A into team B, the user needs to have instance transfer permissions in both teams A & B...
+		if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, org.TeamExternalID, permission.TransferInstance); err != nil {
+			renderError(w, r, err)
+			return
+		}
+		// ... however, if B is a new team (its external ID not being set), we already know the
+		// user will have the same role as in A, so we don't need the extra permission check.
+		if newTeamExternalID != "" {
+			if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, newTeamExternalID, permission.TransferInstance); err != nil {
+				renderError(w, r, err)
+				return
+			}
+		}
+		if err := a.MoveOrg(ctx, currentUser, org, newTeamExternalID, newTeamName); err != nil {
 			renderError(w, r, err)
 			return
 		}
@@ -463,25 +480,32 @@ type organizationUserView struct {
 }
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	us, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false, false)
+	us, err := a.db.ListOrganizationUsers(ctx, orgExternalID, false, false)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	teamMembers, err := a.db.ListTeamUsersWithRoles(r.Context(), org.TeamID)
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.ViewTeamMembers); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	teamMembers, err := a.db.ListTeamUsersWithRoles(ctx, org.TeamID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -573,24 +597,69 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 }
 
 func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID := vars["orgExternalID"]
-	userEmail := vars["userEmail"]
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	ctx := r.Context()
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	userEmail := mux.Vars(r)["userEmail"]
+
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false, false); err != nil {
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
+	if err != nil {
 		renderError(w, r, err)
 		return
-	} else if len(members) == 1 {
-		// An organization cannot be with zero members
+	}
+	members, err := a.db.ListTeamUsersWithRoles(ctx, org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// An organization cannot have zero members.
+	if len(members) == 1 {
 		renderError(w, r, users.ErrForbidden)
 		return
 	}
 
-	if err := a.db.RemoveUserFromOrganization(r.Context(), orgExternalID, userEmail); err != nil {
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	role, err := a.db.GetUserRoleInTeam(ctx, user.ID, org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// An organization always has to have at least one admin present,
+	// so if the user to be removed is the only admin, deny it.
+	// TODO(fbarl): Consider extracting "admin", "editor", "viewer" into constants.
+	if role.ID == "admin" {
+		adminCount := 0
+		for _, m := range members {
+			if m.Role.ID == "admin" {
+				adminCount++
+			}
+		}
+		if adminCount == 1 {
+			renderError(w, r, users.ErrForbidden)
+			return
+		}
+	}
+
+	// All users should be able to remove themselves from the team regardless of their role,
+	// so we skip the permission check if a user is trying to remove themselves.
+	if userEmail != currentUser.Email {
+		if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.RemoveTeamMember); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
+	if err := a.db.RemoveUserFromOrganization(ctx, orgExternalID, userEmail); err != nil {
 		renderError(w, r, err)
 		return
 	}

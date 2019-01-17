@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
@@ -128,16 +129,23 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 		return
 	}
 
+	// Users are never allowed to change their roles - even if they're
+	// admins, they must promote other admins first who can then downgrade
+	// their role - this is to prevent instances ending up with no admins!
 	if userEmail == currentUser.Email {
 		renderError(w, r, users.ErrForbidden)
 		return
 	}
 
+	if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, teamExternalID, permission.UpdateTeamMemberRole); err != nil {
+		renderError(w, r, err)
+		return
+	}
 	// This query might fail for a couple of reasons:
 	//   1. The user is not part of the team
 	//   2. Role ID is not valid (`admin`, `editor`, `viewer`)
 	//      - this check is done implicitly on the DB level
-	err = a.db.UpdateUserRoleInTeam(r.Context(), user.ID, team.ID, update.RoleID)
+	err = a.db.UpdateUserRoleInTeam(ctx, user.ID, team.ID, update.RoleID)
 	if err != nil {
 		renderError(w, r, err)
 		return

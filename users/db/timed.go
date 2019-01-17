@@ -492,6 +492,14 @@ func (t timed) FindTeamByExternalID(ctx context.Context, externalID string) (tea
 	return
 }
 
+func (t timed) FindTeamByInternalID(ctx context.Context, internalID string) (team *users.Team, err error) {
+	t.timeRequest(ctx, "FindTeamByInternalID", func(ctx context.Context) error {
+		team, err = t.d.FindTeamByInternalID(ctx, internalID)
+		return err
+	})
+	return
+}
+
 func (t timed) GetUserRoleInTeam(ctx context.Context, userID, teamID string) (r *users.Role, err error) {
 	t.timeRequest(ctx, "GetUserRoleInTeam", func(ctx context.Context) error {
 		r, err = t.d.GetUserRoleInTeam(ctx, userID, teamID)

@@ -466,9 +466,27 @@ func (a *usersServer) InformOrganizationBillingConfigured(ctx context.Context, r
 }
 
 func (a *usersServer) RequireTeamMemberPermissionTo(ctx context.Context, req *users.RequireTeamMemberPermissionToRequest) (*users.Empty, error) {
-	return &users.Empty{}, api.RequireTeamMemberPermissionTo(ctx, a.db, req.UserID, req.TeamID, req.PermissionID)
+	teamExternalID := req.GetTeamExternalID()
+	if teamExternalID == "" {
+		team, err := a.db.FindTeamByInternalID(ctx, req.GetTeamInternalID())
+		if err != nil {
+			return &users.Empty{}, err
+		}
+		teamExternalID = team.ExternalID
+	}
+
+	return &users.Empty{}, api.RequireTeamMemberPermissionTo(ctx, a.db, req.UserID, teamExternalID, req.PermissionID)
 }
 
 func (a *usersServer) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest) (*users.Empty, error) {
-	return &users.Empty{}, api.RequireOrgMemberPermissionTo(ctx, a.db, req.UserID, req.OrgExternalID, req.PermissionID)
+	orgExternalID := req.GetOrgExternalID()
+	if orgExternalID == "" {
+		org, err := a.db.FindOrganizationByInternalID(ctx, req.GetOrgInternalID())
+		if err != nil {
+			return &users.Empty{}, err
+		}
+		orgExternalID = org.ExternalID
+	}
+
+	return &users.Empty{}, api.RequireOrgMemberPermissionTo(ctx, a.db, req.UserID, orgExternalID, req.PermissionID)
 }

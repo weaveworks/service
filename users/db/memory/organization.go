@@ -103,7 +103,7 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 }
 
 // ListOrganizationsInTeam returns all organizations that are part of given team.
-func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
+func (d *DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var orgs []*users.Organization
@@ -382,6 +382,16 @@ func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExterna
 func (d *DB) FindTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	for _, t := range d.teams {
 		if t.ExternalID == externalID {
+			return t, nil
+		}
+	}
+	return nil, users.ErrNotFound
+}
+
+// FindTeamByInternalID finds team by its internal ID
+func (d *DB) FindTeamByInternalID(ctx context.Context, internalID string) (*users.Team, error) {
+	for _, t := range d.teams {
+		if t.ID == internalID {
 			return t, nil
 		}
 	}
