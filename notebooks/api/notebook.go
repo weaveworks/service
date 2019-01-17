@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -62,6 +63,15 @@ type NotebookWriteView struct {
 	TrailingNow bool              `json:"trailingNow"`
 }
 
+func (a *API) requirePermissionTo(ctx context.Context, permissionID, orgID, userID string) error {
+	_, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
+		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
+		UserID:       userID,
+		PermissionID: permission.CreateNotebook,
+	})
+	return err
+}
+
 // createNotebook creates a notebook
 func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -86,11 +96,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
-		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
-		UserID:       userID,
-		PermissionID: permission.CreateNotebook,
-	}); err != nil {
+	if err := a.requirePermissionTo(ctx, permission.CreateNotebook, orgID, userID); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -188,11 +194,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
-		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
-		UserID:       userID,
-		PermissionID: permission.UpdateNotebook,
-	}); err != nil {
+	if err := a.requirePermissionTo(ctx, permission.UpdateNotebook, orgID, userID); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -250,11 +252,7 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := a.usersClient.RequireOrgMemberPermissionTo(ctx, &users.RequireOrgMemberPermissionToRequest{
-		OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgInternalID{OrgInternalID: orgID},
-		UserID:       userID,
-		PermissionID: permission.DeleteNotebook,
-	}); err != nil {
+	if err := a.requirePermissionTo(ctx, permission.DeleteNotebook, orgID, userID); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
