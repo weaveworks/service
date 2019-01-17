@@ -185,6 +185,36 @@ func (d *DB) InviteUser(ctx context.Context, email, orgExternalID, roleID string
 	return u, created, nil
 }
 
+// InviteUserToTeam invites the user, to the team. If they are already a
+// member this is a noop.
+func (d *DB) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (*users.User, bool, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	created := false
+	team, err := d.FindTeamByExternalID(ctx, teamExternalID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	u, err := d.findUserByEmail(email)
+	if err == users.ErrNotFound {
+		u, err = d.createUser(email, nil)
+		created = true
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Make sure the submap has been initialized.
+	if d.teamMemberships[u.ID] == nil {
+		d.teamMemberships[u.ID] = map[string]string{}
+	}
+
+	d.teamMemberships[u.ID][team.ID] = roleID
+
+	return u, created, nil
+}
+
 // FindUserByID finds the user by id
 func (d *DB) FindUserByID(_ context.Context, id string) (*users.User, error) {
 	d.mtx.Lock()

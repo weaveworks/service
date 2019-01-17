@@ -55,7 +55,8 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_roles", "GET", "/api/users/roles", a.authenticateUser(a.listRoles)},
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
 		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
-		{"api_users_team_teamExternalID_remove_user_from_team", "DELETE", "/api/users/teams/{teamExternalId}/users/{userEmail}", a.authenticateUser(a.removeUserFromTeam)},
+		{"api_users_team_teamExternalID_remove_user_from_team", "DELETE", "/api/users/teams/{teamExternalID}/users/{userEmail}", a.authenticateUser(a.removeUserFromTeam)},
+		{"api_users_team_teamExternalID_invite_user_to_team", "POST", "/api/users/teams/{teamExternalID}/users", a.authenticateUser(a.inviteUserToTeam)},
 		{"api_users_teams_teamExternalID_update_user_role", "PUT", "/api/users/teams/{teamExternalID}/users/{userEmail}", a.authenticateUser(a.updateUserRoleInTeam)},
 		{"api_users_teams_teamExternalID_permissions", "GET", "/api/users/teams/{teamExternalID}/users/{userEmail}/permissions", a.authenticateUser(a.listTeamPermissions)},
 
@@ -78,7 +79,6 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgExternalID_users", "GET", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.listOrganizationUsers)},
 
-		// Team user management
 		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
 		{"api_users_org_orgExternalID_removeUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.removeUser)},
 

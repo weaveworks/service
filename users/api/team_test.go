@@ -60,16 +60,21 @@ func TestAPI_RemoveUserFromTeam(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org, _ := dbtest.GetOrgAndTeam(t, database)
+	team := dbtest.GetTeam(t, database)
+	user := dbtest.GetUser(t, database)
+	bUser := dbtest.GetUser(t, database)
 
-	teams, _ := database.ListTeamsForUserID(context.TODO(), user.ID)
-	assert.Len(t, teams, 1)
-
-	err := database.RemoveUserFromTeam(context.TODO(), user.ID, org.TeamID)
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+	assert.NoError(t, err)
+	err = database.AddUserToTeam(context.TODO(), bUser.ID, team.ID, "editor")
 	assert.NoError(t, err)
 
-	teams, _ = database.ListTeamsForUserID(context.TODO(), user.ID)
+	teams, _ := database.ListTeamsForUserID(context.TODO(), bUser.ID)
+	assert.Len(t, teams, 1)
 
+	teamRequest(t, user, "DELETE", team.ExternalID, bUser.Email, nil, http.StatusOK)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), bUser.ID)
 	assert.Len(t, teams, 0)
 }
 

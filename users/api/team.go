@@ -3,12 +3,15 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
+	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 )
 
@@ -198,9 +201,9 @@ func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter
 }
 
 func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	teamExternalID := mux.Vars(r)["teamExternalID"]
 	userEmail := mux.Vars(r)["userEmail"]
-	ctx := r.Context()
 
 	team, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID)
 	if err != nil {
@@ -214,10 +217,120 @@ func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter,
 		return
 	}
 
+	members, err := a.db.ListTeamUsersWithRoles(ctx, team.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if len(members) == 1 {
+		renderError(w, r, users.ErrForbidden)
+		return
+	}
+
+	role, err := a.db.GetUserRoleInTeam(ctx, user.ID, team.ID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// A team always has to have at least one admin present,
+	// so if the user to be removed is the only admin, deny it.
+	// TODO(fbarl): Consider extracting "admin", "editor", "viewer" into constants.
+	if role.ID == "admin" {
+		adminCount := 0
+		for _, m := range members {
+			if m.Role.ID == "admin" {
+				adminCount++
+			}
+		}
+		if adminCount == 1 {
+			renderError(w, r, users.ErrForbidden)
+			return
+		}
+	}
+
+	// All users should be able to remove themselves from the team regardless of their role,
+	// so we skip the permission check if a user is trying to remove themselves.
+	if userEmail != currentUser.Email {
+		if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, teamExternalID, permission.RemoveTeamMember); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
 	if err = a.db.RemoveUserFromTeam(ctx, user.ID, team.ID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
 	render.JSON(w, http.StatusOK, nil)
+}
+
+// InviteUserToTeamResponse is the message sent as the result of an invite request
+type InviteUserToTeamResponse struct {
+	Email  string `json:"email"`
+	RoleID string `json:"roleID"`
+}
+
+func (a *API) inviteUserToTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	teamExternalID := mux.Vars(r)["teamExternalID"]
+
+	defer r.Body.Close()
+
+	var resp InviteUserToTeamResponse
+	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
+		renderError(w, r, users.NewMalformedInputError(err))
+		return
+	}
+
+	email := strings.TrimSpace(resp.Email)
+	if email == "" || !validation.ValidateEmail(email) {
+		renderError(w, r, users.ErrEmailIsInvalid)
+		return
+	}
+
+	roleID := strings.TrimSpace(resp.RoleID)
+	if roleID == "" {
+		roleID = users.DefaultRoleID
+	}
+	resp.RoleID = roleID
+
+	team, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, team.ID, permission.InviteTeamMember); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	invitee, created, err := a.db.InviteUserToTeam(ctx, email, team.ID, roleID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// We always do this so that the timing difference can't be used to infer a user's existence.
+	token, err := a.generateUserToken(ctx, invitee)
+	if err != nil {
+		renderError(w, r, fmt.Errorf("cannot generate user token: %s", err))
+		return
+	}
+
+	if created {
+		err = a.emailer.InviteToTeamEmail(currentUser, invitee, teamExternalID, team.Name, token)
+	} else {
+		err = a.emailer.GrantAccessToTeamEmail(currentUser, invitee, teamExternalID, team.Name)
+	}
+
+	if err != nil {
+		renderError(w, r, fmt.Errorf("cannot send invite email: %s", err))
+		return
+	}
+
+	render.JSON(w, http.StatusOK, resp)
 }

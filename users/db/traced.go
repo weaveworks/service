@@ -74,6 +74,11 @@ func (t traced) InviteUser(ctx context.Context, email, orgExternalID, roleID str
 	return t.d.InviteUser(ctx, email, orgExternalID, roleID)
 }
 
+func (t traced) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (u *users.User, created bool, err error) {
+	defer t.trace("InviteUserToTeam", email, teamExternalID, roleID, u, created, err)
+	return t.d.InviteUserToTeam(ctx, email, teamExternalID, roleID)
+}
+
 func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) (err error) {
 	defer t.trace("RemoveUserFromOrganization", orgExternalID, email, err)
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
