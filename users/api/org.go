@@ -615,10 +615,15 @@ func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.RemoveTeamMember); err != nil {
-		renderError(w, r, err)
-		return
+	// All users should be able to remove themselves from the team regardless of their role,
+	// so we skip the permission check if a user is trying to remove themselves.
+	if userEmail != currentUser.Email {
+		if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.RemoveTeamMember); err != nil {
+			renderError(w, r, err)
+			return
+		}
 	}
+
 	if err := a.db.RemoveUserFromOrganization(ctx, orgExternalID, userEmail); err != nil {
 		renderError(w, r, err)
 		return
