@@ -103,7 +103,7 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 }
 
 // ListOrganizationsInTeam returns all organizations that are part of given team.
-func (d DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
+func (d *DB) ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var orgs []*users.Organization

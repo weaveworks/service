@@ -606,13 +606,48 @@ func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	if members, err := a.db.ListOrganizationUsers(ctx, orgExternalID, false, false); err != nil {
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
+	if err != nil {
 		renderError(w, r, err)
 		return
-	} else if len(members) == 1 {
-		// An organization cannot be with zero members
+	}
+	members, err := a.db.ListTeamUsersWithRoles(ctx, org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// An organization cannot have zero members.
+	if len(members) == 1 {
 		renderError(w, r, users.ErrForbidden)
 		return
+	}
+
+	user, err := a.db.FindUserByEmail(ctx, userEmail)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	role, err := a.db.GetUserRoleInTeam(ctx, user.ID, org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// An organization always has to have at least one admin present,
+	// so if the user to be removed is the only admin, deny it.
+	// TODO(fbarl): Consider extracting "admin", "editor", "viewer" into constants.
+	if role.ID == "admin" {
+		adminCount := 0
+		for _, m := range members {
+			if m.Role.ID == "admin" {
+				adminCount++
+			}
+		}
+		if adminCount == 1 {
+			renderError(w, r, users.ErrForbidden)
+			return
+		}
 	}
 
 	// All users should be able to remove themselves from the team regardless of their role,
