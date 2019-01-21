@@ -113,6 +113,14 @@ func (t timed) InviteUser(ctx context.Context, email, orgExternalID, roleID stri
 	return
 }
 
+func (t timed) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (u *users.User, created bool, err error) {
+	t.timeRequest(ctx, "InviteUserToTeam", func(ctx context.Context) error {
+		u, created, err = t.d.InviteUserToTeam(ctx, email, teamExternalID, roleID)
+		return err
+	})
+	return
+}
+
 func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error {
 	return t.timeRequest(ctx, "RemoveUserFromOrganization", func(ctx context.Context) error {
 		return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
@@ -570,6 +578,12 @@ func (t timed) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID s
 		return err
 	})
 	return
+}
+
+func (t timed) RemoveUserFromTeam(ctx context.Context, userID, teamID string) error {
+	return t.timeRequest(ctx, "RemoveUserFromTeam", func(ctx context.Context) error {
+		return t.d.RemoveUserFromTeam(ctx, userID, teamID)
+	})
 }
 
 func (t timed) Close(ctx context.Context) error {

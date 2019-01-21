@@ -22,7 +22,9 @@ var ErrUnsupportedEmailProtocol = errors.New("unsupported email protocol")
 type Emailer interface {
 	LoginEmail(u *users.User, token string, queryParams map[string]string) error
 	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
+	InviteToTeamEmail(inviter, invited *users.User, externalTeamID, teamName, token string) error
 	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
+	GrantAccessToTeamEmail(inviter, invited *users.User, teamExternalID, teamName string) error
 	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
@@ -85,8 +87,22 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 	)
 }
 
+func inviteToTeamURL(email, rawToken, domain, teamName string) string {
+	return fmt.Sprintf(
+		"%s/login/%s/%s/%s",
+		domain,
+		teamName,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
 func organizationURL(domain, orgExternalID string) string {
 	return fmt.Sprintf("%s/%s", domain, orgExternalID)
+}
+
+func teamURL(domain, teamExternalID string) string {
+	return fmt.Sprintf("%s/instances#%s", domain, teamExternalID)
 }
 
 func billingURL(domain, orgExternalID string) string {

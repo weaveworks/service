@@ -345,9 +345,9 @@ func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 	return externalID, err
 }
 
-// removeUserFromTeam removes the user from the team.
+// RemoveUserFromTeam removes the user from the team.
 // If they are not a team member, this is a noop.
-func (d DB) removeUserFromTeam(ctx context.Context, userID, teamID string) error {
+func (d DB) RemoveUserFromTeam(ctx context.Context, userID, teamID string) error {
 	_, err := d.ExecContext(ctx,
 		"update team_memberships set deleted_at = now() where user_id = $1 and team_id = $2",
 		userID,

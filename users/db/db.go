@@ -48,9 +48,13 @@ type DB interface {
 
 	// Invite a user to access an existing organization.
 	InviteUser(ctx context.Context, email, orgExternalID, roleID string) (*users.User, bool, error)
+	InviteUserToTeam(ctx context.Context, email, teamID, roleID string) (*users.User, bool, error)
 
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
+
+	// Remove a user from a team. If they are not a member of the team this is a noop
+	RemoveUserFromTeam(ctx context.Context, userID, teamExternalID string) error
 
 	// List users who match a filter
 	// NB: page 0 will return all matches. Use page >= 1 for paginated responses

@@ -104,6 +104,23 @@ func (s SMTPEmailer) InviteEmail(inviter, invited *users.User, orgExternalID, or
 	return s.Sender(e)
 }
 
+// InviteToTeamEmail sends the invite email
+func (s SMTPEmailer) InviteToTeamEmail(inviter, invited *users.User, teamExternalID, teamName, token string) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = []string{invited.Email}
+	e.Subject = "You've been invited to Weave Cloud"
+	data := map[string]interface{}{
+		"InviterName": inviter.Email,
+		"LoginURL":    inviteToTeamURL(invited.Email, token, s.Domain, teamExternalID),
+		"RootURL":     s.Domain,
+		"TeamName":    teamExternalID,
+	}
+	e.Text = s.Templates.QuietBytes("invite_to_team_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("invite_to_team_email.html", emailWrapperFilename, e.Subject, data)
+	return s.Sender(e)
+}
+
 // GrantAccessEmail sends the grant access email
 func (s SMTPEmailer) GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error {
 	e := email.NewEmail()
@@ -114,6 +131,22 @@ func (s SMTPEmailer) GrantAccessEmail(inviter, invited *users.User, orgExternalI
 		"InviterName":      inviter.Email,
 		"OrganizationName": orgName,
 		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
+	}
+	e.Text = s.Templates.QuietBytes("grant_access_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("grant_access_email.html", emailWrapperFilename, e.Subject, data)
+	return s.Sender(e)
+}
+
+// GrantAccessToTeamEmail sends the grant access email
+func (s SMTPEmailer) GrantAccessToTeamEmail(inviter, invited *users.User, teamExternalID, teamName string) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = []string{invited.Email}
+	e.Subject = "Weave Cloud access granted to instance"
+	data := map[string]interface{}{
+		"InviterName": inviter.Email,
+		"TeamName":    teamName,
+		"TeamURL":     teamURL(s.Domain, teamExternalID),
 	}
 	e.Text = s.Templates.QuietBytes("grant_access_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("grant_access_email.html", emailWrapperFilename, e.Subject, data)
