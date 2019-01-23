@@ -259,12 +259,13 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID, roleID string)
 // InviteUserToTeam adds a user to a team and sends the user an email.
 // If the user doesn't exist, a user is created, if the user is already a member
 // this is a noop
-func (d DB) InviteUserToTeam(ctx context.Context, email, teamID, roleID string) (*users.User, bool, error) {
+func (d DB) InviteUserToTeam(ctx context.Context, email, externalTeamID, roleID string) (*users.User, bool, error) {
 	var u *users.User
+	var err error
 	userCreated := false
 
-	err := d.Transaction(func(tx DB) error {
-		u, err := tx.FindUserByEmail(ctx, email)
+	err = d.Transaction(func(tx DB) error {
+		u, err = tx.FindUserByEmail(ctx, email)
 		if err == users.ErrNotFound {
 			u, err = tx.CreateUser(ctx, email, nil)
 			userCreated = true
@@ -273,7 +274,13 @@ func (d DB) InviteUserToTeam(ctx context.Context, email, teamID, roleID string) 
 			return err
 		}
 
-		if err := tx.AddUserToTeam(ctx, u.ID, teamID, roleID); err != nil {
+		var team *users.Team
+		team, err = tx.FindTeamByExternalID(ctx, externalTeamID)
+		if err != nil {
+			return err
+		}
+
+		if err = tx.AddUserToTeam(ctx, u.ID, team.ID, roleID); err != nil {
 			return err
 		}
 		return err

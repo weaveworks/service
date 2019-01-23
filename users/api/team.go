@@ -303,12 +303,12 @@ func (a *API) inviteUserToTeam(currentUser *users.User, w http.ResponseWriter, r
 		return
 	}
 
-	if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, team.ID, permission.InviteTeamMember); err != nil {
+	if err := RequireTeamMemberPermissionTo(ctx, a.db, currentUser.ID, teamExternalID, permission.InviteTeamMember); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	invitee, created, err := a.db.InviteUserToTeam(ctx, email, team.ID, roleID)
+	invitee, created, err := a.db.InviteUserToTeam(ctx, email, teamExternalID, roleID)
 	if err != nil {
 		renderError(w, r, err)
 		return

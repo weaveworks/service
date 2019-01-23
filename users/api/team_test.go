@@ -14,12 +14,13 @@ import (
 	"github.com/weaveworks/service/users/db/dbtest"
 )
 
-func teamRequest(t *testing.T, user *users.User, method string, team string, email string, body io.Reader, expectedStatus int) map[string]interface{} {
+func teamRequest(t *testing.T, user *users.User, method string, team string, additionalPath string, body io.Reader, expectedStatus int) map[string]interface{} {
 	w := httptest.NewRecorder()
 	path := "/api/users/teams/" + team
-	if email != "" {
-		path = path + "/users/" + email
+	if additionalPath != "" {
+		path = path + additionalPath
 	}
+
 	r := requestAs(t, user, method, path, body)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, expectedStatus, w.Code)
@@ -72,10 +73,30 @@ func TestAPI_RemoveUserFromTeam(t *testing.T) {
 	teams, _ := database.ListTeamsForUserID(context.TODO(), bUser.ID)
 	assert.Len(t, teams, 1)
 
-	teamRequest(t, user, "DELETE", team.ExternalID, bUser.Email, nil, http.StatusOK)
+	teamRequest(t, user, "DELETE", team.ExternalID, "/users/"+bUser.Email, nil, http.StatusOK)
 
 	teams, _ = database.ListTeamsForUserID(context.TODO(), bUser.ID)
 	assert.Len(t, teams, 0)
+}
+
+func TestAPI_InviteUserToTeam(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	team := dbtest.GetTeam(t, database)
+	user := dbtest.GetUser(t, database)
+	bUser := dbtest.GetUser(t, database)
+
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+	assert.NoError(t, err)
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), bUser.ID)
+	assert.Len(t, teams, 0)
+
+	teamRequest(t, user, "POST", team.ExternalID, "/users", jsonBody{"email": bUser.Email}.Reader(t), http.StatusOK)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), bUser.ID)
+	assert.Len(t, teams, 1)
 }
 
 func TestAPI_changeRole(t *testing.T) {
@@ -87,7 +108,7 @@ func TestAPI_changeRole(t *testing.T) {
 
 	assert.Len(t, sentEmails, 0)
 
-	teamRequest(t, user, "PUT", org.TeamExternalID, otherUser.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusNoContent)
+	teamRequest(t, user, "PUT", org.TeamExternalID, "/users/"+otherUser.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusNoContent)
 
 	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
 	assert.Equal(t, map[string]interface{}{
@@ -111,7 +132,7 @@ func TestAPI_changeOwnRole(t *testing.T) {
 
 	user, org, _ := dbtest.GetOrgAndTeam(t, database)
 
-	teamRequest(t, user, "PUT", org.TeamExternalID, user.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusForbidden)
+	teamRequest(t, user, "PUT", org.TeamExternalID, "/users/"+user.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusForbidden)
 
 	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
 	assert.Equal(t, map[string]interface{}{
