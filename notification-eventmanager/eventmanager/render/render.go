@@ -21,11 +21,16 @@ type Render struct {
 }
 
 type parsedData struct {
-	Title  string
-	Text   string
+	Title string
+	// Text should be in tune with the Slack message requirements. You need to encode
+	// `<>&` as HTML entities. Not only because Slack uses these as control directives
+	// but also to prevent XSS since this is passed to clients to render.
+	Text string
+	// Result will be presented as a code block, as the output of a possible event action.
 	Result string
-	Color  string
-	Error  string
+	// Color is one of the Slack colors (good, warning, danger) and possibly a hex value?
+	Color string
+	Error string
 }
 
 // NewRender returns a new render with templates
@@ -35,8 +40,10 @@ func NewRender(templates userTemplates.Engine) *Render {
 	}
 }
 
-// Data pasres data depends on event type and populates event messages for receivers
+// Data parses data depends on event type and populates event messages for receivers
 func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL string) error {
+	var err error
+	var pd *parsedData
 	if ev.Messages == nil {
 		ev.Messages = make(map[string]json.RawMessage)
 	}
@@ -48,12 +55,8 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling deploy data error")
 		}
 
-		pd, err := parseDeployData(data)
-		if err != nil {
+		if pd, err = parseDeployData(data); err != nil {
 			return errors.Wrap(err, "cannot parse deploy metadata")
-		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 		}
 
 	case types.AutoDeployType:
@@ -62,12 +65,8 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling auto deploy data error")
 		}
 
-		pd, err := parseAutoDeployData(data)
-		if err != nil {
+		if pd, err = parseAutoDeployData(data); err != nil {
 			return errors.Wrap(err, "cannot parse auto deploy metadata")
-		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 		}
 
 	case types.SyncType:
@@ -76,12 +75,8 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling sync data error")
 		}
 
-		pd, err := parseSyncData(data)
-		if err != nil {
+		if pd, err = parseSyncData(data); err != nil {
 			return errors.Wrap(err, "cannot parse sync metadata")
-		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 		}
 
 	case types.PolicyType:
@@ -90,12 +85,9 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling policy data error")
 		}
 
-		pd := &parsedData{
+		pd = &parsedData{
 			Title: "Weave cloud policy change",
 			Text:  getUpdatePolicyText(data),
-		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 		}
 
 	case types.DeployCommitType:
@@ -104,12 +96,9 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling deploy commit data error")
 		}
 
-		pd := &parsedData{
+		pd = &parsedData{
 			Title: "Weave Cloud deploy commit",
-			Text:  commitAutoDeployText(data),
-		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
+			Text:  commitDeployText(data),
 		}
 
 	case types.AutoDeployCommitType:
@@ -118,19 +107,17 @@ func (r *Render) Data(ev *types.Event, eventURL, eventURLText, settingsURL strin
 			return errors.Wrap(err, "unmarshaling auto deploy commit data error")
 		}
 
-		pd := &parsedData{
+		pd = &parsedData{
 			Title: "Weave Cloud auto deploy commit",
 			Text:  commitAutoDeployText(data),
 		}
-		if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
-			return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
-		}
-
-	// case "newEventType":
-	// add new types here
 
 	default:
 		return errors.New("Unsupported event type")
+	}
+
+	if err := r.fluxMessages(ev, pd, eventURL, eventURLText, settingsURL); err != nil {
+		return errors.Wrapf(err, "cannot get messages for %s", ev.Type)
 	}
 
 	return nil

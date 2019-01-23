@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"strings"
-
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -57,27 +55,23 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 	}
 
 	if update.Company != "" {
-		company := strings.TrimSpace(update.Company)
-		user.Company = company
-		values["company"] = company
+		user.Company = update.Company
+		values["company"] = update.Company
 	}
 
 	if update.Name != "" {
-		name := strings.TrimSpace(update.Name)
-		user.Name = name
-		values["name"] = name
+		user.Name = update.Name
+		values["name"] = update.Name
 	}
 
 	if update.FirstName != "" {
-		firstName := strings.TrimSpace(update.FirstName)
-		user.FirstName = firstName
-		values["first_name"] = firstName
+		user.FirstName = update.FirstName
+		values["first_name"] = update.FirstName
 	}
 
 	if update.LastName != "" {
-		lastName := strings.TrimSpace(update.LastName)
-		user.LastName = lastName
-		values["last_name"] = lastName
+		user.LastName = update.LastName
+		values["last_name"] = update.LastName
 	}
 
 	err = d.Transaction(func(tx DB) error {

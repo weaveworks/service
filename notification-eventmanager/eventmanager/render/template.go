@@ -34,12 +34,13 @@ func last(i int, a interface{}) (bool, error) {
 	return false, fmt.Errorf("unsupported type: %T", a)
 }
 
+// executeTempl processes an HTML template.
 func executeTempl(tmpl string, data interface{}) (string, error) {
 	t := template.Must(template.New(tmpl).Funcs(funcMap).Parse(tmpl))
 
 	var b bytes.Buffer
 	if err := t.Execute(&b, data); err != nil {
-		return "", errors.Wrap(err, "cannot execute message")
+		return "", errors.Wrap(err, "cannot execute template")
 	}
 
 	return b.String(), nil

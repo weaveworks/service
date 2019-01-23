@@ -23,6 +23,16 @@ const (
 	autoReleaseTemplate       = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 )
 
+var htmlEscaper = strings.NewReplacer(
+	`&`, "&amp;",
+	`<`, "&lt;",
+	`>`, "&gt;",
+)
+
+func escapeHTML(s string) string {
+	return htmlEscaper.Replace(s)
+}
+
 func (r *Render) fluxMessages(ev *types.Event, pd *parsedData, eventURL, eventURLText, settingsURL string) error {
 	slackMsg, err := fluxToSlack(pd, eventURL, ev.InstanceName)
 	if err != nil {
@@ -36,13 +46,13 @@ func (r *Render) fluxMessages(ev *types.Event, pd *parsedData, eventURL, eventUR
 	}
 	ev.Messages[types.EmailReceiver] = emailMsg
 
-	browserMsg, err := fluxToBrowser(ev, pd, eventURL, eventURLText, settingsURL)
+	browserMsg, err := fluxToBrowser(ev, pd, eventURL, eventURLText)
 	if err != nil {
 		return errors.Wrapf(err, "getting browser message for %s event", ev.Type)
 	}
 	ev.Messages[types.BrowserReceiver] = browserMsg
 
-	stackdriverMsg, err := fluxToStackdriver(ev, pd, eventURL, eventURLText, settingsURL)
+	stackdriverMsg, err := fluxToStackdriver(ev, pd)
 	if err != nil {
 		return errors.Wrapf(err, "getting stackdriver message for %s event", ev.Type)
 	}
@@ -142,7 +152,7 @@ func parseSyncData(data types.SyncData) (*parsedData, error) {
 	}, nil
 }
 
-func fluxToSlack(pd *parsedData, eventURL, eventURLText string) (json.RawMessage, error) {
+func fluxToSlack(pd *parsedData, eventURL, instanceName string) (json.RawMessage, error) {
 	var attachments []types.SlackAttachment
 	if pd.Error != "" {
 		attachments = append(attachments, attachmentSlack("", pd.Error, "warning"))
@@ -154,7 +164,7 @@ func fluxToSlack(pd *parsedData, eventURL, eventURLText string) (json.RawMessage
 	}
 
 	msg := types.SlackMessage{
-		Text:        fmt.Sprintf("*Instance*: <%s|%s>\n%s", eventURL, eventURLText, pd.Text),
+		Text:        fmt.Sprintf("*Instance*: <%s|%s>\n%s", eventURL, escapeHTML(instanceName), pd.Text),
 		Attachments: attachments,
 	}
 
@@ -166,7 +176,7 @@ func fluxToSlack(pd *parsedData, eventURL, eventURLText string) (json.RawMessage
 	return msgRaw, nil
 }
 
-func fluxToBrowser(ev *types.Event, pd *parsedData, eventURL, eventURLText, settingsURL string) (json.RawMessage, error) {
+func fluxToBrowser(ev *types.Event, pd *parsedData, eventURL, eventURLText string) (json.RawMessage, error) {
 	var attachments []types.SlackAttachment
 
 	if pd.Error != "" {
@@ -181,7 +191,7 @@ func fluxToBrowser(ev *types.Event, pd *parsedData, eventURL, eventURLText, sett
 	if eventURL != "" {
 		var attachLink types.SlackAttachment
 		if eventURLText != "" {
-			attachLink.Text = fmt.Sprintf("[%s](%s)", eventURLText, eventURL)
+			attachLink.Text = fmt.Sprintf("[%s](%s)", escapeHTML(eventURLText), eventURL)
 		} else {
 			attachLink.Text = fmt.Sprintf("<%s>", eventURL)
 		}
@@ -203,7 +213,7 @@ func fluxToBrowser(ev *types.Event, pd *parsedData, eventURL, eventURLText, sett
 	return msgRaw, nil
 }
 
-func fluxToStackdriver(ev *types.Event, pd *parsedData, eventURL, eventURLText, settingsURL string) (json.RawMessage, error) {
+func fluxToStackdriver(ev *types.Event, pd *parsedData) (json.RawMessage, error) {
 	payload, err := json.Marshal(pd)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal release data error")
@@ -278,7 +288,7 @@ func commitDeployText(data fluxevent.CommitEventMetadata) string {
 		fmt.Fprintf(buf, " - %s\n", id)
 	}
 
-	return buf.String()
+	return escapeHTML(buf.String())
 }
 
 func commitAutoDeployText(data fluxevent.CommitEventMetadata) string {
@@ -291,7 +301,7 @@ func commitAutoDeployText(data fluxevent.CommitEventMetadata) string {
 		fmt.Fprintf(buf, " - %s\n", id)
 	}
 
-	return buf.String()
+	return escapeHTML(buf.String())
 }
 
 func getUpdatePolicyText(data fluxevent.CommitEventMetadata) string {
@@ -305,36 +315,36 @@ func getUpdatePolicyText(data fluxevent.CommitEventMetadata) string {
 }
 
 func getUpdatePolicyMessage(revision string, resource flux.ResourceID, upd policy.Update, user string) string {
-	var resMsg string
+	var msg string
 
 	if _, ok := upd.Add.Get(policy.Locked); ok {
 		lockMessage, _ := upd.Add.Get(policy.LockedMsg)
 		user, _ := upd.Add.Get(policy.LockedUser)
-		resMsg += fmt.Sprintf("Lock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
+		msg += fmt.Sprintf("Lock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
 	}
 	if _, ok := upd.Remove.Get(policy.Locked); ok {
 		lockMessage, _ := upd.Remove.Get(policy.LockedMsg)
 		user, _ := upd.Remove.Get(policy.LockedUser)
-		resMsg += fmt.Sprintf("Unlock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
+		msg += fmt.Sprintf("Unlock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
 	}
 	if _, ok := upd.Add.Get(policy.Automated); ok {
-		resMsg += fmt.Sprintf("Automate: %s (%s) by %s\n", resource, revision, user)
+		msg += fmt.Sprintf("Automate: %s (%s) by %s\n", resource, revision, user)
 	}
 	if _, ok := upd.Remove.Get(policy.Automated); ok {
-		resMsg += fmt.Sprintf("Deautomate: %s (%s) by %s\n", resource, revision, user)
+		msg += fmt.Sprintf("Deautomate: %s (%s) by %s\n", resource, revision, user)
 	}
 
 	_, _, resName := resource.Components()
 
 	tagPolicy := policy.TagPrefix(resName)
 	if tagFilter, ok := upd.Add.Get(tagPolicy); ok {
-		resMsg += fmt.Sprintf("Add tag filter %s to %s (%s) by %s\n", tagFilter, resource, revision, user)
+		msg += fmt.Sprintf("Add tag filter %s to %s (%s) by %s\n", tagFilter, resource, revision, user)
 	}
 	if tagFilter, ok := upd.Remove.Get(tagPolicy); ok {
-		resMsg += fmt.Sprintf("Remove tag filter %s for %s (%s) by %s\n", tagFilter, resource, revision, user)
+		msg += fmt.Sprintf("Remove tag filter %s for %s (%s) by %s\n", tagFilter, resource, revision, user)
 	}
 
-	return resMsg
+	return escapeHTML(msg)
 }
 
 func updateResultText(res update.Result) string {
@@ -350,7 +360,7 @@ func commitsText(commits []fluxevent.Commit) string {
 		fmt.Fprintf(buf, "%s %s\n", shortRevision(commits[i].Revision), commits[i].Message)
 	}
 
-	return buf.String()
+	return escapeHTML(buf.String())
 }
 
 func serviceIDsText(ss []flux.ResourceID) []string {
@@ -383,7 +393,7 @@ func syncEventText(sd types.SyncData) string {
 		svcStr = strings.Join(strServiceIDs, ", ")
 	}
 
-	return fmt.Sprintf("Sync: %s, %s", revStr, svcStr)
+	return escapeHTML(fmt.Sprintf("Sync: %s, %s", revStr, svcStr))
 }
 
 func syncErrorText(errs []fluxevent.ResourceError) string {
@@ -393,7 +403,7 @@ func syncErrorText(errs []fluxevent.ResourceError) string {
 		fmt.Fprintf(buf, "%s (%s)\n  %s\n", err.ID, err.Path, err.Error)
 	}
 
-	return buf.String()
+	return escapeHTML(buf.String())
 }
 
 func attachmentSlack(title, text, color string) types.SlackAttachment {
