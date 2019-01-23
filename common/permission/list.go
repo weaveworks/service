@@ -56,3 +56,5 @@ const UpdateDeploymentPolicy = "flux.policy.update"
 
 // UpdateNotificationSettings permission allows updating notification settings
 const UpdateNotificationSettings = "notification.settings.update"
+
+const ViewToken = "instance.token.view"
