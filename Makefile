@@ -232,7 +232,7 @@ $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 
 billing-integration-test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:9.5)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:10.6)"; \
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -316,7 +316,7 @@ endif
 
 # Test and misc stuff
 notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:10.6)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
@@ -329,7 +329,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	exit $$status
 
 users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:10.6)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/users/db/migrations:/migrations \

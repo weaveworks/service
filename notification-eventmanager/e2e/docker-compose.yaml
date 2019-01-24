@@ -2,7 +2,7 @@ version: '2'
 services:
 
   config-db:
-   image: "postgres:9.5"
+   image: "postgres:10.6"
    expose:
     - "5432"
    environment:

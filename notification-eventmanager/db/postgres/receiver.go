@@ -228,7 +228,7 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 		// First, update the actual record
 		_, err = tx.Exec(
 			"update_receiver",
-			`UPDATE receivers SET (address_data) = ($2)
+			`UPDATE receivers SET (address_data) = ROW($2)
 			WHERE receiver_id = $1`,
 			receiver.ID,
 			encodedAddress,
