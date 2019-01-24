@@ -265,7 +265,11 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 		return err
 	})
 
-	return userError
+	if userError != nil {
+		return userError
+	}
+
+	return err
 }
 
 // DeleteReceiver deletes receiver
