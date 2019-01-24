@@ -79,9 +79,8 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 }
 
 func (a *API) createOrgView(ctx context.Context, currentUser *users.User, org *users.Organization) OrgView {
-	permissionsErr := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, org.ExternalID, permission.ViewToken)
 	probeToken := ""
-	if permissionsErr == nil {
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, org.ExternalID, permission.ViewToken); err == nil {
 		probeToken = org.ProbeToken
 	}
 	return OrgView{

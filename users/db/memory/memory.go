@@ -25,7 +25,7 @@ type DB struct {
 	mtx                  sync.Mutex
 }
 
-var Permissions = map[string]*users.Permission{
+var permissions = map[string]*users.Permission{
 	"team.member.invite":           {ID: "team.member.invite", Name: "Team.member.invite", Description: "derp"},
 	"instance.delete":              {ID: "instance.delete", Name: "Instance.delete", Description: "derp"},
 	"instance.billing.update":      {ID: "instance.billing.update", Name: "Instance.billing.update", Description: "derp"},
@@ -51,12 +51,12 @@ var Permissions = map[string]*users.Permission{
 // New creates a new in-memory database
 func New(_, _ string, passwordHashingCost int) (*DB, error) {
 	rolesPermissions := map[string][]string{
-		"admin":  []string{},
-		"editor": []string{},
-		"viewer": []string{},
+		"admin":  {},
+		"editor": {},
+		"viewer": {},
 	}
 
-	for roleID, _ := range Permissions {
+	for roleID := range permissions {
 		rolesPermissions["admin"] = append(rolesPermissions["admin"], roleID)
 	}
 
@@ -73,7 +73,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 			"editor": {ID: "editor", Name: "Editor"},
 			"viewer": {ID: "viewer", Name: "Viewer"},
 		},
-		permissions:         Permissions,
+		permissions:         permissions,
 		rolesPermissions:    rolesPermissions,
 		webhooks:            make(map[string][]*users.Webhook),
 		passwordHashingCost: passwordHashingCost,

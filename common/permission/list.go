@@ -57,4 +57,5 @@ const UpdateDeploymentPolicy = "flux.policy.update"
 // UpdateNotificationSettings permission allows updating notification settings
 const UpdateNotificationSettings = "notification.settings.update"
 
+// ViewToken permission allows view the probe token
 const ViewToken = "instance.token.view"
