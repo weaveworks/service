@@ -105,14 +105,6 @@ func (t timed) DetachLoginFromUser(ctx context.Context, userID, provider string)
 	})
 }
 
-func (t timed) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (u *users.User, created bool, err error) {
-	t.timeRequest(ctx, "InviteUser", func(ctx context.Context) error {
-		u, created, err = t.d.InviteUser(ctx, email, orgExternalID, roleID)
-		return err
-	})
-	return
-}
-
 func (t timed) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (u *users.User, created bool, err error) {
 	t.timeRequest(ctx, "InviteUserToTeam", func(ctx context.Context) error {
 		u, created, err = t.d.InviteUserToTeam(ctx, email, teamExternalID, roleID)

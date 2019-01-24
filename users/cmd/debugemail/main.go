@@ -86,16 +86,18 @@ func main() {
 	}
 	orgExternalID := "sample-org-99"
 	orgName := "Sample Org 99"
+	teamExternalID := "sample-team-88"
+	teamName := "Sample Team 88"
 
 	actions := map[string]func() error{
 		"login": func() error {
 			return em.LoginEmail(dst, "secret-login-token", nil)
 		},
 		"invite": func() error {
-			return em.InviteEmail(inviter, dst, orgExternalID, orgName, "secret-invite-token")
+			return em.InviteToTeamEmail(inviter, dst, teamExternalID, teamName, "secret-invite-token")
 		},
 		"grant_access": func() error {
-			return em.GrantAccessEmail(inviter, dst, orgExternalID, orgName)
+			return em.GrantAccessToTeamEmail(inviter, dst, teamExternalID, teamName)
 		},
 		"trial_extended": func() error {
 			return em.TrialExtendedEmail([]*users.User{dst}, orgExternalID, orgName, time.Now().Add(15*24*time.Hour))

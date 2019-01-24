@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -221,45 +222,10 @@ func (d DB) DetachLoginFromUser(ctx context.Context, userID, provider string) er
 	return err
 }
 
-// InviteUser invites the user, to join the organization. If they are already a
-// member this is a noop.
-func (d DB) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (*users.User, bool, error) {
-	var u *users.User
-	userCreated := false
-	err := d.Transaction(func(tx DB) error {
-		o, err := tx.scanOrganization(
-			tx.organizationsQuery().Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
-		)
-		if err != nil {
-			return err
-		}
-
-		u, err = tx.FindUserByEmail(ctx, email)
-		if err == users.ErrNotFound {
-			u, err = tx.CreateUser(ctx, email, nil)
-			userCreated = true
-		}
-		if err != nil {
-			return err
-		}
-
-		if err := tx.AddUserToTeam(ctx, u.ID, o.TeamID, roleID); err != nil {
-			return err
-		}
-		// Fetch rest of user data in case the user already existed
-		u, err = tx.FindUserByID(ctx, u.ID)
-		return err
-	})
-	if err != nil {
-		return nil, false, err
-	}
-	return u, userCreated, nil
-}
-
 // InviteUserToTeam adds a user to a team and sends the user an email.
 // If the user doesn't exist, a user is created, if the user is already a member
 // this is a noop
-func (d DB) InviteUserToTeam(ctx context.Context, email, externalTeamID, roleID string) (*users.User, bool, error) {
+func (d DB) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (*users.User, bool, error) {
 	var u *users.User
 	var err error
 	userCreated := false
@@ -275,7 +241,7 @@ func (d DB) InviteUserToTeam(ctx context.Context, email, externalTeamID, roleID 
 		}
 
 		var team *users.Team
-		team, err = tx.FindTeamByExternalID(ctx, externalTeamID)
+		team, err = tx.FindTeamByExternalID(ctx, teamExternalID)
 		if err != nil {
 			return err
 		}

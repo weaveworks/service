@@ -23,14 +23,14 @@ func TestEmbedHTML__Login(t *testing.T) {
 func TestEmbedHTML__Invite(t *testing.T) {
 	templates := templates.MustNewEngine(".", "../../common/templates")
 	data := map[string]interface{}{
-		"LoginURL":         "cloud.weave.works/login",
-		"RootURL":          "cloud.weave.works",
-		"OrganizationName": "local-test-org",
+		"LoginURL": "cloud.weave.works/login",
+		"RootURL":  "cloud.weave.works",
+		"TeamName": "local-test-team",
 	}
-	rendered := string(templates.EmbedHTML("invite_email.html", "wrapper.html", "Invite Title", data))
+	rendered := string(templates.EmbedHTML("invite_to_team_email.html", "wrapper.html", "Invite Title", data))
 
 	assert.Contains(t, rendered, "Invite Title")
-	assert.Contains(t, rendered, "has invited you to access the \"local-test-org\"")
+	assert.Contains(t, rendered, "has invited you to access the \"local-test-team\"")
 	assert.Contains(t, rendered, data["LoginURL"])
 }
 

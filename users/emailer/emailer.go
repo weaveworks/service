@@ -21,9 +21,7 @@ var ErrUnsupportedEmailProtocol = errors.New("unsupported email protocol")
 // for each type of email we send.
 type Emailer interface {
 	LoginEmail(u *users.User, token string, queryParams map[string]string) error
-	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
-	InviteToTeamEmail(inviter, invited *users.User, externalTeamID, teamName, token string) error
-	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
+	InviteToTeamEmail(inviter, invited *users.User, teamExternalID, teamName, token string) error
 	GrantAccessToTeamEmail(inviter, invited *users.User, teamExternalID, teamName string) error
 	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
@@ -75,16 +73,6 @@ func loginURL(email, rawToken, domain string, queryParams map[string]string) str
 	}
 	out.RawQuery = q.Encode()
 	return out.String()
-}
-
-func inviteURL(email, rawToken, domain, orgName string) string {
-	return fmt.Sprintf(
-		"%s/login/%s/%s/%s",
-		domain,
-		orgName,
-		url.QueryEscape(email),
-		url.QueryEscape(rawToken),
-	)
 }
 
 func inviteToTeamURL(email, rawToken, domain, teamName string) string {

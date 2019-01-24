@@ -150,41 +150,6 @@ func (d *DB) DetachLoginFromUser(_ context.Context, userID, provider string) err
 	return nil
 }
 
-// InviteUser invites the user, to join the organization. If they are already a
-// member this is a noop.
-func (d *DB) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (*users.User, bool, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	created := false
-	o, err := d.findOrganizationByExternalID(orgExternalID)
-	if err != nil {
-		return nil, false, err
-	}
-
-	u, err := d.findUserByEmail(email)
-	if err == users.ErrNotFound {
-		u, err = d.createUser(email, nil)
-		created = true
-	}
-	if err != nil {
-		return nil, false, err
-	}
-
-	isMember, err := d.userIsMemberOf(u.ID, orgExternalID)
-	if err != nil {
-		return nil, false, err
-	}
-	if isMember {
-		return u, false, nil
-	}
-	// Make sure the submap has been initialized.
-	if d.teamMemberships[u.ID] == nil {
-		d.teamMemberships[u.ID] = map[string]string{}
-	}
-	d.teamMemberships[u.ID][o.TeamID] = roleID
-	return u, created, nil
-}
-
 // InviteUserToTeam invites the user, to the team. If they are already a
 // member this is a noop.
 func (d *DB) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (*users.User, bool, error) {
