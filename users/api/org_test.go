@@ -67,6 +67,37 @@ func Test_Org(t *testing.T) {
 	}, body)
 }
 
+func Test_OrgFiltersTokenIfMissingPermission(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	admin, org, team := dbtest.GetOrgAndTeam(t, database)
+	user := getUser(t)
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "viewer")
+	assert.NoError(t, err)
+
+	err = database.AddFeatureFlag(context.TODO(), org.ExternalID, "permissions")
+	assert.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	r := requestAs(t, admin, "GET", "/api/users/org/"+org.ExternalID, nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.NoError(t, err)
+	assert.Equal(t, org.ProbeToken, body["probeToken"])
+
+	w = httptest.NewRecorder()
+	r = requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID, nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body = map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.NoError(t, err)
+	assert.Equal(t, nil, body["probeToken"])
+}
+
 func Test_Org_NoProbeUpdates(t *testing.T) {
 	setup(t)
 	defer cleanup(t)

@@ -507,7 +507,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		Organizations: make([]OrgView, 0),
 	}
 	for _, org := range organizations {
-		view.Organizations = append(view.Organizations, a.createOrgView(currentUser, org))
+		view.Organizations = append(view.Organizations, a.createOrgView(r.Context(), currentUser, org))
 	}
 	render.JSON(w, http.StatusOK, view)
 }

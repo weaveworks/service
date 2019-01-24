@@ -62,7 +62,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	}
 	for _, org := range organizations {
 		if org.ExternalID == strings.ToLower(orgExternalID) {
-			render.JSON(w, http.StatusOK, a.createOrgView(currentUser, org))
+			render.JSON(w, http.StatusOK, a.createOrgView(r.Context(), currentUser, org))
 			return
 		}
 	}
@@ -78,12 +78,16 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	renderError(w, r, users.ErrNotFound)
 }
 
-func (a *API) createOrgView(currentUser *users.User, org *users.Organization) OrgView {
+func (a *API) createOrgView(ctx context.Context, currentUser *users.User, org *users.Organization) OrgView {
+	probeToken := ""
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, org.ExternalID, permission.ViewToken); err == nil {
+		probeToken = org.ProbeToken
+	}
 	return OrgView{
 		User:                 currentUser.Email,
 		ExternalID:           org.ExternalID,
 		Name:                 org.Name,
-		ProbeToken:           org.ProbeToken,
+		ProbeToken:           probeToken,
 		FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
 		RefuseDataAccess:     org.RefuseDataAccess,
 		RefuseDataUpload:     org.RefuseDataUpload,
