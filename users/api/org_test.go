@@ -13,7 +13,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
@@ -150,7 +149,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Equal(t, "admin", us[0].Role.ID)
 
 	fran := getUser(t)
-	fran, _, err = database.InviteUser(context.Background(), fran.Email, org.ExternalID, "admin")
+	fran, _, err = database.InviteUserToTeam(context.Background(), fran.Email, team.ExternalID, "admin")
 	require.NoError(t, err)
 
 	us, err = database.ListTeamUsersWithRoles(context.TODO(), team.ID)

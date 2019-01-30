@@ -46,9 +46,8 @@ type DB interface {
 	// user is linked to the remote login.
 	DetachLoginFromUser(ctx context.Context, userID, provider string) error
 
-	// Invite a user to access an existing organization.
-	InviteUser(ctx context.Context, email, orgExternalID, roleID string) (*users.User, bool, error)
-	InviteUserToTeam(ctx context.Context, email, teamID, roleID string) (*users.User, bool, error)
+	// Invite a user to access an existing team.
+	InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (*users.User, bool, error)
 
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error

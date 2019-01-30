@@ -69,11 +69,6 @@ func (t traced) DetachLoginFromUser(ctx context.Context, userID, provider string
 	return t.d.DetachLoginFromUser(ctx, userID, provider)
 }
 
-func (t traced) InviteUser(ctx context.Context, email, orgExternalID, roleID string) (u *users.User, created bool, err error) {
-	defer t.trace("InviteUser", email, orgExternalID, roleID, u, created, err)
-	return t.d.InviteUser(ctx, email, orgExternalID, roleID)
-}
-
 func (t traced) InviteUserToTeam(ctx context.Context, email, teamExternalID, roleID string) (u *users.User, created bool, err error) {
 	defer t.trace("InviteUserToTeam", email, teamExternalID, roleID, u, created, err)
 	return t.d.InviteUserToTeam(ctx, email, teamExternalID, roleID)

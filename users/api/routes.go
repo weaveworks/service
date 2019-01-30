@@ -79,9 +79,6 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgExternalID_users", "GET", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.listOrganizationUsers)},
 
-		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
-		{"api_users_org_orgExternalID_removeUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.removeUser)},
-
 		// Organization webhooks
 		{"api_users_webhooks_list", "GET", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.listOrganizationWebhooks)},
 		{"api_users_webhooks_create", "POST", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.createOrganizationWebhook)},

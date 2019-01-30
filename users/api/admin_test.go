@@ -151,7 +151,7 @@ func TestAPI_adminDeleteUser(t *testing.T) {
 	usr, single := getOrg(t)
 	other, multi := getOrg(t)
 	// single: usr / multi: usr, other
-	_, _, err := database.InviteUser(context.TODO(), usr.Email, multi.ExternalID, "admin")
+	_, _, err := database.InviteUserToTeam(context.TODO(), usr.Email, multi.TeamExternalID, "admin")
 	assert.NoError(t, err)
 
 	{ // delete first user

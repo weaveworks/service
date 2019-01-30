@@ -36,7 +36,7 @@ func requestOrgAs(t *testing.T, user *users.User, method string, org string, ema
 }
 
 func requestInvite(t *testing.T, user *users.User, org *users.Organization, email, role string, expectedStatus int) map[string]interface{} {
-	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email, "roleId": role}.Reader(t), expectedStatus)
+	return teamRequest(t, user, "POST", org.TeamExternalID, "/users", jsonBody{"email": email}.Reader(t), expectedStatus)
 }
 
 // getOrgWithMembers populates the organization with given member count.
@@ -45,7 +45,7 @@ func getOrgWithMembers(t *testing.T, count int) (*users.User, []*users.User, *us
 	members := []*users.User{}
 	for ; count > 1; count-- {
 		u := getUser(t)
-		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID, "admin")
+		u, _, err := database.InviteUserToTeam(context.Background(), u.Email, org.TeamExternalID, "admin")
 		require.NoError(t, err)
 		members = append(members, u)
 	}
@@ -95,7 +95,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
 
-	assertEmailSent(t, fran.Email, "has granted you access")
+	assertEmailSent(t, fran.Email, "has added you to the")
 }
 
 func Test_Invite_WithInvalidJSON(t *testing.T) {
@@ -104,7 +104,7 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	requestOrgAs(t, user, "POST", org.ExternalID, "", strings.NewReader(`garbage`), http.StatusBadRequest)
+	teamRequest(t, user, "POST", org.TeamExternalID, "/users", strings.NewReader(`garbage`), http.StatusBadRequest)
 
 	assert.Len(t, sentEmails, 0)
 }
@@ -134,7 +134,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := database.CreateUser(context.Background(), "fran@weave.works", nil)
 	require.NoError(t, err)
-	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID, "admin")
+	fran, created, err := database.InviteUserToTeam(context.Background(), fran.Email, org.TeamExternalID, "admin")
 	require.NoError(t, err)
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -149,7 +149,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
 
-	assertEmailSent(t, fran.Email, "has granted you access")
+	assertEmailSent(t, fran.Email, "has added you to the")
 }
 
 func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
@@ -183,82 +183,5 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	orgIDs := []string{organizations[0].ID, organizations[1].ID}
 	assert.Contains(t, orgIDs, org.ID)
 
-	assertEmailSent(t, fran.Email, "has granted you access")
-}
-
-func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, us, org := getOrgWithMembers(t, 2)
-	otherUser := us[0]
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 1)
-
-	requestOrgAs(t, user, "DELETE", org.ExternalID, otherUser.Email, nil, http.StatusNoContent)
-
-	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 0)
-
-	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{
-		"users": []interface{}{
-			map[string]interface{}{
-				"email":  user.Email,
-				"self":   true,
-				"roleId": "admin",
-			},
-		},
-	}, body)
-}
-
-func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, _, org := getOrgWithMembers(t, 2)
-
-	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusNoContent)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 0)
-}
-
-func Test_Invite_RemoveLastUser(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, org := getOrg(t)
-
-	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusForbidden)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 1)
-}
-
-func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, _, _ := getOrgWithMembers(t, 2)
-	otherUser, _, otherOrg := getOrgWithMembers(t, 2)
-
-	requestOrgAs(t, user, "DELETE", otherOrg.ExternalID, otherUser.Email, nil, http.StatusForbidden)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 1)
-}
-
-func Test_Invite_RemoveAccess_NotFound(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, _ := getOrg(t)
-
-	requestOrgAs(t, user, "DELETE", "foobar", user.Email, nil, http.StatusNotFound)
+	assertEmailSent(t, fran.Email, "has added you to the")
 }

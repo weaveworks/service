@@ -270,7 +270,7 @@ func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter,
 // InviteUserToTeamResponse is the message sent as the result of an invite request
 type InviteUserToTeamResponse struct {
 	Email  string `json:"email"`
-	RoleID string `json:"roleID"`
+	RoleID string `json:"roleId"`
 }
 
 func (a *API) inviteUserToTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {

@@ -32,6 +32,31 @@ func teamRequest(t *testing.T, user *users.User, method string, team string, add
 	return responseBody
 }
 
+func getTeamWithMembers(t *testing.T, count int) (team *users.Team, users []*users.User) {
+	team = getTeam(t)
+
+	for ; count > 0; count-- {
+		u := getUser(t)
+		users = append(users, u)
+
+		database.AddUserToTeam(context.TODO(), u.ID, team.ID, "admin")
+	}
+
+	return team, users
+}
+
+func getMemberWithRole(membersWithRoles []*users.UserWithRole, userID string) *users.UserWithRole {
+	var userWithRole *users.UserWithRole
+
+	for _, u := range membersWithRoles {
+		if u.User.ID == userID {
+			userWithRole = u
+		}
+	}
+
+	return userWithRole
+}
+
 func TestAPI_deleteTeam(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -61,9 +86,9 @@ func TestAPI_RemoveUserFromTeam(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	team := dbtest.GetTeam(t, database)
-	user := dbtest.GetUser(t, database)
-	bUser := dbtest.GetUser(t, database)
+	team, members := getTeamWithMembers(t, 2)
+	user := members[0]
+	bUser := members[1]
 
 	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
 	assert.NoError(t, err)
@@ -83,12 +108,9 @@ func TestAPI_InviteUserToTeam(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	team := dbtest.GetTeam(t, database)
-	user := dbtest.GetUser(t, database)
+	team, members := getTeamWithMembers(t, 1)
+	user := members[0]
 	bUser := dbtest.GetUser(t, database)
-
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
-	assert.NoError(t, err)
 
 	teams, _ := database.ListTeamsForUserID(context.TODO(), bUser.ID)
 	assert.Len(t, teams, 0)
@@ -103,45 +125,105 @@ func TestAPI_changeRole(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, us, org := getOrgWithMembers(t, 2)
-	otherUser := us[0]
+	team, members := getTeamWithMembers(t, 2)
+	user := members[0]
+	userB := members[1]
 
 	assert.Len(t, sentEmails, 0)
 
-	teamRequest(t, user, "PUT", org.TeamExternalID, "/users/"+otherUser.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusNoContent)
+	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+userB.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusNoContent)
 
-	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{
-		"users": []interface{}{
-			map[string]interface{}{
-				"email":  otherUser.Email,
-				"roleId": "editor",
-			},
-			map[string]interface{}{
-				"email":  user.Email,
-				"self":   true,
-				"roleId": "admin",
-			},
-		},
-	}, body)
+	membersWithRoles, err := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
+	assert.NoError(t, err)
+
+	userBWithRole := getMemberWithRole(membersWithRoles, userB.ID)
+
+	assert.Equal(t, userBWithRole.Role.ID, "editor")
 }
 
 func TestAPI_changeOwnRole(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org, _ := dbtest.GetOrgAndTeam(t, database)
+	team, members := getTeamWithMembers(t, 1)
+	user := members[0]
 
-	teamRequest(t, user, "PUT", org.TeamExternalID, "/users/"+user.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusForbidden)
+	membersWithRoles, _ := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
+	userWithRole := getMemberWithRole(membersWithRoles, user.ID)
 
-	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{
-		"users": []interface{}{
-			map[string]interface{}{
-				"email":  user.Email,
-				"self":   true,
-				"roleId": "admin",
-			},
-		},
-	}, body)
+	assert.Equal(t, userWithRole.Role.ID, "admin")
+
+	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+user.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusForbidden)
+
+	membersWithRoles, _ = database.ListTeamUsersWithRoles(context.TODO(), team.ID)
+	userWithRole = getMemberWithRole(membersWithRoles, user.ID)
+
+	assert.Equal(t, userWithRole.Role.ID, "admin")
+}
+
+func TestAPI_RemoveOtherUsersAccess(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	team, members := getTeamWithMembers(t, 2)
+	userA := members[0]
+	userB := members[1]
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), userB.ID)
+	assert.Equal(t, len(teams), 1)
+
+	teamRequest(t, userA, "DELETE", team.ExternalID, "/users/"+userB.Email, nil, http.StatusOK)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), userB.ID)
+	assert.Equal(t, len(teams), 0)
+}
+
+func TestAPI_RemoveMyOwnAccess(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	team, members := getTeamWithMembers(t, 2)
+	user := members[0]
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), user.ID)
+	assert.Len(t, teams, 1)
+
+	teamRequest(t, user, "DELETE", team.ExternalID, "/users/"+user.Email, nil, http.StatusOK)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), user.ID)
+	assert.Len(t, teams, 0)
+}
+
+func TestAPI_RemoveLastUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	team, members := getTeamWithMembers(t, 1)
+	user := members[0]
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), user.ID)
+	assert.Len(t, teams, 1)
+
+	teamRequest(t, user, "DELETE", team.ExternalID, user.Email, nil, http.StatusForbidden)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), user.ID)
+	assert.Len(t, teams, 1)
+}
+
+func TestAPI_RemoveAccess_Forbidden(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, membersA := getTeamWithMembers(t, 1)
+	userA := membersA[0]
+	teamB, membersB := getTeamWithMembers(t, 1)
+	userB := membersB[0]
+
+	teams, _ := database.ListTeamsForUserID(context.TODO(), userB.ID)
+	assert.Len(t, teams, 1)
+
+	teamRequest(t, userA, "DELETE", teamB.ExternalID, userB.Email, nil, http.StatusForbidden)
+
+	teams, _ = database.ListTeamsForUserID(context.TODO(), userB.ID)
+	assert.Len(t, teams, 1)
 }

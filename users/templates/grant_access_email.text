@@ -1,7 +1,0 @@
-{{.InviterName}} has granted you access to the ‘{{.OrganizationName}}’ instance on Weave Cloud.
-
-View «{{.OrganizationName}}»:
-
-    {{.OrganizationURL}}
-
-Thanks, the Weaveworks team
