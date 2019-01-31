@@ -22,10 +22,16 @@ const (
 
 // Queries for getting resource consumption data from Prometheus
 const (
+	//
+	// FIXME: including job here in these two queries is a bit of hack to
+	// make this work more consistently.  Details:
+	// https://github.com/weaveworks/service/issues/2472. job appears to
+	// always be 'cadvisor' so I believe its a noop
+	//
 	// For the derivation of this query, see https://frontend.dev.weave.works/proud-wind-05/monitor/notebook/5ea020df-6220-405f-9f01-af0234a6744a
-	promTopMemoryWorkloadsQuery = `sum by (namespace, pod_name) (sum_over_time(container_memory_usage_bytes{image!=""}[1w])) / ignoring(namespace, pod_name) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
+	promTopMemoryWorkloadsQuery = `sum by (namespace, pod_name, job) (sum_over_time(container_memory_usage_bytes{image!=""}[1w])) / ignoring(namespace, pod_name, job) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
 	// CPU query seems to be more stable over longer time periods, so it's probably safe to assume it doesn't need the same kind of tweaking
-	promTopCPUWorkloadsQuery = `sum by (namespace, pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, pod_name) group_left count(node_cpu{mode='idle'})`
+	promTopCPUWorkloadsQuery = `sum by (namespace, pod_name, job) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, pod_name, job) group_left count(node_cpu{mode='idle'})`
 	// Normalizes the service name labels to work on systems with different setups (adapted from https://github.com/weaveworks/service-ui/blob/19fcaed0ee4a1adc76cb6c9fb721a0b5559e961f/client/src/pages/prom/dashboards/workload-resources/layout.jsx#L11)
 	podsByWorkloadsQuery = `
 		max by (namespace, service, pod_name) (
