@@ -173,7 +173,7 @@ func main() {
 
 	log.Debug("Debug logging enabled")
 
-	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues)
+	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues, forceFeatureFlags)
 	app := api.New(
 		*directLogin,
 		emailer,
