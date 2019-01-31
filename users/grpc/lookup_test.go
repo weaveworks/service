@@ -38,7 +38,7 @@ func setup(t *testing.T) {
 		Domain:      "https://weave.test",
 		FromAddress: "from@weave.test",
 	}
-	server = grpc.New(sessionStore, database, &smtp, []*marketing.Queue{})
+	server = grpc.New(sessionStore, database, &smtp, []*marketing.Queue{}, []string{})
 	ctx = context.Background()
 }
 

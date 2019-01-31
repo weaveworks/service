@@ -23,19 +23,21 @@ import (
 
 // usersServer implements users.UsersServer
 type usersServer struct {
-	sessions        sessions.Store
-	db              db.DB
-	emailer         emailer.Emailer
-	marketingQueues marketing.Queues
+	sessions          sessions.Store
+	db                db.DB
+	emailer           emailer.Emailer
+	marketingQueues   marketing.Queues
+	forceFeatureFlags []string
 }
 
 // New makes a new users.UsersServer
-func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer, marketingQueues marketing.Queues) users.UsersServer {
+func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer, marketingQueues marketing.Queues, forceFeatureFlags []string) users.UsersServer {
 	return &usersServer{
-		sessions:        sessions,
-		db:              db,
-		emailer:         emailer,
-		marketingQueues: marketingQueues,
+		sessions:          sessions,
+		db:                db,
+		emailer:           emailer,
+		marketingQueues:   marketingQueues,
+		forceFeatureFlags: forceFeatureFlags,
 	}
 }
 
@@ -344,16 +346,28 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	return &users.NotifyTrialExpiredResponse{}, err
 }
 
+func (a *usersServer) featureFlagIsForced(flag string) bool {
+	for _, f := range a.forceFeatureFlags {
+		if f == flag {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *usersServer) GetOrganizationsReadyForWeeklyReport(ctx context.Context, req *users.GetOrganizationsReadyForWeeklyReportRequest) (*users.GetOrganizationsReadyForWeeklyReportResponse, error) {
 	// Get all organizations for which weekly reporting is enabled and that haven't been reported at least for a week.
 	endOfSameDayLastWeek := req.Now.UTC().Truncate(24*time.Hour).AddDate(0, 0, -6)
+	fs := []filter.Filter{
+		filter.LastSentWeeklyReportBefore(endOfSameDayLastWeek),
+		filter.SeenPromConnected(true),
+	}
+	if !a.featureFlagIsForced(featureflag.WeeklyReportable) {
+		fs = append(fs, filter.HasFeatureFlag(featureflag.WeeklyReportable))
+	}
 	organizations, err := a.db.ListOrganizations(
 		ctx,
-		filter.And(
-			filter.HasFeatureFlag(featureflag.WeeklyReportable),
-			filter.LastSentWeeklyReportBefore(endOfSameDayLastWeek),
-			filter.SeenPromConnected(true),
-		),
+		filter.And(fs...),
 		0,
 	)
 	if err != nil {
