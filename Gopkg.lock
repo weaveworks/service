@@ -65,11 +65,11 @@
 
 [[projects]]
   branch = "expose-dstaddr"
-  digest = "1:200180508216ef34d143a249b1d22e7027391b1134753399db810fdd57110aa1"
+  digest = "1:661a29880e546f59fa5c17211369379eb6431d382021431959adc13d66c89461"
   name = "github.com/armon/go-proxyproto"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "50b4985199960e434024d364559916ca531a01be"
+  revision = "0a8c12a32b20813e4c73260cdcc88ddc3e657718"
   source = "github.com/weaveworks/go-proxyproto"
 
 [[projects]]
@@ -311,12 +311,9 @@
   revision = "2fa06788d5bf9a718f8d5d4c63be5db0b58cd1dd"
 
 [[projects]]
-  digest = "1:a507e8646bf3775af6f7e7b2a62a5e67d1c6a8f00754f87e66b96181b7f3d747"
+  digest = "1:b60efdeb75d3c0ceed88783ac2495256aba3491a537d0f31401202579fd62a94"
   name = "github.com/golang/mock"
-  packages = [
-    "gomock",
-    "mockgen/model",
-  ]
+  packages = ["gomock"]
   pruneopts = "NUT"
   revision = "51421b967af1f557f93a59e0057aaf15ca02e29c"
   version = "v1.2.0"
@@ -1394,7 +1391,6 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
     "github.com/golang/mock/gomock",
-    "github.com/golang/mock/mockgen/model",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/go-github/github",
     "github.com/google/uuid",

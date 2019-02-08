@@ -3,6 +3,7 @@ package proxyproto
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,7 +19,24 @@ var (
 	// to check if this connection is using the proxy protocol
 	prefix    = []byte("PROXY ")
 	prefixLen = len(prefix)
+
+	ErrInvalidUpstream = errors.New("upstream connection address not trusted for PROXY information")
 )
+
+// SourceChecker can be used to decide whether to trust the PROXY info or pass
+// the original connection address through. If set, the connecting address is
+// passed in as an argument. If the function returns an error due to the source
+// being disallowed, it should return ErrInvalidUpstream.
+//
+// If error is not nil, the call to Accept() will fail. If the reason for
+// triggering this failure is due to a disallowed source, it should return
+// ErrInvalidUpstream.
+//
+// If bool is true, the PROXY-set address is used.
+//
+// If bool is false, the connection's remote address is used, rather than the
+// address claimed in the PROXY info.
+type SourceChecker func(net.Addr) (bool, error)
 
 // Listener is used to wrap an underlying listener,
 // whose connections may be using the HAProxy Proxy Protocol (version 1).
@@ -30,6 +48,7 @@ var (
 type Listener struct {
 	Listener           net.Listener
 	ProxyHeaderTimeout time.Duration
+	SourceCheck        SourceChecker
 }
 
 // Conn is used to wrap and underlying connection which
@@ -40,6 +59,7 @@ type Conn struct {
 	conn               net.Conn
 	dstAddr            *net.TCPAddr
 	srcAddr            *net.TCPAddr
+	useConnAddr        bool
 	once               sync.Once
 	proxyHeaderTimeout time.Duration
 }
@@ -51,7 +71,19 @@ func (p *Listener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewConn(conn, p.ProxyHeaderTimeout), nil
+	var useConnAddr bool
+	if p.SourceCheck != nil {
+		allowed, err := p.SourceCheck(conn.RemoteAddr())
+		if err != nil {
+			return nil, err
+		}
+		if !allowed {
+			useConnAddr = true
+		}
+	}
+	newConn := NewConn(conn, p.ProxyHeaderTimeout)
+	newConn.useConnAddr = useConnAddr
+	return newConn, nil
 }
 
 // Close closes the underlying listener.
@@ -96,12 +128,11 @@ func (p *Conn) Close() error {
 }
 
 func (p *Conn) LocalAddr() net.Addr {
-	return p.conn.LocalAddr()
-}
-
-func (p *Conn) DstAddr() net.Addr {
 	p.checkPrefixOnce()
-	return p.dstAddr
+	if p.dstAddr != nil && !p.useConnAddr {
+		return p.dstAddr
+	}
+	return p.conn.LocalAddr()
 }
 
 // RemoteAddr returns the address of the client if the proxy
@@ -113,7 +144,7 @@ func (p *Conn) DstAddr() net.Addr {
 // before Read()
 func (p *Conn) RemoteAddr() net.Addr {
 	p.checkPrefixOnce()
-	if p.srcAddr != nil {
+	if p.srcAddr != nil && !p.useConnAddr {
 		return p.srcAddr
 	}
 	return p.conn.RemoteAddr()
