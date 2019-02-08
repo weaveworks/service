@@ -80,10 +80,7 @@ jobs:
               docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
-      - run: go get github.com/nats-io/gnatsd
-      - run:
-          command: ~/bin/gnatsd
-          background: true
+      - run: docker run -d -p 4222:4222 nats
       - run: |
           make RM= notebooks-integration-test
           make RM= users-integration-test
