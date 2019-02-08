@@ -58,7 +58,7 @@ func (p *proxyListenerRouter) loop() {
 		}
 
 		go func(proxyConn *proxyproto.Conn) {
-			localAddr := proxyConn.DstAddr().(*net.TCPAddr)
+			localAddr := proxyConn.LocalAddr().(*net.TCPAddr)
 
 			// Can happen if proxyProto fails to read the header
 			if localAddr == nil {
