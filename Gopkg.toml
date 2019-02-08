@@ -61,11 +61,6 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   branch = "master"
   name = "github.com/weaveworks/billing-client"
 
-# Force common to latest commit otherwise dep picks one from 8 months ago
-[[constraint]]
-  name = "github.com/weaveworks/common"
-  revision = "2a0cb6145a2f541de5ca19437fee675baf6a1985"
-
 # The master branch is stuck on an old version for compatibility
 [[override]]
   branch = "v3.0"

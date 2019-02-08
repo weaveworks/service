@@ -34,7 +34,7 @@ services:
     image: quay.io/weaveworks/notification-eventmanager
     command: |
       -log.level=info
-      -sqsURL=sqs://user:password@sqslocal:9324/events
+      -sqsURL=sqs://user:password@sqslocal.e2e_default:9324/events
       -usersServiceURL=mock
       -database.uri=postgres://postgres@config-db/notifications?sslmode=disable
       -database.migrations=/migrations
@@ -49,9 +49,9 @@ services:
       - mailcatcher
     image: quay.io/weaveworks/notification-sender
     command: |
-      -log.level=info 
+      -log.level=info
       -nats=nats://nats:4222 
-      -sqsURL=sqs://user:password@sqslocal:9324/events 
+      -sqsURL=sqs://user:password@sqslocal.e2e_default:9324/events
       -emailURI=smtp://mailcatcher:587
 
   tester:

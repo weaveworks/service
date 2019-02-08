@@ -1,6 +1,8 @@
 package sqsconnect
 
 import (
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -8,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-eventmanager/utils"
+	awsutils "github.com/weaveworks/common/aws"
 )
 
 // Timeout waiting for SQS queue to be created
@@ -16,15 +18,20 @@ const timeout = 5 * time.Minute
 
 // NewSQS returns a new instance of the SQS client with a session, queue name and error
 func NewSQS(urlString string) (sqsCli *sqs.SQS, queueURL string, err error) {
-	sqsConfig, name, err := utils.AWSConfigFromURLString(urlString)
+	url, err := url.Parse(urlString)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "error getting AWS config from URL %s", urlString)
+		return nil, "", errors.Wrapf(err, "error parsing queue URL %v", urlString)
+	}
+
+	sqsConfig, err := awsutils.ConfigFromURL(url)
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "error getting AWS config from URL %v", url)
 	}
 
 	sess := session.Must(session.NewSession(sqsConfig))
 	sqsCli = sqs.New(sess)
 
-	qURL, err := waitForQueue(sqsCli, name)
+	qURL, err := waitForQueue(sqsCli, strings.TrimPrefix(url.Path, "/"))
 	if err != nil {
 		return nil, "", errors.Wrap(err, "waiting for sqs connection")
 	}
