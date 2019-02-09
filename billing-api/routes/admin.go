@@ -26,7 +26,7 @@ type instanceMonthSums map[string]monthSums
 // totalSums is our storage mechanism and is defined as int64 values
 // node-usage is going to be a float, but needs to be stores as int64
 // So, we preserve a digit for every power of ten
-const node_usage_precision int = 1000000
+const nodeUsagePrecision int = 1000000
 
 // healthCheck handles a very simple health check
 func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -304,7 +304,7 @@ func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]
 		// @TODO Specifying 2019 for year, terrible hack -- year should be preserved in data from db.
 		for month, totalSums := range monthSums {
 			totalSums["node-usage"] = int64(
-				(float64(totalSums["node-seconds"]) / float64(secondsInMonth(2019, month))) * float64(node_usage_precision))
+				(float64(totalSums["node-seconds"]) / float64(secondsInMonth(2019, month))) * float64(nodeUsagePrecision))
 		}
 		amountTypesMap["node-usage"] = struct{}{}
 
