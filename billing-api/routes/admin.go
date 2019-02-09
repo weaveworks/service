@@ -367,16 +367,19 @@ var adminTemplate = `
 		<div id="orgs">
 			{{if .Query}}
 			<div class="mdl-grid">
-				<p>Displaying results for «{{.Query}}» <a href="{{$admurl}}/billing/admin">show all</a></p>
+				<p>Displaying results for «{{.Query}}» <a href="{{$admurl}}/billing/organizations">show all</a></p>
 			</div>
 			{{end}}
 
 			<div class="mdl-grid">
+				{{/* TODO: Potentially delete this code (why is it here?) #########
 				{{range $key, $value := $colors}}
 					<span style="color: {{ $value }}">{{$key}}</span>
 				{{- end}}
+				*/}}
 				<table class="mdl-data-table mdl-js-data-table">
 					<thead>
+						{{/*  ##### MONTHS HEADER WRITER ########
 						<tr>
 							<th></th><th></th><th></th>
 							{{- range $months -}}
@@ -386,17 +389,20 @@ var adminTemplate = `
 								{{- end -}}
 							{{- end -}}
 						</tr>
+						*/}}
 						<tr>
 							<th class="mdl-data-table__cell--non-numeric">InstanceID</th>
 							<th class="mdl-data-table__cell--non-numeric">BillingEnabled</th>
 							<th class="mdl-data-table__cell--non-numeric">TrialRemaining</th>
+							{{/* #### DATA HEADER WRITER ####
 							{{range $months -}}
 								{{ range $amountType, $color := $colors -}}
 									<th style="color: {{$color}}">{{$amountType}}</th>
 								{{- end }}
 							{{- end }}
+							*/}}
 						</tr>
-					</thread>
+					</thead>
 					{{range .Organizations }}
 						{{ $org := . }}
 						<tr>
@@ -405,20 +411,41 @@ var adminTemplate = `
 							</td>
 							<td class="mdl-data-table__cell--non-numeric">{{$org.HasFeatureFlag $billing}}</td>
 							<td class="mdl-data-table__cell--non-numeric">{{with (index $trialInfo $org.ID)}}{{.Remaining}}/{{.Length}} days{{else}}err{{end}}</td>
-							{{ range $k, $month := $months -}}
-							  {{- range $amountType, $color := $colors -}}
-									<td>
-										{{- with (index $sums $org.ID) -}}
-											{{- with (index . $month) -}}
-												{{- with (index . $amountType) -}}
-													<div style="color: {{$color}}">{{.}}</div>
-												{{- end -}}
-											{{- end -}}
-										{{- end -}}
-									</td>
-								{{- end -}}
-							{{end}}
 						</tr>
+
+						{{/* NEW CODE BY CRAIG */}}
+						<tr>
+							<td colspan=3>
+								<table class="mdl-data-table mdl-js-data-table">
+									<thead>
+										<th>Month</th>
+										{{ range $amountType, $color := $colors -}}
+											<th style="color: {{$color}}">{{$amountType}}</th>
+										{{- end }}
+
+									</thead>
+
+									{{ range $k, $month := $months -}}
+										<tr>
+											<td class="mdl-data-table__cell--non-numeric">{{$month}}</td>
+										  {{- range $amountType, $color := $colors -}}
+												<td>
+													{{- with (index $sums $org.ID) -}}
+														{{- with (index . $month) -}}
+															{{- with (index . $amountType) -}}
+																<div style="color: {{$color}}">{{.}}</div>
+															{{- end -}}
+														{{- end -}}
+													{{- end -}}
+												</td>
+											{{- end -}}
+										</tr>
+									{{end}}
+								</table>
+							</td>
+						</tr>
+
+
 					{{ end }}
 				</table>
 				<div class="mdl-cell mdl-cell--12-col">
