@@ -50,7 +50,7 @@ func New(cfg Config, db db.DB, users users.UsersClient, zuora zuora.Client) (*AP
 	}
 
 	// @TODO How to introduce template functions closer to the context?
-	func_map := template.FuncMap{
+	funcMap := template.FuncMap{
     "renderNodeUsage": func(node_usage int64) string {
       return fmt.Sprintf("%.2f", float64(node_usage) / 1000000)
     },
@@ -61,7 +61,7 @@ func New(cfg Config, db db.DB, users users.UsersClient, zuora zuora.Client) (*AP
 		DB:            db,
 		Users:         users,
 		Zuora:         zuora,
-		adminTemplate: template.Must(template.New("admin").Funcs(func_map).Parse(adminTemplate)),
+		adminTemplate: template.Must(template.New("admin").Funcs(funcMap).Parse(adminTemplate)),
 		HMACSecret:    hmac,
 	}
 
