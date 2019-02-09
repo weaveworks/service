@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"flag"
 	"html/template"
 	"net/http"
@@ -48,12 +49,19 @@ func New(cfg Config, db db.DB, users users.UsersClient, zuora zuora.Client) (*AP
 		return nil, err
 	}
 
+	// @TODO How to introduce template functions closer to the context?
+	func_map := template.FuncMap{
+    "renderNodeUsage": func(node_usage int64) string {
+      return fmt.Sprintf("%.2f", float64(node_usage) / 1000000)
+    },
+  }
+
 	a := &API{
 		Config:        cfg,
 		DB:            db,
 		Users:         users,
 		Zuora:         zuora,
-		adminTemplate: template.Must(template.New("admin").Parse(adminTemplate)),
+		adminTemplate: template.Must(template.New("admin").Funcs(func_map).Parse(adminTemplate)),
 		HMACSecret:    hmac,
 	}
 

@@ -23,6 +23,11 @@ type totalSums map[string]int64
 type monthSums map[time.Month]totalSums
 type instanceMonthSums map[string]monthSums
 
+// totalSums is our storage mechanism and is defined as int64 values
+// node-usage is going to be a float, but needs to be stores as int64
+// So, we preserve a digit for every power of ten
+const node_usage_precision int = 1000000
+
 // healthCheck handles a very simple health check
 func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -267,11 +272,23 @@ func months(from, to time.Time) []time.Month {
 	return months
 }
 
+/**
+ * From: https://stackoverflow.com/a/35482679/506244
+ */
+func secondsInMonth(y int, m time.Month) int {
+  start := time.Date(y, m, 0, 0, 0, 0, 0, time.UTC)
+  end := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC)
+  return int(end.Sub(start).Seconds())
+}
+
 func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]struct{}) {
 	instanceMonthSums := instanceMonthSums{}
+	// Actually a set
 	amountTypesMap := map[string]struct{}{}
+	// Loop over instances
 	for instanceID, aggs := range sums {
 		monthSums := monthSums{}
+		// Loop over month sums
 		for _, agg := range aggs {
 			s, ok := monthSums[agg.BucketStart.Month()]
 			if !ok {
@@ -282,6 +299,15 @@ func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]
 
 			amountTypesMap[agg.AmountType] = struct{}{}
 		}
+		// Loop over months to produce node-usage metric
+		// Note, loop mutates monthSums
+		// @TODO Specifying 2019 for year, terrible hack -- year should be preserved in data from db.
+		for month, totalSums := range monthSums {
+			totalSums["node-usage"] = int64(
+				(float64(totalSums["node-seconds"]) / float64(secondsInMonth(2019, month))) * float64(node_usage_precision))
+		}
+		amountTypesMap["node-usage"] = struct{}{}
+
 		instanceMonthSums[instanceID] = monthSums
 	}
 	return instanceMonthSums, amountTypesMap
@@ -433,7 +459,13 @@ var adminTemplate = `
 													{{- with (index $sums $org.ID) -}}
 														{{- with (index . $month) -}}
 															{{- with (index . $amountType) -}}
-																<div style="color: {{$color}}">{{.}}</div>
+																<div style="color: {{$color}}">
+																	{{- if (eq $amountType "node-usage") -}}
+																		{{- renderNodeUsage . -}}
+																	{{- else -}}
+																		{{- . -}}
+																	{{- end -}}
+																</div>
 															{{- end -}}
 														{{- end -}}
 													{{- end -}}
