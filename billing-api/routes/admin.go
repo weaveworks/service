@@ -19,9 +19,9 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-type instanceMonthSums map[string]map[time.Month]map[string]int64
-type monthSums map[time.Month]map[string]int64
 type totalSums map[string]int64
+type monthSums map[time.Month]totalSums
+type instanceMonthSums map[string]monthSums
 
 // healthCheck handles a very simple health check
 func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +87,7 @@ func header(months []time.Month, amountTypes []string) []string {
 	return header
 }
 
-func usages(usage map[time.Month]map[string]int64, months []time.Month, amountTypes []string) []int64 {
+func usages(usage monthSums, months []time.Month, amountTypes []string) []int64 {
 	var values []int64
 	for _, month := range months {
 		for _, amountType := range amountTypes {
