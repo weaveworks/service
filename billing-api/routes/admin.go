@@ -276,9 +276,9 @@ func months(from, to time.Time) []time.Month {
  * From: https://stackoverflow.com/a/35482679/506244
  */
 func secondsInMonth(y int, m time.Month) int {
-  start := time.Date(y, m, 0, 0, 0, 0, 0, time.UTC)
-  end := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC)
-  return int(end.Sub(start).Seconds())
+	start := time.Date(y, m, 0, 0, 0, 0, 0, time.UTC)
+	end := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC)
+	return int(end.Sub(start).Seconds())
 }
 
 func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]struct{}) {
