@@ -984,9 +984,10 @@
   version = "v1.4"
 
 [[projects]]
-  digest = "1:f8c29ed19fbb752509a4fad8ef16c90d3ac708aff624e77c89a5cd8c9acfd1f7"
+  digest = "1:44bd6afa61a24594cfb64dbcd265f350ea2029fca6ae7ff9ee7362c3660ba4ae"
   name = "github.com/weaveworks/common"
   packages = [
+    "aws",
     "errors",
     "http/client",
     "httpgrpc",
@@ -1376,7 +1377,6 @@
     "github.com/armon/go-socks5",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
-    "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/sqs",
     "github.com/aws/aws-sdk-go/service/sqs/sqsiface",
@@ -1433,6 +1433,7 @@
     "github.com/ugorji/go/codec/codecgen",
     "github.com/weaveworks/billing-client",
     "github.com/weaveworks/blackfriday",
+    "github.com/weaveworks/common/aws",
     "github.com/weaveworks/common/http/client",
     "github.com/weaveworks/common/httpgrpc",
     "github.com/weaveworks/common/httpgrpc/server",
