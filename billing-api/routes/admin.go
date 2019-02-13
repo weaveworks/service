@@ -76,6 +76,10 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	renderCSV(w, csvLines, logger)
 }
 
+/**
+ * Generates the header for the CSV file: first block is hard-coded names;
+ * second block is auto-generated monthly usage stat headers.
+ */
 func header(months []time.Month, amountTypes []string) []string {
 	header := []string{
 		"TeamExternalID", "TeamName", "OrgID", "OrgExternalID", "OrgName", "OrgCreatedAt",
