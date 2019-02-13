@@ -103,8 +103,8 @@ func TestExportAsCSV(t *testing.T) {
 			`container-seconds in December,node-seconds in December,node-usage in December,samples in December,`+
 			`container-seconds in November,node-seconds in November,node-usage in November,samples in November,`+
 			`container-seconds in October,node-seconds in October,node-usage in October,samples in October
-team-foo,Foo,1,foo-bar-1337,Foo,2018-04-04T23:59:59Z,marc@weave.works ; roli@weave.works,,kubernetes,gke,2018-05-04T23:59:59Z,,,true,false,false,,,E-0000-0000-0000-0000,2018-04-05T00:00:00Z,standard,ACTIVE,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-team-foo,Foo,2,baz-baz-42,Baz,2018-04-04T00:00:00Z,marc@weave.works,2018-04-05T00:00:00Z,docker,linux,2018-05-04T11:23:00Z,2018-05-04T21:59:59Z,2018-05-04T22:59:59Z,false,true,true,W0000000000000000000000000000000,2018-04-04T01:00:00Z,,,,,3600,12000,1728000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+team-foo,Foo,1,foo-bar-1337,Foo,2018-04-04T23:59:59Z,marc@weave.works ; roli@weave.works,,kubernetes,gke,2018-05-04T23:59:59Z,,,true,false,false,,,E-0000-0000-0000-0000,2018-04-05T00:00:00Z,standard,ACTIVE,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+team-foo,Foo,2,baz-baz-42,Baz,2018-04-04T00:00:00Z,marc@weave.works,2018-04-05T00:00:00Z,docker,linux,2018-05-04T11:23:00Z,2018-05-04T21:59:59Z,2018-05-04T22:59:59Z,false,true,true,W0000000000000000000000000000000,2018-04-04T01:00:00Z,,,,,3600,12000,4629,1728000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 `,
 		string(body))
 }
