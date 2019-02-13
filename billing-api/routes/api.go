@@ -52,7 +52,7 @@ func New(cfg Config, db db.DB, users users.UsersClient, zuora zuora.Client) (*AP
 	// @TODO How to introduce template functions closer to the context?
 	funcMap := template.FuncMap{
 		"renderNodeUsage": func(node_usage int64) string {
-			return fmt.Sprintf("%.2f", float64(node_usage)/1000000)
+			return fmt.Sprintf("%.2f", float64(node_usage)/float64(nodeUsagePrecision))
 		},
 	}
 
