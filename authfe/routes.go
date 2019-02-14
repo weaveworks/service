@@ -143,6 +143,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			{"/api/control/.*/.*/host_exec", []string{"POST"}, permission.OpenHostShell},
 			{"/api/control/.*/.*/docker_exec_container", []string{"POST"}, permission.OpenContainerShell},
 			{"/api/control/.*/.*/docker_attach_container", []string{"POST"}, permission.AttachToContainer},
+			{"/api/control/.*/.*/docker_(pause|unpause)_container", []string{"POST"}, permission.PauseContainer},
+			{"/api/control/.*/.*/docker_restart_container", []string{"POST"}, permission.RestartContainer},
+			{"/api/control/.*/.*/docker_stop_container", []string{"POST"}, permission.StopContainer},
+			{"/api/control/.*/.*/kubernetes_get_logs", []string{"POST"}, permission.ViewPodLogs},
 			{"/api/control/.*/.*/kubernetes_scale_(up|down)", []string{"POST"}, permission.UpdateReplicaCount},
 			{"/api/control/.*/.*/kubernetes_delete_pod", []string{"POST"}, permission.DeletePod},
 			// Flux
