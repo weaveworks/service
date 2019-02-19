@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 )
 
@@ -25,7 +25,8 @@ func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionI
 			return nil
 		}
 	}
-	return fmt.Errorf("Permission denied (userID: %s, teamID: %s, permissionID: %s)", userID, teamID, permissionID)
+
+	return users.ErrForbidden
 }
 
 // RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
