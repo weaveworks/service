@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/weaveworks/service/common/constants/webhooks"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
@@ -31,8 +32,14 @@ type createOrganizationWebhookPayload struct {
 }
 
 func (a *API) createOrganizationWebhook(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.CreateWebhook); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -67,8 +74,14 @@ func (a *API) createOrganizationWebhook(currentUser *users.User, w http.Response
 }
 
 func (a *API) deleteOrganizationWebhook(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(ctx, currentUser, orgExternalID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if err := RequireOrgMemberPermissionTo(ctx, a.db, currentUser.ID, orgExternalID, permission.DeleteWebhook); err != nil {
 		renderError(w, r, err)
 		return
 	}

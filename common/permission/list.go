@@ -71,3 +71,9 @@ const RestartContainer = "scope.container.restart"
 
 // StopContainer permission allows pausing Docker containers
 const StopContainer = "scope.container.stop"
+
+// CreateWebhook permission allows user to create webhooks
+const CreateWebhook = "instance.webhook.create"
+
+// DeleteWebhook permission allows user to delete webhooks
+const DeleteWebhook = "instance.webhook.delete"

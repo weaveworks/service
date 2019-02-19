@@ -46,6 +46,8 @@ var permissions = map[string]*users.Permission{
 	"flux.policy.update":           {ID: "flux.policy.update", Name: "Flux.policy.update", Description: "derp"},
 	"notification.settings.update": {ID: "notification.settings.update", Name: "Notification.settings.update", Description: "derp"},
 	"instance.token.view":          {ID: "instance.token.view", Name: "Instance.token.view", Description: "derp"},
+	"instance.webhook.create":      {ID: "instance.webhook.create", Name: "Instance.webhook.create", Description: "derp"},
+	"instance.webhook.delete":      {ID: "instance.webhook.delete", Name: "Instance.webhook.delete", Description: "derp"},
 }
 
 // New creates a new in-memory database
