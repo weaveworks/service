@@ -76,10 +76,8 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	renderCSV(w, csvLines, logger)
 }
 
-/**
- * Generates the header for the CSV file: first block is hard-coded names;
- * second block is auto-generated monthly usage stat headers.
- */
+// Generates the header for the CSV file: first block is hard-coded names;
+// second block is auto-generated monthly usage stat headers
 func header(months []time.Month, amountTypes []string) []string {
 	header := []string{
 		"TeamExternalID", "TeamName", "OrgID", "OrgExternalID", "OrgName", "OrgCreatedAt",
@@ -276,9 +274,7 @@ func months(from, to time.Time) []time.Month {
 	return months
 }
 
-/**
- * From: https://stackoverflow.com/a/35482679/506244
- */
+// From: https://stackoverflow.com/a/35482679/506244
 func secondsInMonth(y int, m time.Month) int {
 	start := time.Date(y, m, 0, 0, 0, 0, 0, time.UTC)
 	end := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC)
