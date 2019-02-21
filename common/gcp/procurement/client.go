@@ -12,6 +12,8 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
+	"net/http"
+
 	"github.com/weaveworks/common/http/client"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common"
@@ -52,7 +54,7 @@ func init() {
 type API interface {
 	ApproveEntitlement(ctx context.Context, name string) error
 	ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error
-	GetEntitlement(ctx context.Context, name string) (Entitlement, error)
+	GetEntitlement(ctx context.Context, name string) (*Entitlement, error)
 	ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error)
 }
 
@@ -152,10 +154,21 @@ func (c *Client) ApprovePlanChangeEntitlement(ctx context.Context, name, pending
 	return c.Post(ctx, "entitlement:approvePlanChange", c.urlEntitlement(name, "approvePlanChange"), data, nil)
 }
 
-func (c *Client) GetEntitlement(ctx context.Context, name string) (Entitlement, error) {
+func isNotFound(err error) bool {
+	hse, ok := err.(*common.HTTPStatusError)
+	return ok && hse.Code == http.StatusNotFound
+}
+
+func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement, error) {
 	var e Entitlement
 	err := c.Get(ctx, "entitlement:get", c.urlEntitlement(name, "get"), &e)
-	return e, err
+	if err != nil {
+		if isNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &e, err
 }
 
 func (c *Client) ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error) {
@@ -164,5 +177,11 @@ func (c *Client) ListEntitlements(ctx context.Context, externalAccountID string)
 	}
 	q := url.Values{"filter": []string{"account=" + externalAccountID}}
 	err := c.Get(ctx, "entitlement:list", c.urlEntitlement("entitlements", ""), &response)
+	if err != nil {
+		if isNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return response.Entitlements, err
 }

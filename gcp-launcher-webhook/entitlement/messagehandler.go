@@ -39,9 +39,13 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// Fetch entitlement to get to know the external account ID
 	entitlementName := "entitlements/" + payload.Entitlement.ID
 	ent, err := m.Procurement.GetEntitlement(ctx, entitlementName)
-	if err != nil {
-		return err
+	switch {
+	case err != nil:
+		return errors.Wrapf(err, "error getting entitlement: %q", entitlementName)
+	case ent == nil:
+		return nil // ACK: entitlement no longer exists
 	}
+
 	externalAccountID := ent.AccountID()
 	logger := log.WithFields(log.Fields{"external_account_id": externalAccountID, "entitlement": entitlementName})
 
@@ -77,6 +81,11 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			return nil // ACK
 		}
 		return err
+	}
+
+	if ent == nil {
+		// Shouldn't happen as `GetEntitlement` above returned a valid entitlement
+		return nil
 	}
 
 	switch payload.EventType {
@@ -148,7 +157,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // updateEntitlement updates an entitlement in the database.
 // It should not be called when cancelling, use cancelEntitlement()
 // then.
-func (m MessageHandler) updateEntitlement(ctx context.Context, ent procurement.Entitlement) error {
+func (m MessageHandler) updateEntitlement(ctx context.Context, ent *procurement.Entitlement) error {
 	accID := ent.AccountID()
 	if err := m.updateGCP(ctx, ent); err != nil {
 		log.Errorf("failed to update GCP for '%s': %v", accID, err)
@@ -163,14 +172,14 @@ func (m MessageHandler) updateEntitlement(ctx context.Context, ent procurement.E
 }
 
 // cancelEntitlement updates the entitlement status and disables access for the organization.
-func (m MessageHandler) cancelEntitlement(ctx context.Context, ent procurement.Entitlement) error {
+func (m MessageHandler) cancelEntitlement(ctx context.Context, ent *procurement.Entitlement) error {
 	if err := m.disableWeaveCloudAccess(ctx, ent.AccountID()); err != nil {
 		return err
 	}
 	return m.updateGCP(ctx, ent)
 }
 
-func (m MessageHandler) updateGCP(ctx context.Context, ent procurement.Entitlement) error {
+func (m MessageHandler) updateGCP(ctx context.Context, ent *procurement.Entitlement) error {
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
 			ExternalAccountID:  ent.AccountID(),
@@ -211,18 +220,18 @@ func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, external
 
 // getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the
 // given subscriptionName.
-func (m MessageHandler) getEntitlements(ctx context.Context, externalAccountID string, entitlementName string) (procurement.Entitlement, []procurement.Entitlement, error) {
+func (m MessageHandler) getEntitlements(ctx context.Context, externalAccountID string, entitlementName string) (*procurement.Entitlement, []procurement.Entitlement, error) {
 	ents, err := m.Procurement.ListEntitlements(ctx, externalAccountID)
 	if err != nil {
-		return procurement.Entitlement{}, nil, err
+		return nil, nil, err
 	}
 
 	for _, e := range ents {
 		if e.Name == entitlementName {
-			return e, ents, nil
+			return &e, ents, nil
 		}
 	}
-	return procurement.Entitlement{}, nil, fmt.Errorf("referenced entitlement not found: %v", entitlementName)
+	return nil, nil, fmt.Errorf("referenced entitlement not found: %v", entitlementName)
 }
 
 // hasOtherEntitlement returns true if there is a entitlements among
