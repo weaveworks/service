@@ -1,4 +1,4 @@
-package subscription_test
+package entitlement_test
 
 import (
 	"context"
