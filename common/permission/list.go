@@ -59,3 +59,15 @@ const UpdateNotificationSettings = "notification.settings.update"
 
 // ViewToken permission allows view the probe token
 const ViewToken = "instance.token.view"
+
+// ViewPodLogs permission allows viewing logs of K8s pods
+const ViewPodLogs = "scope.pod.logs.view"
+
+// PauseContainer permission allows pausing and unpausing Docker containers
+const PauseContainer = "scope.container.pause"
+
+// RestartContainer permission allows pausing Docker containers
+const RestartContainer = "scope.container.restart"
+
+// StopContainer permission allows pausing Docker containers
+const StopContainer = "scope.container.stop"

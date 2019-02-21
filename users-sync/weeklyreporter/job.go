@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -41,7 +42,10 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context, no
 	}
 	j.log.Infof("WeeklyReports: sending out emails to members of %d instances", len(resp.Organizations))
 
+	limiter := rate.NewLimiter(5, 1)
+
 	for _, organization := range resp.Organizations {
+		limiter.Wait(ctx)
 		request := users.SendOutWeeklyReportRequest{Now: now, ExternalID: organization.ExternalID}
 		if _, err := j.users.SendOutWeeklyReport(ctx, &request); err != nil {
 			// Only log the error and move to the next instance if sending out weekly report fails.
