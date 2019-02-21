@@ -1,3 +1,4 @@
+// TODO(rndstr): remove this whole package, just left it here for reference.
 package partner
 
 import (
