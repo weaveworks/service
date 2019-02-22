@@ -77,19 +77,6 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return nil // ACK
 	}
 
-	if err != nil {
-		// Once in a while, Google seems to be sending a PubSub message for an entitlement that is
-		// no longer accessible for us. This could be due to the (billing) account being deleted on
-		// Google's end.
-		// If that entitlement is marked as cancelled locally, we just ignore that error to have
-		// the PubSub message properly ACKed.
-		// TODO(rndstr): can we confirm the account was deleted and delete the instance instead?
-		if gcp.SubscriptionStatus == string(procurement.Cancelled) {
-			return nil // ACK
-		}
-		return err
-	}
-
 	switch payload.EventType {
 	case event.CreationRequested:
 		if ent.State == procurement.ActivationRequested {
