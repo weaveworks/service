@@ -1,8 +1,10 @@
 package event
 
+// Type represents a message event type.
 type Type string
 
 const (
+	// CreationRequested
 	CreationRequested    Type = "ENTITLEMENT_CREATION_REQUESTED"
 	Active               Type = "ENTITLEMENT_ACTIVE"
 	PlanChangeRequested  Type = "ENTITLEMENT_PLAN_CHANGE_REQUESTED"
@@ -14,6 +16,7 @@ const (
 	Deleted              Type = "ENTITLEMENT_DELETED"
 )
 
+// Payload is marshalled into the data of a dto.Message.
 type Payload struct {
 	EventID   string `json:"eventId"`
 	EventType Type   `json:"eventType"`

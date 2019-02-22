@@ -22,12 +22,28 @@ type EntitlementState string
 
 const (
 	// See https://cloud.google.com/marketplace/docs/partners/commerce-procurement-api/reference/rest/v1/providers.entitlements#EntitlementState
-	ActivationRequested       EntitlementState = "ENTITLEMENT_ACTIVATION_REQUESTED"
-	Active                    EntitlementState = "ENTITLEMENT_ACTIVE"
-	PendingCancellation       EntitlementState = "ENTITLEMENT_PENDING_CANCELLATION"
-	Cancelled                 EntitlementState = "ENTITLEMENT_CANCELLED"
-	PendingPlanChange         EntitlementState = "ENTITLEMENT_PENDING_PLAN_CHANGE"
+
+	// ActivationRequested indicates that the entitlement is being
+	// created and the backend has sent a notification to the provider
+	// for the activation approval.
+	ActivationRequested EntitlementState = "ENTITLEMENT_ACTIVATION_REQUESTED"
+	// Active indicates that the entitlement is active.
+	Active EntitlementState = "ENTITLEMENT_ACTIVE"
+	// PendingCancellation indicates that the entitlement was cancelled
+	// by the customer.
+	PendingCancellation EntitlementState = "ENTITLEMENT_PENDING_CANCELLATION"
+	// Cancelled indicates that the entitlement was cancelled.
+	Cancelled EntitlementState = "ENTITLEMENT_CANCELLED"
+	// PendingPlanChange indicates that the entitlement is currently
+	// active, but there is a pending plan change that is requested
+	// by the customer.
+	PendingPlanChange EntitlementState = "ENTITLEMENT_PENDING_PLAN_CHANGE"
+	// PendingPlanChangeApproval indicates that the entitlement is
+	// currently active, but there is a plan change request pending
+	// provider approval.
 	PendingPlanChangeApproval EntitlementState = "ENTITLEMENT_PENDING_PLAN_CHANGE_APPROVAL"
+	// Suspended indicates that the entitlement is suspended either
+	// by Google or provider request.
 	// Note: at time of implementation, Google documentation states this is not yet supported.
 	Suspended EntitlementState = "ENTITLEMENT_SUSPENDED"
 )
@@ -65,10 +81,7 @@ type Client struct {
 	cfg Config
 }
 
-// See https://cloud.google.com/marketplace/docs/partners/commerce-procurement-api/reference/rest/v1/providers.accounts#Account
-type Account struct {
-}
-
+// Entitlement represents a procured product of a customer.
 // See https://cloud.google.com/marketplace/docs/partners/commerce-procurement-api/reference/rest/v1/providers.entitlements
 type Entitlement struct {
 	Name             string           `json:"name"`     // "entitlements/{entitlement_id}"
@@ -148,6 +161,7 @@ func (c *Client) ApproveEntitlement(ctx context.Context, name, approvalName stri
 	return c.Post(ctx, "entitlement:approve", c.urlEntitlement(name, "approve"), data, nil)
 }
 
+// ApprovePlanChangeEntitlement approves the plan change.
 func (c *Client) ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error {
 	data := map[string]string{"pendingPlanName": pendingPlanName}
 	return c.Post(ctx, "entitlement:approvePlanChange", c.urlEntitlement(name, "approvePlanChange"), data, nil)
@@ -158,6 +172,7 @@ func isNotFound(err error) bool {
 	return ok && hse.Code == http.StatusNotFound
 }
 
+// GetEntitlement fetches the entitlement from the Procurement API.
 func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement, error) {
 	var e Entitlement
 	err := c.Get(ctx, "entitlement:get", c.urlEntitlement(name, "get"), &e)
@@ -170,6 +185,7 @@ func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement,
 	return &e, err
 }
 
+// ListEntitlements returns all entitlements found of given user.
 func (c *Client) ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error) {
 	var response struct {
 		Entitlements []Entitlement `json:"entitlements"`

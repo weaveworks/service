@@ -10,10 +10,12 @@ const (
 	expectedAudience = "cloud.weave.works"
 )
 
+// Claims implements further verifications for a GCP JWT.
 type Claims struct {
 	jwt.StandardClaims
 }
 
+// Valid verifies the token.
 func (c Claims) Valid() error {
 	// StandardClaims verifies:
 	// - jwt signature is using public key from Google
@@ -33,6 +35,7 @@ func (c Claims) Valid() error {
 	return nil
 }
 
+// ParseJWT reads the JWT received from GCP.
 func ParseJWT(tok string) (Claims, error) {
 	var claims Claims
 	token, err := jwt.ParseWithClaims(tok, claims, func(token *jwt.Token) (interface{}, error) {
