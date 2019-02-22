@@ -34,8 +34,6 @@ type API struct {
 	grpc                     users.UsersServer
 	mixpanel                 *marketing.MixpanelClient
 	procurement              procurement.API
-	// FIXME(rndstr): unused
-	procurementAccess        procurement.Accessor
 	fluxStatusAPI            string
 	scopeProbesAPI           string
 	promMetricsAPI           string
@@ -64,7 +62,6 @@ func New(
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
 	procurementClient procurement.API,
-	procurementAccess procurement.Accessor,
 	fluxStatusAPI string,
 	scopeProbesAPI string,
 	promMetricsAPI string,
@@ -90,7 +87,6 @@ func New(
 		grpc:                     grpc,
 		mixpanel:                 mixpanelClient,
 		procurement:              procurementClient,
-		procurementAccess:        procurementAccess,
 		fluxStatusAPI:            fluxStatusAPI,
 		scopeProbesAPI:           scopeProbesAPI,
 		promMetricsAPI:           promMetricsAPI,

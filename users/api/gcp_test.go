@@ -224,7 +224,6 @@ func createAPI(client procurement.API) *api.API {
 		make(map[string]struct{}),
 		nil,
 		client,
-		nil,
 		"",
 		"",
 		"",
@@ -245,6 +244,6 @@ func makeEntitlement(state procurement.EntitlementState) procurement.Entitlement
 		Plan:             "standard",
 		State:            state,
 		NewPendingPlan:   "",
-		UsageReportingID: "report123",
+		UsageReportingID: "product_number:123",
 	}
 }

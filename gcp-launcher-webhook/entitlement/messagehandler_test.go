@@ -36,7 +36,7 @@ var (
 	entName             = "entitlements/1"
 	entMsg              = makeMessage(event.CreationRequested, entID, "")
 	accMsg              = makeMessage("SOMETHING", "", externalAccountID)
-	entUsageReportingID = "report123"
+	entUsageReportingID = "product_number:123"
 	entPlan             = "standard"
 	entNewPlan          = "enterprise"
 	ent                 = makeEntitlement(entID, procurement.ActivationRequested)

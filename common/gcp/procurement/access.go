@@ -2,7 +2,6 @@
 package procurement
 
 import (
-	"context"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -14,7 +13,6 @@ import (
 
 // Accessor describes public methods of Access to allow mocking.
 type Accessor interface {
-	RequestEntitlement(ctx context.Context, token *oauth2.Token, name string) (*Entitlement, error)
 	VerifyState(r *http.Request) (map[string]string, bool)
 	Link(r *http.Request) (login.Link, bool)
 }
@@ -45,13 +43,4 @@ func NewAccess() *Access {
 func (a *Access) Link(r *http.Request) (login.Link, bool) {
 	l, ok := a.OAuth.Link(r)
 	return login.Link{Href: l.Href}, ok
-}
-
-// RequestEntitlement fetches a subscription using the user's oauth2 token.
-func (a *Access) RequestEntitlement(ctx context.Context, token *oauth2.Token, name string) (*Entitlement, error) {
-	cl, err := NewClientFromTokenSource(oauth2.StaticTokenSource(token))
-	if err != nil {
-		return nil, err
-	}
-	return cl.GetEntitlement(ctx, name)
 }

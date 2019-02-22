@@ -245,11 +245,11 @@ message GoogleCloudPlatform {
     google.protobuf.Timestamp CreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     // Consumer ID to report usage against
     string ConsumerID = 5;
-    // Name of the running subscription, in the format "partnerSubscriptions/*"
+    // Name of the running subscription, in the format "entitlements/*"
     string SubscriptionName = 6;
     // Level of the subscription, can be "standard" or "enterprise"
     string SubscriptionLevel = 7;
-    // Status of the subscrption, can be one of "PENDING", "ACTIVE', or "COMPLETE"
+    // Status of the entitlement, see /common/gcp/procurement.EntitlementState
     string SubscriptionStatus = 8;
 }
 

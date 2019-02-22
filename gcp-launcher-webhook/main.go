@@ -11,11 +11,11 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/common/gcp/pubsub/publisher"
 	"github.com/weaveworks/service/common/gcp/pubsub/webhook"
 	"github.com/weaveworks/service/common/users"
-	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
+	"github.com/weaveworks/service/gcp-launcher-webhook/entitlement"
 )
 
 type config struct {
@@ -28,8 +28,8 @@ type config struct {
 
 	publisher publisher.Config
 
-	users   users.Config
-	partner partner.Config
+	users       users.Config
+	procurement procurement.Config
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
@@ -40,7 +40,7 @@ func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes the Pub/Sub subscription 'pushing' to this webhook.")
 
 	c.publisher.RegisterFlags(f)
-	c.partner.RegisterFlags(f)
+	c.procurement.RegisterFlags(f)
 	c.users.RegisterFlags(f)
 }
 
@@ -75,7 +75,7 @@ func main() {
 		log.Fatalf("Failed initialising users client: %v", err)
 	}
 
-	partner, err := partner.NewClient(cfg.partner)
+	procurement, err := procurement.NewClient(cfg.procurement)
 	if err != nil {
 		log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
 	}
@@ -84,7 +84,7 @@ func main() {
 		HTTPListenPort:          cfg.port,
 		MetricsNamespace:        common.PrometheusNamespace,
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	}
 	server, err := server.New(serverCfg)
 	if err != nil {
@@ -94,9 +94,9 @@ func main() {
 
 	server.HTTP.Handle(
 		"/",
-		webhook.New(&subscription.MessageHandler{
-			Partner: partner,
-			Users:   users,
+		webhook.New(&entitlement.MessageHandler{
+			Procurement: procurement,
+			Users:       users,
 		}),
 	).Methods("POST").Name("webhook")
 	log.Infof("Starting GCP Cloud Launcher webhook...")

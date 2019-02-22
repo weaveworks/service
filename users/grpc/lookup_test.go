@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/common/featureflag"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -430,9 +430,9 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	err = database.UpdateGCP(context.TODO(),
 		accountID,
 		"project_number:123",
-		"partnerSubscriptions/123",
+		"entitlements/123",
 		"standard",
-		string(partner.Active),
+		string(procurement.Active),
 	)
 	require.NoError(t, err)
 
@@ -442,7 +442,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 }
 
 func cancelGCPSubscription(t *testing.T, gcp *users.GoogleCloudPlatform) {
-	err := database.UpdateGCP(context.Background(), gcp.ExternalAccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(partner.Complete))
+	err := database.UpdateGCP(context.Background(), gcp.ExternalAccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(procurement.Cancelled))
 	require.NoError(t, err)
 }
 

@@ -5,7 +5,7 @@
 // - copy the value for "cloud-launcher.json"
 // - run: $ echo -n "<value copied>" | base64 --decode > ~/.ssh/cloud-launcher-<env>.json
 // - run: $ go run common/gcp/partner/cmd/main.go \
-//             -partner-subscriptions-api.service-account-key-file=~/.ssh/cloud-launcher-<env>.json \
+//             -partner-procurement-api.service-account-key-file=~/.ssh/cloud-launcher-<env>.json \
 //             -action=approve \
 //             -account-id=FOO \
 //             -subscription-id=BAR

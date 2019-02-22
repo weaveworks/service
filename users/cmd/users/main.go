@@ -105,9 +105,6 @@ func main() {
 	usersSyncCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
 
-	procurementAccess := procurement.NewAccess()
-	procurementAccess.Flags(flag.CommandLine)
-
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
@@ -189,7 +186,6 @@ func main() {
 		webhookTokenMap,
 		mixpanelClient,
 		procurementClient,
-		procurementAccess,
 		*fluxStatusAPI,
 		*scopeProbesAPI,
 		*promMetricsAPI,
