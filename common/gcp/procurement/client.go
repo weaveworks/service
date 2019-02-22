@@ -137,13 +137,13 @@ func (c *Client) urlEntitlement(name, method string) string {
 	if method != "" {
 		method = ":" + method
 	}
-	return fmt.Sprintf("%s/v1/providers/%s/%s%s", basePath, c.cfg.PartnerID, name, method)
+	return fmt.Sprintf("%s/v1/providers/%s/%s%s", basePath, c.cfg.ProviderID, name, method)
 }
 
 // ApproveAccount marks the account as approved.
 func (c *Client) ApproveAccount(ctx context.Context, externalAccountID string) error {
 	return c.Post(ctx, "account:approve",
-		fmt.Sprintf("%s/v1/providers/%s/accounts/%s:approve", basePath, c.cfg.PartnerID, externalAccountID),
+		fmt.Sprintf("%s/v1/providers/%s/accounts/%s:approve", basePath, c.cfg.ProviderID, externalAccountID),
 		nil, nil)
 }
 
