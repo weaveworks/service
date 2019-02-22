@@ -239,7 +239,7 @@ func createAPI(client procurement.API) *api.API {
 func makeEntitlement(state procurement.EntitlementState) procurement.Entitlement {
 	return procurement.Entitlement{
 		Name:             fmt.Sprintf("entitlements/%d", rand.Int63()),
-		Account:          fmt.Sprintf("accounts/E-%d", rand.Int63()),
+		Account:          fmt.Sprintf("providers/weaveworks-dev/accounts/E-%d", rand.Int63()),
 		Provider:         "weaveworks",
 		Product:          "weave-cloud",
 		Plan:             "standard",

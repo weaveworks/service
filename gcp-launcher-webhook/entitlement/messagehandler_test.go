@@ -238,7 +238,7 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 func makeEntitlement(id string, state procurement.EntitlementState) *procurement.Entitlement {
 	return &procurement.Entitlement{
 		Name:             fmt.Sprintf("entitlements/%s", id),
-		Account:          fmt.Sprintf("accounts/%s", externalAccountID),
+		Account:          fmt.Sprintf("providers/weaveworks-dev/accounts/%s", externalAccountID),
 		Provider:         "weaveworks",
 		Product:          "weave-cloud",
 		Plan:             entPlan,

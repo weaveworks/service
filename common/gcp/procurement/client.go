@@ -73,7 +73,7 @@ type Account struct {
 // See https://cloud.google.com/marketplace/docs/partners/commerce-procurement-api/reference/rest/v1/providers.entitlements
 type Entitlement struct {
 	Name             string           `json:"name"`     // "entitlements/{entitlement_id}"
-	Account          string           `json:"account"`  // "accounts/{account_id}"
+	Account          string           `json:"account"`  // "providers/{provider_id}/accounts/{account_id}"
 	Provider         string           `json:"provider"` // "weaveworks" FIXME(rndstr): confirm
 	Product          string           `json:"product"`  // "weave-cloud" FIXME(rndstr): confirm
 	Plan             string           `json:"plan"`     // "standard"|"enterprise" FIXME(rndstr): confirm
@@ -85,12 +85,13 @@ type Entitlement struct {
 	MessageToUser    string           `json:"messageToUser"`
 }
 
+// AccountID extracts the account id from the referenced parent account.
 func (e Entitlement) AccountID() string {
 	s := strings.Split(e.Account, "/")
-	if len(s) != 2 {
+	if len(s) != 4 {
 		return ""
 	}
-	return s[1]
+	return s[3]
 }
 
 // NewClient returns a Client accessing the Partner Subscriptions API. It uses
