@@ -42,7 +42,7 @@ func main() {
 
 	client, err := procurement.NewClient(cfg.procurement)
 	if err != nil {
-		log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
+		log.Fatalf("Failed creating Google Partner Procurement API client: %v", err)
 	}
 
 	switch cfg.action {

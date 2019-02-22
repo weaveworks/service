@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
+
+	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 )
 
 // Interface describes a publisher interacting with PubSub.
@@ -85,31 +87,67 @@ func createTopic(ctx context.Context, client *pubsub.Client, topicID, topicProje
 	return topic, nil
 }
 
-// CreateSubscription is a convenience method to create a subscription for this publisher's project and topic.
-// It is not required to call this method to publish messages if you expect a subscription to already exist.
+// CreateSubscription is a convenience method to create a subscription
+// for this publisher's project and topic. It is not required to call
+// this method to publish messages if you expect a subscription to already
+// exist.
 func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
-	return getOrCreateSubscription(p.ctx, p.client, p.topic, subName, endpoint, ackDeadline)
-}
-
-func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *pubsub.Topic, subID, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
-	sub := client.Subscription(subID)
-	exists, err := sub.Exists(ctx)
+	sub := p.client.Subscription(subName)
+	exists, err := sub.Exists(p.ctx)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot check for existence of subscription [%v]", subID)
+		return nil, errors.Wrapf(err, "cannot check for existence of subscription [%v]", subName)
 	}
 	// If it already exists, we delete it to make sure configuration changes propagate
 	if exists {
-		sub.Delete(ctx)
+		sub.Delete(p.ctx)
 	}
-	sub, err = client.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
+	config := pubsub.SubscriptionConfig{
 		PushConfig:  pubsub.PushConfig{Endpoint: endpoint},
-		Topic:       topic,
+		Topic:       p.topic,
+		AckDeadline: ackDeadline,
+	}
+	sub, err = p.client.CreateSubscription(p.ctx, subName, config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create subscription [%v] on [%v] with endpoint [%v]", subName, p.topic.ID(), endpoint)
+	}
+	return sub, nil
+}
+
+// CreateSubscriptionCallback sets up a pull subscription with callback.
+// Note that this is blocking.
+func (p Publisher) CreateSubscriptionCallback(subName string, ackDeadline time.Duration, callback func(msg dto.Message) error) error {
+	sub := p.client.Subscription(subName)
+	exists, err := sub.Exists(p.ctx)
+	if err != nil {
+		return errors.Wrapf(err, "cannot check for existence of subscription [%v]", subName)
+	}
+	// If it already exists, we delete it to make sure configuration changes propagate
+	if exists {
+		sub.Delete(p.ctx)
+	}
+	sub, err = p.client.CreateSubscription(p.ctx, subName, pubsub.SubscriptionConfig{
+		Topic:       p.topic,
 		AckDeadline: ackDeadline,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create subscription [%v] on [%v] with endpoint [%v]", subID, topic.ID(), endpoint)
+		return errors.Wrapf(err, "cannot create subscription [%v] on [%v]", subName, p.topic.ID())
 	}
-	return sub, nil
+	err = sub.Receive(p.ctx, func(ctx context.Context, msg *pubsub.Message) {
+		hmsg := dto.Message{
+			MessageID:  msg.ID,
+			Data:       msg.Data,
+			Attributes: msg.Attributes,
+		}
+		if err := callback(hmsg); err != nil {
+			msg.Nack()
+		} else {
+			msg.Ack()
+		}
+	})
+	if err != nil {
+		return errors.Wrapf(err, "while receiving from subscription [%v] on [%v]", subName, p.topic.ID())
+	}
+	return nil
 }
 
 // PublishSync sends the data to this publisher configured project and topic.
