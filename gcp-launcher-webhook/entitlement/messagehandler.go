@@ -46,6 +46,8 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	case err != nil:
 		return errors.Wrapf(err, "error getting entitlement: %q", entitlementName)
 	case ent == nil:
+		// Do nothing. The entitlement has to be cancelled to be deleted, so
+		// this has already been handled by a cancellation message.
 		log.Infof("Entitlement %q no longer exists. Acknowledging message", entitlementName)
 		return nil // ACK: entitlement no longer exists
 	}
