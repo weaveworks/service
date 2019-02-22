@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"fmt"
+
 	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	common_grpc "github.com/weaveworks/service/common/grpc"
@@ -33,6 +35,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	if payload.Entitlement.ID == "" {
 		// Account updates are ignored since we handle them during the signup process
+		log.Infof("Ignoring event: %q", payload.EventType)
 		return nil // ACK
 	}
 
@@ -43,11 +46,16 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	case err != nil:
 		return errors.Wrapf(err, "error getting entitlement: %q", entitlementName)
 	case ent == nil:
+		log.Infof("Entitlement %q no longer exists. Acknowledging message", entitlementName)
 		return nil // ACK: entitlement no longer exists
 	}
 
 	externalAccountID := ent.AccountID()
-	logger := log.WithFields(log.Fields{"external_account_id": externalAccountID, "entitlement": entitlementName})
+	logger := log.WithFields(log.Fields{
+		"external_account_id": externalAccountID,
+		"event_type":          payload.EventType,
+		"entitlement":         fmt.Sprintf("%+v", ent),
+	})
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
@@ -55,7 +63,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		// It is safe to ACK this as during the signup we fetch and approve the latest entitlement,
 		// as well as sync it to our database.
 		if common_grpc.IsGRPCStatusErrorCode(err, http.StatusNotFound) {
-			logger.Infof("Account %v has not yet finished signing up, ignoring message", externalAccountID)
+			logger.Info("Account has not yet finished signing up, ignoring message")
 			return nil // ACK
 		}
 
@@ -65,7 +73,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	// Activation.
 	if !gcp.Activated {
-		logger.Infof("Account %v has not yet been activated, ignoring message", externalAccountID)
+		logger.Info("Account has not yet been activated, ignoring message")
 		return nil // ACK
 	}
 
@@ -88,22 +96,22 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// Approve the entitlement and wait for another message for when
 			// it becomes active before setting up the service for the
 			// customer and updating our records.
-			logger.Infof("Approving entitlement: %+v", ent)
+			logger.Info("Approving entitlement")
 			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name, ""); err != nil {
-				log.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
+				logger.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
 				return err
 			}
 			return nil
 		}
-		logger.Warnf("Entitlement state not %q: %+v", procurement.ActivationRequested, ent)
+		logger.Warnf("Expected entitlement state to be %q", procurement.ActivationRequested)
 
 	case event.Active:
 		if ent.State == procurement.Active {
 			// Write to database after approval went through
-			logger.Infof("Activating entitlement: %+v", ent)
-			return m.updateEntitlement(ctx, ent)
+			logger.Info("Activating entitlement")
+			return m.updateEntitlement(ctx, ent, logger)
 		}
-		logger.Warnf("Entitlement state not %q: %+v", procurement.Active, ent)
+		logger.Warnf("Expected entitlement state to be %q", procurement.Active)
 
 	case event.PlanChangeRequested:
 		if ent.State == procurement.PendingPlanChangeApproval {
@@ -111,20 +119,20 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// becomes active within the Procurement Service.
 			// TODO(rndstr): is ent.NewPendingPlan the correct to send here, or do we need to extract from payload?
 			if err := m.Procurement.ApprovePlanChangeEntitlement(ctx, ent.Name, ent.NewPendingPlan); err != nil {
-				log.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
+				logger.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
 				return err
 			}
 			return nil
 		}
-		logger.Warnf("Entitlement state not %q: %+v", procurement.PendingPlanChangeApproval, ent)
+		logger.Warnf("Expected entitlement state to be %q", procurement.PendingPlanChangeApproval)
 
 	case event.PlanChanged:
 		if ent.State == procurement.Active {
 			// Write to database after plan change approval went through
-			logger.Infof("Updating entitlement: %+v", ent)
-			return m.updateEntitlement(ctx, ent)
+			logger.Info("Updating entitlement")
+			return m.updateEntitlement(ctx, ent, logger)
 		}
-		logger.Warnf("Entitlement state not %q: %+v", procurement.Active, ent)
+		logger.Warnf("Expected entitlement state to be %q", procurement.Active)
 
 	case event.PlanChangeCancelled:
 		// Do nothing, we didn't save it in database yet.
@@ -133,7 +141,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	case event.Cancelled:
 		if ent.State == procurement.Cancelled {
 			// Write to database
-			logger.Infof("Cancelling entitlement: %+v", ent)
+			logger.Infof("Cancelling entitlement", ent)
 			return m.cancelEntitlement(ctx, ent)
 		}
 		return nil
@@ -154,22 +162,22 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return nil
 	}
 
-	log.Warnf("Did not process entitlement update: %+v\n", ent)
+	log.Warn("Did not process entitlement update")
 	return nil // ACK unknown messages
 }
 
 // updateEntitlement updates an entitlement in the database.
 // It should not be called when cancelling, use cancelEntitlement()
 // then.
-func (m MessageHandler) updateEntitlement(ctx context.Context, ent *procurement.Entitlement) error {
+func (m MessageHandler) updateEntitlement(ctx context.Context, ent *procurement.Entitlement, logger log.FieldLogger) error {
 	accID := ent.AccountID()
 	if err := m.updateGCP(ctx, ent); err != nil {
-		log.Errorf("failed to update GCP for '%s': %v", accID, err)
+		logger.Errorf("Failed to update GCP for '%s': %v", accID, err)
 		return err
 	}
 
 	if err := m.enableWeaveCloudAccess(ctx, accID); err != nil {
-		log.Errorf("Failed to enable Weave Cloud Access for '%s': %v", accID, err)
+		logger.Errorf("Failed to enable Weave Cloud Access for '%s': %v", accID, err)
 		return err
 	}
 	return nil
