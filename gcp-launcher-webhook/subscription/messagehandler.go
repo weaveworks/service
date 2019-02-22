@@ -1,3 +1,4 @@
+// FIXME(rndstr): unused, remove
 package subscription
 
 import (
@@ -71,7 +72,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// Cancel.
 	if sub.Status == partner.Complete {
 		if hasOtherSubscription(partner.Pending, subs) || hasOtherSubscription(partner.Active, subs) {
-			logger.Info("Not cancelling subscription because there is another one either pending or active: %+v", sub)
+			logger.Infof("Not cancelling subscription because there is another one either pending or active: %+v", sub)
 			return nil // ACK
 		}
 		logger.Infof("Cancelling subscription: %+v", sub)

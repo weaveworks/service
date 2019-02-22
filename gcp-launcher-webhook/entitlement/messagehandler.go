@@ -3,17 +3,17 @@ package entitlement
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"net/http"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/common/gcp/partner"
+
 	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	common_grpc "github.com/weaveworks/service/common/grpc"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/gcp-launcher-webhook/event"
 	"github.com/weaveworks/service/users"
-	"net/http"
 )
 
 // MessageHandler handles a PubSub message.
@@ -69,7 +69,6 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return nil // ACK
 	}
 
-	ent, ents, err := m.getEntitlements(ctx, externalAccountID, entitlementName)
 	if err != nil {
 		// Once in a while, Google seems to be sending a PubSub message for a subscription that is
 		// no longer accessible for us. This could be due to the (billing) account being deleted on
@@ -77,51 +76,55 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		// If that subscription is marked as completed locally, we just ignore that error to have
 		// the PubSub message properly ACKed.
 		// TODO(rndstr): can we confirm the account was deleted and delete the instance instead?
-		if gcp.SubscriptionStatus == string(partner.Complete) {
+		if gcp.SubscriptionStatus == string(procurement.Cancelled) {
 			return nil // ACK
 		}
 		return err
 	}
 
-	if ent == nil {
-		// Shouldn't happen as `GetEntitlement` above returned a valid entitlement
-		return nil
-	}
-
 	switch payload.EventType {
 	case event.CreationRequested:
 		if ent.State == procurement.ActivationRequested {
+			// Approve the entitlement and wait for another message for when
+			// it becomes active before setting up the service for the
+			// customer and updating our records.
 			logger.Infof("Approving entitlement: %+v", ent)
-			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name); err != nil {
+			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name, ""); err != nil {
 				log.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
 				return err
 			}
+			return nil
 		}
-		logger.Warn("Entitlement state not %q: %+v", procurement.ActivationRequested, ent)
+		logger.Warnf("Entitlement state not %q: %+v", procurement.ActivationRequested, ent)
 
 	case event.Active:
 		if ent.State == procurement.Active {
+			// Write to database after approval went through
 			logger.Infof("Activating entitlement: %+v", ent)
 			return m.updateEntitlement(ctx, ent)
 		}
-		logger.Warn("Entitlement state not %q: %+v", procurement.Active, ent)
+		logger.Warnf("Entitlement state not %q: %+v", procurement.Active, ent)
 
 	case event.PlanChangeRequested:
 		if ent.State == procurement.PendingPlanChangeApproval {
+			// Don't write anything to our database until the entitlement
+			// becomes active within the Procurement Service.
 			// TODO(rndstr): is ent.NewPendingPlan the correct to send here, or do we need to extract from payload?
 			if err := m.Procurement.ApprovePlanChangeEntitlement(ctx, ent.Name, ent.NewPendingPlan); err != nil {
 				log.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
 				return err
 			}
-			return m.updateEntitlement(ctx, ent)
+			return nil
 		}
-		logger.Warn("Entitlement state not %q: %+v", procurement.PendingPlanChangeApproval, ent)
+		logger.Warnf("Entitlement state not %q: %+v", procurement.PendingPlanChangeApproval, ent)
 
 	case event.PlanChanged:
 		if ent.State == procurement.Active {
+			// Write to database after plan change approval went through
+			logger.Infof("Updating entitlement: %+v", ent)
 			return m.updateEntitlement(ctx, ent)
 		}
-		logger.Warn("Entitlement state not %q: %+v", procurement.Active, ent)
+		logger.Warnf("Entitlement state not %q: %+v", procurement.Active, ent)
 
 	case event.PlanChangeCancelled:
 		// Do nothing, we didn't save it in database yet.
@@ -129,6 +132,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	case event.Cancelled:
 		if ent.State == procurement.Cancelled {
+			// Write to database
 			logger.Infof("Cancelling entitlement: %+v", ent)
 			return m.cancelEntitlement(ctx, ent)
 		}
@@ -150,7 +154,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return nil
 	}
 
-	log.Warnf("Did not process entitlement update: %+v\nAll: %+v", ent, ents)
+	log.Warnf("Did not process entitlement update: %+v\n", ent)
 	return nil // ACK unknown messages
 }
 
@@ -216,32 +220,4 @@ func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, external
 		return err
 	}
 	return nil
-}
-
-// getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the
-// given subscriptionName.
-func (m MessageHandler) getEntitlements(ctx context.Context, externalAccountID string, entitlementName string) (*procurement.Entitlement, []procurement.Entitlement, error) {
-	ents, err := m.Procurement.ListEntitlements(ctx, externalAccountID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, e := range ents {
-		if e.Name == entitlementName {
-			return &e, ents, nil
-		}
-	}
-	return nil, nil, fmt.Errorf("referenced entitlement not found: %v", entitlementName)
-}
-
-// hasOtherEntitlement returns true if there is a entitlements among
-// the provided ones with state equal to the provided one, or false
-// otherwise.
-func hasOtherEntitlement(state procurement.EntitlementState, ents []procurement.Entitlement) bool {
-	for _, e := range ents {
-		if e.State == state {
-			return true
-		}
-	}
-	return false
 }

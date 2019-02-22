@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -11,8 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-
-	"net/http"
 
 	"github.com/weaveworks/common/http/client"
 	"github.com/weaveworks/common/instrument"
@@ -30,7 +29,8 @@ const (
 	Cancelled                 EntitlementState = "ENTITLEMENT_CANCELLED"
 	PendingPlanChange         EntitlementState = "ENTITLEMENT_PENDING_PLAN_CHANGE"
 	PendingPlanChangeApproval EntitlementState = "ENTITLEMENT_PENDING_PLAN_CHANGE_APPROVAL"
-	Suspended                 EntitlementState = "ENTITLEMENT_SUSPENDED"
+	// Note: at time of implementation, Google documentation states this is not yet supported.
+	Suspended EntitlementState = "ENTITLEMENT_SUSPENDED"
 )
 
 const (

@@ -22,8 +22,8 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	name := "pubsub-api"
 	flag.StringVar(&c.ProjectID, name+".project-id", "weaveworks-public", "Project for Pub/Sub access")
-	flag.StringVar(&c.TopicID, name+".topic-id", "weaveworks-public-cloudmarketplacepartner.googleapis.com", "Topic ID for the Pub/Sub subscription")
-	flag.StringVar(&c.TopicProjectID, name+".topic-project-id", "cloud-billing-subscriptions", "Only pass if topic is under another project")
+	flag.StringVar(&c.TopicID, name+".topic-id", "weaveworks-prod", "Topic ID for the Pub/Sub subscription")
+	flag.StringVar(&c.TopicProjectID, name+".topic-project-id", "* cloudcommerceproc-prod", "Only pass if topic is under another project")
 	flag.StringVar(&c.ServiceAccountKeyFile, name+".service-account-key-file", "", "Service account key JSON file")
 	flag.DurationVar(&c.AckDeadline, name+".ack-deadline", 10*time.Second, "Time to acknowledge the message before it is sent again. See also: https://cloud.google.com/pubsub/docs/subscriber#create")
 }

@@ -197,7 +197,7 @@ type Event struct {
 	Metadata     map[string]string          `json:"metadata"`
 }
 
-// EventType is an identifier describing the type of the event.
+// Type is an identifier describing the type of the event.
 // Example event types are ‘flux update’, ‘alert firing’, ‘probe connected’
 type EventType struct {
 	Name                 string   `json:"name"`

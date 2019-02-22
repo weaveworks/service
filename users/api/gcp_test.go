@@ -12,30 +12,13 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/weaveworks/service/common/gcp/partner"
-	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
+	"github.com/weaveworks/service/common/gcp/procurement/mock_procurement"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/sessions"
-)
-
-var (
-	pendingSubscriptionNoConsumerID = partner.Subscription{
-		Name:              "partnerSubscriptions/47426f1a-d744-4249-ae84-3f4fe194c107",
-		ExternalAccountID: "E-NO-CONSUMER-ID",
-		Version:           "1508480169982224",
-		Status:            "PENDING",
-		SubscribedResources: []partner.SubscribedResource{{
-			SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
-			Resource:             "weave-cloud",
-			Labels: map[string]string{
-				"serviceName": "staging.google.weave.works",
-				"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard",
-			},
-		}},
-	}
 )
 
 func Test_Org_BillingProviderGCP(t *testing.T) {
@@ -55,41 +38,13 @@ func Test_Org_BillingProviderGCP(t *testing.T) {
 	assert.Equal(t, "gcp", body["billingProvider"])
 }
 
-func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
+func TestAPI_GCPSubscribe2(t *testing.T) {
 	database = dbtest.Setup(t)
 	defer dbtest.Cleanup(t, database)
-	ctrl, client, access, a := mockAPI(t)
+	ctrl, client, a := mockAPI(t)
 	defer ctrl.Finish()
 
-	// Create an existing GCP instance
-	user := dbtest.GetUser(t, database)
-	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
-	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, pendingSubscriptionNoConsumerID.ExternalAccountID, user.TrialExpiresAt())
-	assert.NoError(t, err)
-
-	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/gcp/subscribe", nil)
-
-	client.EXPECT().
-		ListSubscriptions(r.Context(), pendingSubscriptionNoConsumerID.ExternalAccountID).
-		Return([]partner.Subscription{pendingSubscriptionNoConsumerID}, nil)
-
-	access.EXPECT().
-		RequestSubscription(r.Context(), token, pendingSubscriptionNoConsumerID.Name).
-		Return(&pendingSubscriptionNoConsumerID, nil)
-
-	_, err = a.GCPSubscribe(user, pendingSubscriptionNoConsumerID.ExternalAccountID, w, r)
-	assert.Error(t, err)
-	assert.Equal(t, api.ErrMissingConsumerID, err)
-}
-
-func TestAPI_GCPSubscribe(t *testing.T) {
-	database = dbtest.Setup(t)
-	defer dbtest.Cleanup(t, database)
-	ctrl, client, access, a := mockAPI(t)
-	defer ctrl.Finish()
-
-	gcpSubscribe(t, database, a, client, access)
+	testGCPSubscribe(t, database, a, client)
 }
 
 // TestAPI_GCPSubscribe_resumeInactivated verifies that you can resume an existing GCP account if
@@ -97,54 +52,56 @@ func TestAPI_GCPSubscribe(t *testing.T) {
 func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 	database = dbtest.Setup(t)
 	defer dbtest.Cleanup(t, database)
-	ctrl, client, access, a := mockAPI(t)
+	ctrl, client, a := mockAPI(t)
 	defer ctrl.Finish()
 
 	// Create an existing org
 	user := dbtest.GetUser(t, database)
-	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
-	sub := makeSubscription()
-	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, sub.ExternalAccountID, user.TrialExpiresAt())
+	ent := makeEntitlement(procurement.ActivationRequested)
+	accID := ent.AccountID()
+	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, accID, user.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/gcp/subscribe", nil)
 
 	client.EXPECT().
-		ListSubscriptions(r.Context(), sub.ExternalAccountID).
-		Return([]partner.Subscription{sub}, nil).Times(2)
-	access.EXPECT().
-		RequestSubscription(r.Context(), token, sub.Name).
-		Return(&sub, nil).Times(2)
+		ListEntitlements(r.Context(), accID).
+		Return([]procurement.Entitlement{ent}, nil).Times(2)
 	client.EXPECT().
-		ApproveSubscription(r.Context(), sub.Name, gomock.Any()).
-		Return(nil, nil)
+		ApproveAccount(r.Context(), ent.AccountID()).
+		Return(nil)
+	client.EXPECT().
+		ApproveEntitlement(r.Context(), ent.Name, gomock.Any()).
+		Return(nil)
 
-	{ // Organization is created and GCP activated, with subscription running.
-		org, err = a.GCPSubscribe(user, sub.ExternalAccountID, w, r)
+	t.Run("resuming inactive GCP account", func(t *testing.T) {
+		// Organization is created and GCP activated, with subscription running.
+		org, err = a.GCPSubscribe(user, accID, w, r)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Make sure account was activated and the subscription is running
-		org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), sub.ExternalAccountID)
+		org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), accID)
 		assert.NoError(t, err)
 		assert.True(t, org.GCP.Activated)
-		assert.EqualValues(t, partner.Active, org.GCP.SubscriptionStatus)
-	}
-	{ // It is not possible to resume signup of an already activated account
-		org, err = a.GCPSubscribe(user, sub.ExternalAccountID, w, r)
+		assert.EqualValues(t, procurement.Active, org.GCP.SubscriptionStatus)
+	})
+	t.Run("resuming active GCP account fails", func(t *testing.T) {
+		// It is not possible to resume signup of an already activated account
+		org, err = a.GCPSubscribe(user, accID, w, r)
 		assert.Error(t, err)
 		assert.Equal(t, api.ErrAlreadyActivated, err)
-	}
+	})
 }
 
 func TestAPI_GCPSSO_shouldGrantAccessAndBeIdempotent(t *testing.T) {
 	database = dbtest.Setup(t)
 	defer dbtest.Cleanup(t, database)
-	ctrl, client, access, a := mockAPI(t)
+	ctrl, client, a := mockAPI(t)
 	defer ctrl.Finish()
 	// Setup a GCP instance by subscribing a new user (its owner):
-	org, sub := gcpSubscribe(t, database, a, client, access)
+	org, ent := testGCPSubscribe(t, database, a, client)
 
 	// Create guest user. This user would authenticate using Google OAuth,
 	// have their account created in Weave Cloud, and...
@@ -157,9 +114,9 @@ func TestAPI_GCPSSO_shouldGrantAccessAndBeIdempotent(t *testing.T) {
 	assert.False(t, hasAccess)
 
 	// ... eventually they'd go through the SSO flow which...
-	r := requestAs(t, guest, "GET", fmt.Sprintf("/api/users/gcp/sso/login/%v", sub.ExternalAccountID), nil)
+	r := requestAs(t, guest, "GET", fmt.Sprintf("/api/users/gcp/sso/login/%v", ent.AccountID()), nil)
 	w := httptest.NewRecorder()
-	orgInvitedTo, err := a.GCPSSOLogin(guest, sub.ExternalAccountID, w, r)
+	orgInvitedTo, err := a.GCPSSOLogin(guest, ent.AccountID(), w, r)
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, orgInvitedTo.ID)
 
@@ -169,9 +126,9 @@ func TestAPI_GCPSSO_shouldGrantAccessAndBeIdempotent(t *testing.T) {
 	assert.True(t, hasAccess)
 
 	// If the guest user goes through SSO again, nothing should change, and they should still have access:
-	r = requestAs(t, guest, "GET", fmt.Sprintf("/api/users/gcp/sso/login/%v", sub.ExternalAccountID), nil)
+	r = requestAs(t, guest, "GET", fmt.Sprintf("/api/users/gcp/sso/login/%v", ent.AccountID()), nil)
 	w = httptest.NewRecorder()
-	orgInvitedTo, err = a.GCPSSOLogin(guest, sub.ExternalAccountID, w, r)
+	orgInvitedTo, err = a.GCPSSOLogin(guest, ent.AccountID(), w, r)
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, orgInvitedTo.ID)
 	hasAccess, err = database.UserIsMemberOf(context.TODO(), guest.ID, org.ExternalID)
@@ -182,7 +139,7 @@ func TestAPI_GCPSSO_shouldGrantAccessAndBeIdempotent(t *testing.T) {
 func TestAPI_GCPSSO_shouldFailWithNotFoundOnNonExistentInstance(t *testing.T) {
 	database = dbtest.Setup(t)
 	defer dbtest.Cleanup(t, database)
-	ctrl, _, _, a := mockAPI(t)
+	ctrl, _, a := mockAPI(t)
 	defer ctrl.Finish()
 
 	// Use an arbitrary IDs for a non-existent organization and subscription:
@@ -212,47 +169,45 @@ func TestAPI_GCPSSO_shouldFailWithNotFoundOnNonExistentInstance(t *testing.T) {
 	assert.False(t, hasAccess)
 }
 
-func mockAPI(t *testing.T) (*gomock.Controller, *mock_partner.MockAPI, *mock_partner.MockAccessor, *api.API) {
+func mockAPI(t *testing.T) (*gomock.Controller, *mock_procurement.MockAPI, *api.API) {
 	ctrl := gomock.NewController(t)
-	client := mock_partner.NewMockAPI(ctrl)
-	access := mock_partner.NewMockAccessor(ctrl)
-	a := createAPI(client, access)
-	return ctrl, client, access, a
+	client := mock_procurement.NewMockAPI(ctrl)
+	a := createAPI(client)
+	return ctrl, client, a
 }
 
-func gcpSubscribe(t *testing.T, database db.DB, a *api.API, client *mock_partner.MockAPI, access *mock_partner.MockAccessor) (*users.Organization, partner.Subscription) {
+func testGCPSubscribe(t *testing.T, database db.DB, a *api.API, client *mock_procurement.MockAPI) (*users.Organization, procurement.Entitlement) {
 	// Create an existing org
 	user := dbtest.GetUser(t, database)
-	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/gcp/subscribe", nil)
 
-	sub := makeSubscription()
+	ent := makeEntitlement(procurement.ActivationRequested)
 	client.EXPECT().
-		ListSubscriptions(r.Context(), sub.ExternalAccountID).
-		Return([]partner.Subscription{sub}, nil)
-	access.EXPECT().
-		RequestSubscription(r.Context(), token, sub.Name).
-		Return(&sub, nil)
+		ListEntitlements(r.Context(), ent.AccountID()).
+		Return([]procurement.Entitlement{ent}, nil)
 	client.EXPECT().
-		ApproveSubscription(r.Context(), sub.Name, gomock.Any()).
-		Return(nil, nil)
+		ApproveAccount(r.Context(), ent.AccountID()).
+		Return(nil)
+	client.EXPECT().
+		ApproveEntitlement(r.Context(), ent.Name, gomock.Any()).
+		Return(nil)
 
-	org, err := a.GCPSubscribe(user, sub.ExternalAccountID, w, r)
+	org, err := a.GCPSubscribe(user, ent.AccountID(), w, r)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Make sure account was activated and the subscription is running
-	org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), sub.ExternalAccountID)
+	org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), ent.AccountID())
 	assert.NoError(t, err)
 	assert.True(t, org.GCP.Activated)
-	assert.EqualValues(t, partner.Active, org.GCP.SubscriptionStatus)
+	assert.EqualValues(t, procurement.Active, org.GCP.SubscriptionStatus)
 
-	return org, sub
+	return org, ent
 }
 
-func createAPI(client partner.API, accessor partner.Accessor) *api.API {
+func createAPI(client procurement.API) *api.API {
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
 	return api.New(
 		false,
@@ -269,7 +224,7 @@ func createAPI(client partner.API, accessor partner.Accessor) *api.API {
 		make(map[string]struct{}),
 		nil,
 		client,
-		accessor,
+		nil,
 		"",
 		"",
 		"",
@@ -281,21 +236,15 @@ func createAPI(client partner.API, accessor partner.Accessor) *api.API {
 		nil,
 	)
 }
-func makeSubscription() partner.Subscription {
-	return partner.Subscription{
-		Name:              fmt.Sprintf("partnerSubscriptions/%d", rand.Int63()),
-		ExternalAccountID: fmt.Sprintf("E-%d", rand.Int63()),
-		Version:           "1508480169982224",
-		Status:            "PENDING",
-		SubscribedResources: []partner.SubscribedResource{{
-			SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
-			Resource:             "weave-cloud",
-			Labels: map[string]string{
-				"consumerId":  fmt.Sprintf("project_number:%d", rand.Int63()),
-				"serviceName": "staging.google.weave.works",
-				"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard",
-			},
-		}},
+func makeEntitlement(state procurement.EntitlementState) procurement.Entitlement {
+	return procurement.Entitlement{
+		Name:             fmt.Sprintf("entitlements/%d", rand.Int63()),
+		Account:          fmt.Sprintf("accounts/E-%d", rand.Int63()),
+		Provider:         "weaveworks",
+		Product:          "weave-cloud",
+		Plan:             "standard",
+		State:            state,
+		NewPendingPlan:   "",
+		UsageReportingID: "report123",
 	}
-
 }

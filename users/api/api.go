@@ -34,6 +34,7 @@ type API struct {
 	grpc                     users.UsersServer
 	mixpanel                 *marketing.MixpanelClient
 	procurement              procurement.API
+	// FIXME(rndstr): unused
 	procurementAccess        procurement.Accessor
 	fluxStatusAPI            string
 	scopeProbesAPI           string

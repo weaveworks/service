@@ -2,17 +2,21 @@ package entitlement_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/status"
 
-	"github.com/weaveworks/service/common/gcp/partner"
-	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
+	"github.com/weaveworks/service/common/gcp/procurement/mock_procurement"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
-	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
+	"github.com/weaveworks/service/gcp-launcher-webhook/entitlement"
+	"github.com/weaveworks/service/gcp-launcher-webhook/event"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
 )
@@ -28,13 +32,19 @@ var (
 		ExternalAccountID: externalAccountID,
 		Activated:         true,
 	}
-
-	msgFoo = dto.Message{
-		Attributes: map[string]string{
-			"name":              "partnerSubscriptions/1",
-			"externalAccountId": externalAccountID,
-		},
-	}
+	entID               = "1"
+	entName             = "entitlements/1"
+	entMsg              = makeMessage(event.CreationRequested, entID, "")
+	accMsg              = makeMessage("SOMETHING", "", externalAccountID)
+	entUsageReportingID = "report123"
+	entPlan             = "standard"
+	entNewPlan          = "enterprise"
+	ent                 = makeEntitlement(entID, procurement.ActivationRequested)
+	entNew              = func() *procurement.Entitlement {
+		e := makeEntitlement(entID, procurement.Active)
+		e.Plan = entNewPlan
+		return e
+	}()
 
 	orgExternalID = "optimistic-organization-42"
 	org           = users.Organization{
@@ -42,22 +52,49 @@ var (
 	}
 )
 
-// TestMessageHandler_Handle_notFound verifies that a «Not found» error does not
-// lead to an error because we expect the account not to be found before signup
-// has finished.
+func makeMessage(eventType event.Type, entitlementID, accountID string) dto.Message {
+	p := event.Payload{
+		EventID:   fmt.Sprintf("eventid-%d", rand.Int63()),
+		EventType: eventType,
+	}
+	if entitlementID != "" {
+		p.Entitlement.ID = entitlementID
+	}
+	if accountID != "" {
+		p.Account.ID = accountID
+	}
+	bs, _ := json.Marshal(p)
+	return dto.Message{
+		Data:      bs,
+		MessageID: fmt.Sprintf("msgid-%d", rand.Int63()),
+	}
+}
+
+func TestMessageHandler_Handle_ignoreAccountMessage(t *testing.T) {
+	mh := entitlement.MessageHandler{}
+	err := mh.Handle(accMsg)
+	assert.NoError(t, err)
+}
+
+// TestMessageHandler_Handle_notFound verifies that an Account «Not found» error
+// does not lead to an error because we expect the account not to be found before
+// signup has finished.
 func TestMessageHandler_Handle_notFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
+	p := mock_procurement.NewMockAPI(ctrl)
+	p.EXPECT().
+		GetEntitlement(ctx, entName).
+		Return(ent, nil)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(nil, status.Error(404, "not found"))
-	p := mock_partner.NewMockAPI(ctrl)
 
-	mh := subscription.MessageHandler{Users: client, Partner: p}
-	err := mh.Handle(msgFoo)
+	mh := entitlement.MessageHandler{Users: client, Procurement: p}
+	err := mh.Handle(entMsg)
 	assert.NoError(t, err)
 }
 
@@ -68,34 +105,40 @@ func TestMessageHandler_Handle_getError(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.Background()
+	p := mock_procurement.NewMockAPI(ctrl)
+	p.EXPECT().
+		GetEntitlement(ctx, entName).
+		Return(ent, nil)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(nil, errors.New("boom"))
-	p := mock_partner.NewMockAPI(ctrl)
 
-	mh := subscription.MessageHandler{Users: client, Partner: p}
-	err := mh.Handle(msgFoo)
+	mh := entitlement.MessageHandler{Users: client, Procurement: p}
+	err := mh.Handle(entMsg)
 	assert.Error(t, err)
 }
 
-func TestMessageHandler_Handle_inactive(t *testing.T) {
+func TestMessageHandler_Handle_gcpInacative(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
+	p := mock_procurement.NewMockAPI(ctrl)
+	p.EXPECT().
+		GetEntitlement(ctx, entName).
+		Return(ent, nil)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpInactive}, nil)
-	p := mock_partner.NewMockAPI(ctrl)
 
-	mh := subscription.MessageHandler{Users: client, Partner: p}
-	err := mh.Handle(msgFoo)
+	mh := entitlement.MessageHandler{Users: client, Procurement: p}
+	err := mh.Handle(entMsg)
 	assert.NoError(t, err)
 }
 
-func TestMessageHandler_Handle_cancel(t *testing.T) {
+func TestMessageHandler_Handle_cancelled(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -119,90 +162,88 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				ExternalAccountID:  externalAccountID,
-				ConsumerID:         "project_number:123",
-				SubscriptionName:   "partnerSubscriptions/1",
-				SubscriptionLevel:  "enterprise",
-				SubscriptionStatus: "COMPLETE",
+				ConsumerID:         entUsageReportingID,
+				SubscriptionName:   entName,
+				SubscriptionLevel:  entPlan,
+				SubscriptionStatus: string(procurement.Cancelled),
 			}}).
 		Return(nil, nil)
 
-	p := mock_partner.NewMockAPI(ctrl)
+	p := mock_procurement.NewMockAPI(ctrl)
 	p.EXPECT().
-		ListSubscriptions(gomock.Any(), externalAccountID).
-		Return([]partner.Subscription{
-			makeSubscription("1", partner.Complete),
-			makeSubscription("99", partner.Complete),
-		}, nil)
+		GetEntitlement(ctx, entName).
+		Return(makeEntitlement(entID, procurement.Cancelled), nil)
 
-	mh := subscription.MessageHandler{Users: client, Partner: p}
-	err := mh.Handle(msgFoo)
+	mh := entitlement.MessageHandler{Users: client, Procurement: p}
+	err := mh.Handle(makeMessage(event.Cancelled, entID, ""))
 	assert.NoError(t, err)
 }
 
-func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
+func TestMessageHandler_Handle_changePlan(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
-	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
-		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
-	client.EXPECT().
-		GetOrganization(ctx, &users.GetOrganizationRequest{
-			ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
-		}).
-		Return(&users.GetOrganizationResponse{Organization: org}, nil)
-	client.EXPECT().
-		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
-		Return(&users.SetOrganizationFlagResponse{}, nil)
-	client.EXPECT().
-		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataUpload", Value: false}).
-		Return(&users.SetOrganizationFlagResponse{}, nil)
-	client.EXPECT().
-		UpdateGCP(ctx, &users.UpdateGCPRequest{
-			GCP: &users.GoogleCloudPlatform{
-				ExternalAccountID:  externalAccountID,
-				ConsumerID:         "project_number:123",
-				SubscriptionName:   "partnerSubscriptions/1",
-				SubscriptionLevel:  "enterprise",
-				SubscriptionStatus: "PENDING",
-			}}).
-		Return(nil, nil)
+	p := mock_procurement.NewMockAPI(ctrl)
+	mh := entitlement.MessageHandler{Users: client, Procurement: p}
 
-	p := mock_partner.NewMockAPI(ctrl)
-	p.EXPECT().
-		ListSubscriptions(gomock.Any(), externalAccountID).
-		Return([]partner.Subscription{
-			makeSubscription("1", partner.Pending),
-			makeSubscription("99", partner.Complete),
-		}, nil)
-	expectedBody := &partner.RequestBody{
-		ApprovalID: "default-approval",
-		Labels:     map[string]string{"keyForSSOLogin": externalAccountID},
-	}
-	p.EXPECT().
-		ApproveSubscription(gomock.Any(), "partnerSubscriptions/1", expectedBody)
+	t.Run("request approval", func(t *testing.T) {
+		client.EXPECT().
+			GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
+			Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
+		p.EXPECT().
+			GetEntitlement(gomock.Any(), entName).
+			Return(makeEntitlement(entID, procurement.PendingPlanChangeApproval), nil)
+		p.EXPECT().
+			ApprovePlanChangeEntitlement(gomock.Any(), entName, entNewPlan)
 
-	mh := subscription.MessageHandler{Users: client, Partner: p}
-	err := mh.Handle(msgFoo)
-	assert.NoError(t, err)
+		err := mh.Handle(makeMessage(event.PlanChangeRequested, entID, ""))
+		assert.NoError(t, err)
+	})
+	t.Run("write to database", func(t *testing.T) {
+		client.EXPECT().
+			GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
+			Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
+		client.EXPECT().
+			GetOrganization(ctx, &users.GetOrganizationRequest{
+				ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
+			}).
+			Return(&users.GetOrganizationResponse{Organization: org}, nil)
+		p.EXPECT().
+			GetEntitlement(gomock.Any(), entName).
+			Return(entNew, nil)
+		client.EXPECT().
+			SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
+			Return(&users.SetOrganizationFlagResponse{}, nil)
+		client.EXPECT().
+			SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataUpload", Value: false}).
+			Return(&users.SetOrganizationFlagResponse{}, nil)
+		client.EXPECT().
+			UpdateGCP(ctx, &users.UpdateGCPRequest{
+				GCP: &users.GoogleCloudPlatform{
+					ExternalAccountID:  externalAccountID,
+					ConsumerID:         entUsageReportingID,
+					SubscriptionName:   entName,
+					SubscriptionLevel:  entNewPlan,
+					SubscriptionStatus: string(procurement.Active),
+				}}).
+			Return(nil, nil)
+
+		err := mh.Handle(makeMessage(event.PlanChanged, entID, ""))
+		assert.NoError(t, err)
+	})
 }
 
-func makeSubscription(id string, status partner.SubscriptionStatus) partner.Subscription {
-	return partner.Subscription{
-		Name:              "partnerSubscriptions/" + id,
-		ExternalAccountID: externalAccountID,
-		Status:            status,
-		SubscribedResources: []partner.SubscribedResource{
-			{
-				SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
-				Resource:             "weave-cloud",
-				Labels: map[string]string{
-					"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "enterprise",
-					"consumerId": "project_number:123",
-				},
-			},
-		},
+func makeEntitlement(id string, state procurement.EntitlementState) *procurement.Entitlement {
+	return &procurement.Entitlement{
+		Name:             fmt.Sprintf("entitlements/%s", id),
+		Account:          fmt.Sprintf("accounts/%s", externalAccountID),
+		Provider:         "weaveworks",
+		Product:          "weave-cloud",
+		Plan:             entPlan,
+		State:            state,
+		NewPendingPlan:   entNewPlan,
+		UsageReportingID: entUsageReportingID,
 	}
 }
