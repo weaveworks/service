@@ -1,5 +1,5 @@
-// FIXME(rndstr): is this actually needed now?
 package procurement
+// FIXME(rndstr): is this actually needed now?
 
 import (
 	"net/http"
