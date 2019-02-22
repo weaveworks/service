@@ -7,7 +7,7 @@ import (
 
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/db"
@@ -33,8 +33,8 @@ type API struct {
 	webhookTokens            map[string]struct{}
 	grpc                     users.UsersServer
 	mixpanel                 *marketing.MixpanelClient
-	partner                  partner.API
-	partnerAccess            partner.Accessor
+	procurement              procurement.API
+	procurementAccess        procurement.Accessor
 	fluxStatusAPI            string
 	scopeProbesAPI           string
 	promMetricsAPI           string
@@ -62,8 +62,8 @@ func New(
 	grpc users.UsersServer,
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
-	partnerClient partner.API,
-	partnerAccess partner.Accessor,
+	procurementClient procurement.API,
+	procurementAccess procurement.Accessor,
 	fluxStatusAPI string,
 	scopeProbesAPI string,
 	promMetricsAPI string,
@@ -88,8 +88,8 @@ func New(
 		webhookTokens:            webhookTokens,
 		grpc:                     grpc,
 		mixpanel:                 mixpanelClient,
-		partner:                  partnerClient,
-		partnerAccess:            partnerAccess,
+		procurement:              procurementClient,
+		procurementAccess:        procurementAccess,
 		fluxStatusAPI:            fluxStatusAPI,
 		scopeProbesAPI:           scopeProbesAPI,
 		promMetricsAPI:           promMetricsAPI,

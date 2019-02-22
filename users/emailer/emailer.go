@@ -33,9 +33,6 @@ type Emailer interface {
 // MustNew creates a new Emailer, from the URI, or panics.
 // Supports scheme smtp:// and log:// in `emailURI`.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
-	if emailURI == "" {
-		log.Fatal("Must -email-uri")
-	}
 	var sender func(*email.Email) error
 	u, err := url.Parse(emailURI)
 	if err != nil {

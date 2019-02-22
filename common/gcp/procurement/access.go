@@ -1,4 +1,4 @@
-// FIXME(rndstr): migrate this
+// FIXME(rndstr): is this actually needed now?
 package procurement
 
 import (
@@ -14,7 +14,7 @@ import (
 
 // Accessor describes public methods of Access to allow mocking.
 type Accessor interface {
-	RequestSubscription(ctx context.Context, token *oauth2.Token, name string) (*Subscription, error)
+	RequestEntitlement(ctx context.Context, token *oauth2.Token, name string) (*Entitlement, error)
 	VerifyState(r *http.Request) (map[string]string, bool)
 	Link(r *http.Request) (login.Link, bool)
 }
@@ -37,7 +37,7 @@ func NewAccess() *Access {
 	}
 	// This name determines the prefix for the CLI config. (see login.OAuth.Flags())
 	// Do not change this or CLI flag names will change.
-	l.SetName("Partner Subscriptions API")
+	l.SetName("Partner Procurement API")
 	return l
 }
 
@@ -47,11 +47,11 @@ func (a *Access) Link(r *http.Request) (login.Link, bool) {
 	return login.Link{Href: l.Href}, ok
 }
 
-// RequestSubscription fetches a subscription using the user's oauth2 token.
-func (a *Access) RequestSubscription(ctx context.Context, token *oauth2.Token, name string) (*Subscription, error) {
+// RequestEntitlement fetches a subscription using the user's oauth2 token.
+func (a *Access) RequestEntitlement(ctx context.Context, token *oauth2.Token, name string) (*Entitlement, error) {
 	cl, err := NewClientFromTokenSource(oauth2.StaticTokenSource(token))
 	if err != nil {
 		return nil, err
 	}
-	return cl.GetSubscription(ctx, name)
+	return cl.GetEntitlement(ctx, name)
 }

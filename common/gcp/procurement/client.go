@@ -52,7 +52,9 @@ func init() {
 
 // API defines methods to interact with the Google Partner Procurement API.
 type API interface {
-	ApproveEntitlement(ctx context.Context, name string) error
+	ApproveAccount(ctx context.Context, externalAccountID string) error
+
+	ApproveEntitlement(ctx context.Context, name, approvalName string) error
 	ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error
 	GetEntitlement(ctx context.Context, name string) (*Entitlement, error)
 	ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error)
@@ -135,18 +137,25 @@ func (c *Client) urlEntitlement(name, method string) string {
 	if method != "" {
 		method = ":" + method
 	}
-	return fmt.Sprintf("%s/v1/providers/%s/%s%s", basePath, c.cfg.ProviderID, name, method)
+	return fmt.Sprintf("%s/v1/providers/%s/%s%s", basePath, c.cfg.PartnerID, name, method)
+}
+
+// ApproveAccount marks the account as approved.
+func (c *Client) ApproveAccount(ctx context.Context, externalAccountID string) error {
+	return c.Post(ctx, "account:approve",
+		fmt.Sprintf("%s/v1/providers/%s/accounts/%s:approve", basePath, c.cfg.PartnerID, externalAccountID),
+		nil, nil)
 }
 
 // ApproveEntitlement marks the entitlement as approved.
-// `apporvalName` seems to be the source of approval, such
-// as "signup".
-func (c *Client) ApproveEntitlement(ctx context.Context, name string) error {
-	// TODO(rndstr): we used to store the ssoLoginKeyName here alongside the subscription.
-	// But the procurement API technically no longer supports it and it needs to be seen
-	// whether it is actually needed since we no longer have sso login. There is a deprecated
-	// field `properties` that could technically be used.
-	return c.Post(ctx, "entitlement:approve", c.urlEntitlement(name, "approve"), nil, nil)
+// `approvalName` is the source of approval and will be set to
+// "signup" by Google if omitted.
+func (c *Client) ApproveEntitlement(ctx context.Context, name, approvalName string) error {
+	var data map[string]string
+	if approvalName != "" {
+		data = map[string]string{"approvalName": approvalName}
+	}
+	return c.Post(ctx, "entitlement:approve", c.urlEntitlement(name, "approve"), data, nil)
 }
 
 func (c *Client) ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error {
@@ -176,7 +185,8 @@ func (c *Client) ListEntitlements(ctx context.Context, externalAccountID string)
 		Entitlements []Entitlement `json:"entitlements"`
 	}
 	q := url.Values{"filter": []string{"account=" + externalAccountID}}
-	err := c.Get(ctx, "entitlement:list", c.urlEntitlement("entitlements", ""), &response)
+	u := c.urlEntitlement("entitlements", "") + "?" + q.Encode()
+	err := c.Get(ctx, "entitlement:list", u, &response)
 	if err != nil {
 		if isNotFound(err) {
 			return nil, nil
