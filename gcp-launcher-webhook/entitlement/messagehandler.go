@@ -107,7 +107,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// becomes active within the Procurement Service.
 			// TODO(rndstr): is ent.NewPendingPlan the correct to send here, or do we need to extract from payload?
 			if err := m.Procurement.ApprovePlanChangeEntitlement(ctx, ent.Name, ent.NewPendingPlan); err != nil {
-				logger.WithError(err).Errorf("Partner failed to approve entitlement plan change")
+				logger.WithError(err).Error("Partner failed to approve entitlement plan change")
 				return err
 			}
 			return nil
@@ -160,12 +160,12 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 func (m MessageHandler) updateEntitlement(ctx context.Context, ent *procurement.Entitlement, logger log.FieldLogger) error {
 	accID := ent.AccountID()
 	if err := m.updateGCP(ctx, ent); err != nil {
-		logger.Errorf("Failed to update GCP for '%s': %v", accID, err)
+		logger.WithError(err).Error("Failed to update GCP")
 		return err
 	}
 
 	if err := m.enableWeaveCloudAccess(ctx, accID); err != nil {
-		logger.Errorf("Failed to enable Weave Cloud Access for '%s': %v", accID, err)
+		logger.WithError(err).Error("Failed to enable Weave Cloud Access")
 		return err
 	}
 	return nil
