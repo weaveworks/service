@@ -52,8 +52,8 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
 		// If the account does not yet exist, this means the user hasn't gone through the signup.
-		// It is safe to ACK this as once the account becomes ready, we fetch the current subscription
-		// and update our data accordingly.
+		// It is safe to ACK this as during the signup we fetch and approve the latest entitlement,
+		// as well as sync it to our database.
 		if common_grpc.IsGRPCStatusErrorCode(err, http.StatusNotFound) {
 			logger.Infof("Account %v has not yet finished signing up, ignoring message", externalAccountID)
 			return nil // ACK
@@ -70,10 +70,10 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	}
 
 	if err != nil {
-		// Once in a while, Google seems to be sending a PubSub message for a subscription that is
+		// Once in a while, Google seems to be sending a PubSub message for an entitlement that is
 		// no longer accessible for us. This could be due to the (billing) account being deleted on
 		// Google's end.
-		// If that subscription is marked as completed locally, we just ignore that error to have
+		// If that entitlement is marked as cancelled locally, we just ignore that error to have
 		// the PubSub message properly ACKed.
 		// TODO(rndstr): can we confirm the account was deleted and delete the instance instead?
 		if gcp.SubscriptionStatus == string(procurement.Cancelled) {

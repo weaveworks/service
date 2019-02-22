@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
 	"github.com/weaveworks/common/http/client"
@@ -109,7 +108,6 @@ func NewClient(cfg Config) (*Client, error) {
 }
 
 // NewClientFromJSONKey instantiates a client from the given JSON key.
-// FIXME(rndstr): do we need this? is this correct?
 func NewClientFromJSONKey(cfg Config, jsonKey []byte) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
@@ -122,15 +120,6 @@ func NewClientFromJSONKey(cfg Config, jsonKey []byte) (*Client, error) {
 	return &Client{
 		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 		cfg:        cfg,
-	}, nil
-}
-
-// NewClientFromTokenSource instantiates a client from the given token source.
-// FIXME(rndstr): do we need this?
-func NewClientFromTokenSource(ts oauth2.TokenSource) (*Client, error) {
-	cl := oauth2.NewClient(context.Background(), ts)
-	return &Client{
-		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 	}, nil
 }
 
