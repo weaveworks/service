@@ -85,7 +85,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// customer and updating our records.
 			logger.Info("Approving entitlement")
 			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name, ""); err != nil {
-				logger.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
+				logger.WithError(err).Error("Partner failed to approve entitlement")
 				return err
 			}
 			return nil
@@ -102,11 +102,12 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	case event.PlanChangeRequested:
 		if ent.State == procurement.PendingPlanChangeApproval {
+			logger.Info("Activating entitlement plan change")
 			// Don't write anything to our database until the entitlement
 			// becomes active within the Procurement Service.
 			// TODO(rndstr): is ent.NewPendingPlan the correct to send here, or do we need to extract from payload?
 			if err := m.Procurement.ApprovePlanChangeEntitlement(ctx, ent.Name, ent.NewPendingPlan); err != nil {
-				logger.Errorf("Partner failed to approve entitlement for '%s': %v", ent.AccountID(), err)
+				logger.WithError(err).Errorf("Partner failed to approve entitlement plan change")
 				return err
 			}
 			return nil
@@ -128,7 +129,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	case event.Cancelled:
 		if ent.State == procurement.Cancelled {
 			// Write to database
-			logger.Infof("Cancelling entitlement", ent)
+			logger.Info("Cancelling entitlement")
 			return m.cancelEntitlement(ctx, ent)
 		}
 		return nil
