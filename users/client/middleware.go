@@ -22,6 +22,7 @@ import (
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
 	httpUtil "github.com/weaveworks/service/common/http"
+	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -448,6 +449,31 @@ func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 					return
 				}
 			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// ScopeCensorMiddleware is a middleware.Interface which passes
+// certain query params to Scope API depending on user permissions.
+type ScopeCensorMiddleware struct {
+	UsersClient  users.UsersClient
+	UserIDHeader string
+}
+
+// Wrap implements middleware.Interface
+func (a ScopeCensorMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If the user has no permission to view the token, we tell Scope to hide all the sensitive data for the request.
+		if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
+			OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{mux.Vars(r)["orgExternalID"]},
+			UserID:       r.Header.Get(a.UserIDHeader),
+			PermissionID: permission.ViewToken,
+		}); err != nil {
+			q := r.URL.Query()
+			q.Add("hideCommandLineArguments", "true")
+			q.Add("hideEnvironmentVariables", "true")
+			r.URL.RawQuery = q.Encode()
 		}
 		next.ServeHTTP(w, r)
 	})
