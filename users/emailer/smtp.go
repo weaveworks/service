@@ -97,7 +97,7 @@ func (s SMTPEmailer) InviteToTeamEmail(inviter, invited *users.User, teamExterna
 		"InviterName": inviter.Email,
 		"LoginURL":    inviteToTeamURL(invited.Email, token, s.Domain, teamExternalID),
 		"RootURL":     s.Domain,
-		"TeamName":    teamExternalID,
+		"TeamName":    teamName,
 	}
 	e.Text = s.Templates.QuietBytes("invite_to_team_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("invite_to_team_email.html", emailWrapperFilename, e.Subject, data)
