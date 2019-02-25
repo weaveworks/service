@@ -36,7 +36,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_update", "PUT", "/api/users/user", a.authenticateUser(a.updateUser)},
 		{"api_users_user", "GET", "/api/users/user", a.authenticateUser(a.getCurrentUser)},
 		{"api_users_gcp_subscribe", "POST", "/api/users/gcp/subscribe", a.authenticateUser(a.gcpSubscribe)},
-		{"api_users_gcp_sso_login", "GET", "/api/users/gcp/sso/login/{externalAccountID}", a.authenticateUser(a.gcpSSOLogin)},
+		{"api_users_gcp_sso_login", "GET", "/api/users/gcp/sso/login", a.authenticateUser(a.gcpSSOLogin)},
 		// The same as api_users_signup, but exempt from CRSF in authfe and authenticated via header here
 		{"api_users_signup_webhook", "POST", "/api/users/signup_webhook", a.authenticateWebhook(a.signup)},
 
