@@ -103,18 +103,24 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizationURL string) []WorkloadResourceConsumptionInfo {
 	// To normalize the resource consumption bars to a fixed width, we need to divide them by the longest bar.
 	// The initial value is set just above 0 to avoid division by zero in case it happens to be nil for all workloads.
-	maxConsumptionValue := 0.00001
+	maxClusterConsumption := 0.00001
 	for _, workload := range workloads {
-		if float64(workload.ClusterConsumption) > maxConsumptionValue {
-			maxConsumptionValue = float64(workload.ClusterConsumption)
+		clusterConsumption := float64(workload.ClusterConsumption)
+		if clusterConsumption > maxClusterConsumption {
+			maxClusterConsumption = clusterConsumption
 		}
 	}
 
 	topWorkloads := []WorkloadResourceConsumptionInfo{}
 	for _, workload := range workloads {
-		// Render a very thin bar for min resource usage; max bar width will be 75%, the rest linearly proportional.
-		barWidthPercent := 1 + (75 * float64(workload.ClusterConsumption) / maxConsumptionValue)
-		clusterPercent := fmt.Sprintf("%2.2f%%", 100*float64(workload.ClusterConsumption))
+		// Render a very thin bar for min resource usage; bar width will be in the range (5, 70], the rest linearly proportional.
+		clusterConsumption := float64(workload.ClusterConsumption)
+		addedPercent := float64(5) // In the event a cluster has a consumption near 0, we want to at least show some visual indication of the bar's existence - so we add 5 arbitrary percent.
+		scaleFactor := float64(65) // We don't want this number to be 100 because there needs to be 30% or so of the width (including the addedPercent) available for the trailing percentage text that's on the same line.
+		percentageOfMaximum := clusterConsumption / maxClusterConsumption
+		barWidthPercent := addedPercent + (scaleFactor * percentageOfMaximum)
+
+		clusterPercent := fmt.Sprintf("%2.2f%%", 100*clusterConsumption)
 
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionInfo{
 			WorkloadNameFull:  workload.WorkloadName,

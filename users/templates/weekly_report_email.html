@@ -38,7 +38,7 @@
     <p style="color: #666; font-size: 12px; margin: 0 0 15px;">Showing workloads consuming most resources (% of total cluster capacity)</p>
 
     {{range .Resources}}
-      <div class="resource-section" style="display: inline-block; margin: 0 4% 30px 0;">
+      <div class="resource-section" style="display: inline-block; margin: 0 4% 30px 0;vertical-align: top">
         <h3 style="color: #666; font-size: 14px; font-weight: bold; margin-bottom: 20px;">{{.Label}}</h3>
         {{range .TopConsumers}}
           <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
