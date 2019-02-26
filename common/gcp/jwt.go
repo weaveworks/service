@@ -38,11 +38,11 @@ func (c Claims) Valid() error {
 // ParseJWT reads the JWT received from GCP.
 func ParseJWT(tok string) (Claims, error) {
 	var claims Claims
-	token, err := jwt.ParseWithClaims(tok, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tok, &claims, func(token *jwt.Token) (interface{}, error) {
 		return token.Header["kid"], nil
 	})
 	if err != nil {
-		return claims, nil
+		return claims, err
 	}
 	claims = token.Claims.(Claims)
 	return claims, nil
