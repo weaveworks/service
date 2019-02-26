@@ -139,7 +139,7 @@ func (a *API) adminGCPListEntitlements(w http.ResponseWriter, r *http.Request) {
 func (a *API) getPendingEntitlement(ctx context.Context, logger *log.Entry, externalAccountID string) (*procurement.Entitlement, error) {
 	ents, err := a.procurement.ListEntitlements(ctx, externalAccountID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot list entitlements")
 	}
 	logger.Infof("Received entitlements: %+v", ents)
 	for _, e := range ents {
