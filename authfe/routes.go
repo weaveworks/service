@@ -133,6 +133,11 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		Secret: c.gcpSSOSecret,
 	}
 
+	scopeCensorMiddleware := users_client.ScopeCensorMiddleware{
+		UsersClient:  authenticator,
+		UserIDHeader: userIDHeader,
+	}
+
 	userPermissionsMiddleware := users_client.UserPermissionsMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
@@ -239,8 +244,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		MiddlewarePrefix{
 			"/api/app/{orgExternalID}",
 			[]PrefixRoutable{
-				Prefix{"/api/report", c.queryHost},
-				Prefix{"/api/topology", c.queryHost},
+				Prefix{"/api/report", scopeCensorMiddleware.Wrap(c.queryHost)},
+				Prefix{"/api/topology", scopeCensorMiddleware.Wrap(c.queryHost)},
 				Prefix{"/api/control", c.controlHost},
 				Prefix{"/api/pipe", c.pipeHost},
 				// API to insert deploy key requires GH token. Insert token with middleware.
