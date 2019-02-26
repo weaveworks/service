@@ -471,8 +471,8 @@ func (a ScopeCensorMiddleware) Wrap(next http.Handler) http.Handler {
 			PermissionID: permission.ViewToken,
 		}); err != nil {
 			q := r.URL.Query()
-			q.Add("hideCommandLineArguments", "true")
-			q.Add("hideEnvironmentVariables", "true")
+			q.Set("hideCommandLineArguments", "true")
+			q.Set("hideEnvironmentVariables", "true")
 			r.URL.RawQuery = q.Encode()
 		}
 		next.ServeHTTP(w, r)
