@@ -1,4 +1,5 @@
 package procurement
+
 // FIXME(rndstr): is this actually needed now?
 
 import (
