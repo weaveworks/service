@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	issuer   = "https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com"
-	audience = "cloud.weave.works"
+	issuer       = "https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com"
+	audienceDev  = "frontend.dev.weave.works"
+	audienceProd = "cloud.weave.works"
 )
 
 // Claims implements further verifications for a GCP JWT.
@@ -29,14 +30,14 @@ func (c Claims) Valid() error {
 	if err := c.StandardClaims.Valid(); err != nil {
 		return err
 	}
-	if !c.VerifyAudience(audience, true) {
-		return fmt.Errorf("unexpected audience: %q", c.Issuer)
+	if !c.VerifyAudience(audienceDev, true) && !c.VerifyAudience(audienceProd, true) {
+		return fmt.Errorf("unexpected audience: %q", c.Audience)
 	}
 	if !c.VerifyIssuer(issuer, true) {
 		return fmt.Errorf("unexpected issuer: %q", c.Issuer)
 	}
 	if c.Subject == "" {
-		return fmt.Errorf("unexpected subject: %q", c.Issuer)
+		return fmt.Errorf("unexpected subject: %q", c.Subject)
 	}
 	return nil
 }
