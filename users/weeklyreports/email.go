@@ -14,7 +14,32 @@ const (
 	dateLongFormat  = "October 2nd, 2006"
 )
 
-// WorkloadDeploymentsBar contains info for rendering a deployments count vertical bar.
+// EmailSummary contains all the data for rendering the weekly summary report in the email.
+type EmailSummary struct {
+	HasData      bool
+	DateInterval string
+	Organization OrganizationInfo
+	Deployments  WorkloadDeploymentsHistogram
+	Resources    WorkloadResourcesChart
+}
+
+// OrganizationInfo contains the basic organizations information.
+type OrganizationInfo struct {
+	Name        string
+	CreationDay string
+	HomepageURL string
+	StatusURL   string
+	DeleteURL   string
+}
+
+// WorkloadDeploymentsHistogram for rendering a deployments histogram.
+type WorkloadDeploymentsHistogram struct {
+	HasData   bool
+	LinkTo    string
+	Histogram []WorkloadDeploymentsBar
+}
+
+// WorkloadDeploymentsBar contains info for rendering a single deployments count vertical bar.
 type WorkloadDeploymentsBar struct {
 	LinkTo      string
 	DayOfWeek   string
@@ -22,28 +47,27 @@ type WorkloadDeploymentsBar struct {
 	BarHeightPx int
 }
 
-// WorkloadResourceConsumptionInfo contains info for rendering a single resource consumption horizontal bar.
+// WorkloadResourcesChart describes the resource consumption data to be rendered.
+type WorkloadResourcesChart struct {
+	HasData      bool
+	LinkTo       string
+	TopConsumers []WorkloadResourceTopConsumers
+}
+
+// WorkloadResourceTopConsumers describes a list of top consuming workloads for a fixed resource.
+type WorkloadResourceTopConsumers struct {
+	Label     string
+	LinkTo    string
+	Workloads []WorkloadResourceConsumptionInfo
+}
+
+// WorkloadResourceConsumptionInfo contains info for rendering a single horizontal consumption bar of a single resource.
 type WorkloadResourceConsumptionInfo struct {
 	LinkTo            string
 	WorkloadNameShort string
 	WorkloadNameFull  string
 	ClusterPercent    string
 	BarWidthPercent   float64
-}
-
-// WorkloadResourceStats describes a list of top consuming workloads for a fixed resource.
-type WorkloadResourceStats struct {
-	Label        string
-	TopConsumers []WorkloadResourceConsumptionInfo
-}
-
-// EmailSummary contains all the data for rendering the weekly summary report in the email.
-type EmailSummary struct {
-	DateInterval            string
-	OrganizationName        string
-	OrganizationCreationDay string
-	Deployments             []WorkloadDeploymentsBar
-	Resources               []WorkloadResourceStats
 }
 
 func getDeployHistoryLink(organizationURL string, endAt time.Time, timeRange string) string {
@@ -55,6 +79,18 @@ func getWorkloadSummaryLink(organizationURL string, workloadName string) string 
 	return fmt.Sprintf("%s/workloads/%s/summary", organizationURL, url.QueryEscape(workloadName))
 }
 
+func getDeployLink(organizationURL string) string {
+	return fmt.Sprintf("%s/deploy", organizationURL)
+}
+
+func getWorkloadResourcesLink(organizationURL string) string {
+	return fmt.Sprintf("%s/monitor/dashboard/workload-resources?namespace=all", organizationURL)
+}
+
+func getDeleteOrganizationLink(organizationURL string) string {
+	return fmt.Sprintf("%s/org/delete", organizationURL)
+}
+
 func truncateString(s string, cap int) string {
 	if len(s) > cap {
 		s = s[:cap-3] + "..."
@@ -62,14 +98,18 @@ func truncateString(s string, cap int) string {
 	return s
 }
 
-func generateDeploymentsHistogram(report *Report, organizationURL string) []WorkloadDeploymentsBar {
-	// To normalize the deployments bars to a fixed height, we need to divide them by the highest bar - here
-	// we cap it from below at 1 to avoid division by zero in case of no deployments for a whole week.
-	maxDeploymentsCount := 1
+func generateDeploymentsHistogram(report *Report, organizationURL string) WorkloadDeploymentsHistogram {
+	// To normalize the deployments bars to a fixed height, we need to divide them by the max number.
+	maxDeploymentsCount := 0
 	for _, deploymentsCount := range report.DeploymentsPerDay {
 		if deploymentsCount > maxDeploymentsCount {
 			maxDeploymentsCount = deploymentsCount
 		}
+	}
+	// Here we put it at least to 1 to avoid division by zero in case of no deployments for a whole week.
+	deploymentsCap := maxDeploymentsCount
+	if deploymentsCap == 0 {
+		deploymentsCap = 1
 	}
 
 	releasesHistogram := []WorkloadDeploymentsBar{}
@@ -78,7 +118,7 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 		dayEnd := dayBegin.AddDate(0, 0, 1)
 
 		// Render a very thin bar for 0 deployments; max bar height will be 150px, the rest linearly proportional.
-		barHeightPx := 2 + (150.0 * totalCount / maxDeploymentsCount)
+		barHeightPx := 2 + (150.0 * totalCount / deploymentsCap)
 		linkTo := getDeployHistoryLink(organizationURL, dayEnd, "24h")
 		totalCount := fmt.Sprintf("%d", totalCount)
 
@@ -97,7 +137,26 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 		})
 	}
 
-	return releasesHistogram
+	return WorkloadDeploymentsHistogram{
+		LinkTo:    getDeployLink(organizationURL),
+		HasData:   maxDeploymentsCount > 0,
+		Histogram: releasesHistogram,
+	}
+}
+
+func generateResourcesChart(report *Report, organizationURL string) WorkloadResourcesChart {
+	cpuTopConsumers := generateResourceBars(report.CPUIntensiveWorkloads, organizationURL)
+	memoryTopConsumers := generateResourceBars(report.MemoryIntensiveWorkloads, organizationURL)
+	workloadResourcesLink := getWorkloadResourcesLink(organizationURL)
+
+	return WorkloadResourcesChart{
+		LinkTo:  workloadResourcesLink,
+		HasData: len(cpuTopConsumers) > 0 || len(memoryTopConsumers) > 0,
+		TopConsumers: []WorkloadResourceTopConsumers{
+			{Label: "CPU", LinkTo: workloadResourcesLink, Workloads: cpuTopConsumers},
+			{Label: "Memory", LinkTo: workloadResourcesLink, Workloads: memoryTopConsumers},
+		},
+	}
 }
 
 func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizationURL string) []WorkloadResourceConsumptionInfo {
@@ -133,8 +192,6 @@ func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizati
 	return topWorkloads
 }
 
-// getReportInterval formats a human readable text representing
-// the date range the report covers.
 func getReportInterval(report *Report) string {
 	// Format the last day nicely (go back a day for inclusive interval).
 	lastDay := report.EndAt.AddDate(0, 0, -1)
@@ -157,20 +214,20 @@ func getOrganizationCreationDayIfRecent(report *Report) string {
 
 // EmailSummaryFromReport returns the weekly summary report in the format directly consumable by email templates.
 func EmailSummaryFromReport(report *Report, organizationURL string) *EmailSummary {
+	deployments := generateDeploymentsHistogram(report, organizationURL)
+	resources := generateResourcesChart(report, organizationURL)
+
 	return &EmailSummary{
-		DateInterval:            getReportInterval(report),
-		OrganizationName:        report.Organization.Name,
-		OrganizationCreationDay: getOrganizationCreationDayIfRecent(report),
-		Deployments:             generateDeploymentsHistogram(report, organizationURL),
-		Resources: []WorkloadResourceStats{
-			{
-				Label:        "CPU",
-				TopConsumers: generateResourceBars(report.CPUIntensiveWorkloads, organizationURL),
-			},
-			{
-				Label:        "Memory",
-				TopConsumers: generateResourceBars(report.MemoryIntensiveWorkloads, organizationURL),
-			},
+		Organization: OrganizationInfo{
+			CreationDay: getOrganizationCreationDayIfRecent(report),
+			Name:        report.Organization.Name,
+			HomepageURL: organizationURL,
+			StatusURL:   organizationURL,
+			DeleteURL:   getDeleteOrganizationLink(organizationURL),
 		},
+		DateInterval: getReportInterval(report),
+		HasData:      deployments.HasData || resources.HasData,
+		Deployments:  deployments,
+		Resources:    resources,
 	}
 }
