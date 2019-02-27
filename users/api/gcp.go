@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -112,6 +112,8 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 		if err := a.procurement.ApproveEntitlement(r.Context(), ent.Name, ""); err != nil {
 			return nil, err
 		}
+	} else {
+		logger.Info("Not approving account/entitlement for testing account")
 	}
 
 	// Mark GCP account as activated account.
