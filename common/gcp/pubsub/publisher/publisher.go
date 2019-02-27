@@ -90,7 +90,7 @@ func createTopic(ctx context.Context, client *pubsub.Client, topicID, topicProje
 // CreateSubscription is a convenience method to create a subscription
 // for this publisher's project and topic. It is not required to call
 // this method to publish messages if you expect a subscription to already
-// exist.
+// exist. If endpoint is empty, creates a pull-based subscription.
 func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
 	sub := p.client.Subscription(subName)
 	exists, err := sub.Exists(p.ctx)
@@ -102,9 +102,11 @@ func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time
 		sub.Delete(p.ctx)
 	}
 	config := pubsub.SubscriptionConfig{
-		PushConfig:  pubsub.PushConfig{Endpoint: endpoint},
 		Topic:       p.topic,
 		AckDeadline: ackDeadline,
+	}
+	if endpoint != "" {
+		config.PushConfig= pubsub.PushConfig{Endpoint: endpoint}
 	}
 	sub, err = p.client.CreateSubscription(p.ctx, subName, config)
 	if err != nil {
@@ -115,24 +117,26 @@ func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time
 
 // CreateSubscriptionCallback sets up a pull subscription with callback.
 // Note that this is blocking.
-func (p Publisher) CreateSubscriptionCallback(subName string, ackDeadline time.Duration, callback func(msg dto.Message) error) error {
+func (p Publisher) ReceiveSubscription(subName string, create bool, ackDeadline time.Duration, callback func(msg dto.Message) error) error {
 	sub := p.client.Subscription(subName)
-	exists, err := sub.Exists(p.ctx)
-	if err != nil {
-		return errors.Wrapf(err, "cannot check for existence of subscription [%v]", subName)
+	if create {
+		exists, err := sub.Exists(p.ctx)
+		if err != nil {
+			return errors.Wrapf(err, "cannot check for existence of subscription [%v]", subName)
+		}
+		// If it already exists, we delete it to make sure configuration changes propagate
+		if exists {
+			sub.Delete(p.ctx)
+		}
+		sub, err = p.client.CreateSubscription(p.ctx, subName, pubsub.SubscriptionConfig{
+			Topic:       p.topic,
+			AckDeadline: ackDeadline,
+		})
+		if err != nil {
+			return errors.Wrapf(err, "cannot create subscription [%v] on [%v]", subName, p.topic.ID())
+		}
 	}
-	// If it already exists, we delete it to make sure configuration changes propagate
-	if exists {
-		sub.Delete(p.ctx)
-	}
-	sub, err = p.client.CreateSubscription(p.ctx, subName, pubsub.SubscriptionConfig{
-		Topic:       p.topic,
-		AckDeadline: ackDeadline,
-	})
-	if err != nil {
-		return errors.Wrapf(err, "cannot create subscription [%v] on [%v]", subName, p.topic.ID())
-	}
-	err = sub.Receive(p.ctx, func(ctx context.Context, msg *pubsub.Message) {
+	err := sub.Receive(p.ctx, func(ctx context.Context, msg *pubsub.Message) {
 		hmsg := dto.Message{
 			MessageID:  msg.ID,
 			Data:       msg.Data,
