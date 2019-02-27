@@ -26,6 +26,7 @@ type MessageHandler struct {
 
 // Handle proceeds entitlement messages from PubSub.
 func (m MessageHandler) Handle(msg dto.Message) error {
+	log.Infof("Incoming webhook message: %+v", string(msg.Data))
 	ctx := context.Background()
 
 	var payload event.Payload
@@ -47,8 +48,9 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return errors.Wrapf(err, "error getting entitlement: %q", entitlementName)
 	case ent == nil:
 		// Do nothing. The entitlement has to be cancelled to be deleted, so
-		// this has already been handled by a cancellation message.
-		log.Infof("Entitlement %q no longer exists. Acknowledging message", entitlementName)
+		// this has already been handled by a cancellation message. And for
+		// creation request, the signup flow will handle it.
+		log.Infof("Entitlement %q not found, acknowledging message", entitlementName)
 		return nil // ACK: entitlement no longer exists
 	}
 
@@ -87,7 +89,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// customer and updating our records.
 			logger.Info("Approving entitlement")
 			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name, ""); err != nil {
-				logger.WithError(err).Error("Partner failed to approve entitlement")
+				logger.WithError(err).Error("Failed to approve entitlement")
 				return err
 			}
 			return nil
@@ -109,7 +111,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// becomes active within the Procurement Service.
 			// TODO(rndstr): is ent.NewPendingPlan the correct to send here, or do we need to extract from payload?
 			if err := m.Procurement.ApprovePlanChangeEntitlement(ctx, ent.Name, ent.NewPendingPlan); err != nil {
-				logger.WithError(err).Error("Partner failed to approve entitlement plan change")
+				logger.WithError(err).Error("Failed to approve entitlement plan change")
 				return err
 			}
 			return nil

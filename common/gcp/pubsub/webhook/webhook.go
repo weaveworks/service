@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
@@ -22,8 +20,6 @@ func New(handler MessageHandler) http.Handler {
 			render.Error(w, req, users.NewMalformedInputError(err), users_render.ErrorStatusCode)
 			return
 		}
-		log.Infof("Incoming webhook event: %+v", event)
-
 		if err := handler.Handle(event.Message); err != nil {
 			render.Error(w, req, err, users_render.ErrorStatusCode) // NACK: we might want to retry on this message later.
 		} else {

@@ -106,7 +106,7 @@ func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time
 		AckDeadline: ackDeadline,
 	}
 	if endpoint != "" {
-		config.PushConfig= pubsub.PushConfig{Endpoint: endpoint}
+		config.PushConfig = pubsub.PushConfig{Endpoint: endpoint}
 	}
 	sub, err = p.client.CreateSubscription(p.ctx, subName, config)
 	if err != nil {
@@ -115,7 +115,7 @@ func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time
 	return sub, nil
 }
 
-// CreateSubscriptionCallback sets up a pull subscription with callback.
+// ReceiveSubscription sets up a pull subscription with callback.
 // Note that this is blocking.
 func (p Publisher) ReceiveSubscription(subName string, create bool, ackDeadline time.Duration, callback func(msg dto.Message) error) error {
 	sub := p.client.Subscription(subName)
