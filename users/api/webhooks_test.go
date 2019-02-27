@@ -83,6 +83,28 @@ func TestAPI_createOrganizationWebhook(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestAPI_createOrganizationWebhookNonAdmin(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org, team := dbtest.GetOrgAndTeam(t, database)
+	viewerUser := getUser(t)
+	database.AddFeatureFlag(ctx, org.ExternalID, "permissions")
+
+	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")
+	assert.NoError(t, err)
+
+	payload, err := json.Marshal(map[string]string{"integrationType": webhooks.GithubPushIntegrationType})
+	assert.NoError(t, err)
+	w := httptest.NewRecorder()
+	r := requestAs(t, viewerUser, "POST", "/api/users/org/"+org.ExternalID+"/webhooks", bytes.NewReader(payload))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+}
+
 func TestAPI_deleteOrganizationWebhook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -100,4 +122,26 @@ func TestAPI_deleteOrganizationWebhook(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, webhooks, 1)
 	assert.Equal(t, w2.ID, webhooks[0].ID)
+}
+
+func TestAPI_deleteOrganizationWebhookNonAdmin(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org, team := dbtest.GetOrgAndTeam(t, database)
+	viewerUser := getUser(t)
+	database.AddFeatureFlag(ctx, org.ExternalID, "permissions")
+	w1 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
+
+	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")
+	assert.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	r := requestAs(t, viewerUser, "DELETE", "/api/users/org/"+org.ExternalID+"/webhooks/"+w1.SecretID, nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	webhooks, err := database.ListOrganizationWebhooks(context.Background(), org.ExternalID)
+	assert.NoError(t, err)
+	assert.Len(t, webhooks, 1)
 }
