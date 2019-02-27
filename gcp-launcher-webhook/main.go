@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -91,7 +92,7 @@ func main() {
 		HTTPListenPort:          cfg.port,
 		MetricsNamespace:        common.PrometheusNamespace,
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	}
 	server, err := server.New(serverCfg)
 	if err != nil {
@@ -126,8 +127,14 @@ func forwardMessage(secret string, port int) func(dto.Message) error {
 		if err != nil {
 			return err
 		}
+		client := http.Client{
+			Timeout: 30 * time.Second,
+		}
 		u := url.Values{"secret": []string{secret}}
-		resp, err := http.Post(fmt.Sprintf("http://localhost:%d?%s", port, u.Encode()), "application/json", bytes.NewReader(bs))
+		resp, err := client.Post(fmt.Sprintf("http://localhost:%d?%s", port, u.Encode()), "application/json", bytes.NewReader(bs))
+		if err != nil {
+			return err
+		}
 		resp.Body.Close()
 		return err
 	}

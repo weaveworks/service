@@ -4,8 +4,8 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
@@ -60,18 +60,17 @@ func ParseJWT(tok string) (Claims, error) {
 }
 
 func fetchPublicKey(keyID string) (*rsa.PublicKey, error) {
-	resp, err := http.Get(issuer)
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Get(issuer)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+
 	var pems map[string]string
-	err = json.Unmarshal(body, &pems)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&pems); err != nil {
 		return nil, err
 	}
 	if _, ok := pems[keyID]; !ok {
