@@ -50,8 +50,8 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		// Do nothing. The entitlement has to be cancelled to be deleted, so
 		// this has already been handled by a cancellation message. And for
 		// creation request, the signup flow will handle it.
-		log.Infof("Entitlement %q not found, acknowledging message", entitlementName)
-		return nil // ACK: entitlement no longer exists
+		log.Infof("Entitlement %q not found remotely, acknowledging message", entitlementName)
+		return nil // ACK
 	}
 
 	externalAccountID := ent.AccountID()

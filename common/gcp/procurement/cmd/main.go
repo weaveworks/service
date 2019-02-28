@@ -22,16 +22,16 @@ import (
 )
 
 type config struct {
-	action            string
-	externalAccountID string
-	entitlementName   string
-	procurement       procurement.Config
+	action             string
+	entitlementName    string
+	entitlementNewPlan string
+	procurement        procurement.Config
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
-	flag.StringVar(&c.action, "action", "approve", "Action to perform on the provided GCP account-subscription pair.")
-	flag.StringVar(&c.externalAccountID, "external-account-id", "X-XXXX-XXXX-XXXX-XXXX", "GCP external account ID.")
-	flag.StringVar(&c.entitlementName, "entitlement-name", "entitlements/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", "GCP entitlement name.")
+	flag.StringVar(&c.action, "action", "", "Action to perform on the provided GCP account-subscription pair.")
+	flag.StringVar(&c.entitlementName, "entitlement-name", "providers/XXXXX/entitlements/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", "GCP entitlement name.")
+	flag.StringVar(&c.entitlementNewPlan, "entitlement-new-plan", "", "When doing approvePlanChange, the name of the new plan (standard, enterprise).")
 	c.procurement.RegisterFlags(f)
 }
 
@@ -45,18 +45,26 @@ func main() {
 		log.Fatalf("Failed creating Google Partner Procurement API client: %v", err)
 	}
 
+	ctx := context.Background()
 	switch cfg.action {
+	case "get":
+		ent, err := client.GetEntitlement(ctx, cfg.entitlementName)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		fmt.Printf("Entitlement: %#v\n", ent)
 	case "approve":
-		approve(client, cfg.entitlementName)
+		if err := client.ApproveEntitlement(ctx, cfg.entitlementName); err != nil {
+			log.Fatal(err)
+			return
+		}
+	case "approvePlanChange":
+		if err := client.ApprovePlanChangeEntitlement(ctx, cfg.entitlementName, cfg.entitlementNewPlan); err != nil {
+			log.Fatal(err)
+			return
+		}
 	default:
 		fmt.Printf("Unknown command [%v].", cfg.action)
 	}
-}
-
-func approve(client *procurement.Client, entitlementName string) error {
-	ctx := context.Background()
-	if err := client.ApproveEntitlement(ctx, entitlementName); err != nil {
-		return err
-	}
-	return nil
 }

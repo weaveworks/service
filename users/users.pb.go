@@ -858,7 +858,7 @@ type GoogleCloudPlatform struct {
 	CreatedAt time.Time `protobuf:"bytes,4,opt,name=CreatedAt,stdtime" json:"CreatedAt"`
 	// Consumer ID to report usage against
 	ConsumerID string `protobuf:"bytes,5,opt,name=ConsumerID,proto3" json:"ConsumerID,omitempty"`
-	// Name of the running subscription, in the format "provider/<id>/entitlements/<id>"
+	// Name of the running subscription, in the format "entitlements/*"
 	SubscriptionName string `protobuf:"bytes,6,opt,name=SubscriptionName,proto3" json:"SubscriptionName,omitempty"`
 	// Level of the subscription, can be "standard" or "enterprise"
 	SubscriptionLevel string `protobuf:"bytes,7,opt,name=SubscriptionLevel,proto3" json:"SubscriptionLevel,omitempty"`
