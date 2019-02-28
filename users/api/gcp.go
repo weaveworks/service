@@ -28,7 +28,7 @@ var (
 )
 
 func (a *API) gcpSSOLogin(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	claims, err := gcp.ParseJWT(r.FormValue("x-gcp-marketplace-token"))
+	claims, err := gcp.ParseJWT(r.FormValue(gcp.MarketplaceTokenParam))
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -65,7 +65,7 @@ func (a *API) GCPSSOLogin(currentUser *users.User, externalAccountID string, w h
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	claims, err := gcp.ParseJWT(r.FormValue("x-gcp-marketplace-token"))
+	claims, err := gcp.ParseJWT(r.FormValue(gcp.MarketplaceTokenParam))
 	if err != nil {
 		renderError(w, r, err)
 		return
