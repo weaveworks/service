@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/weaveworks/service/common/gcp"
+
 	"github.com/gorilla/mux"
 	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
@@ -299,7 +301,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 		// Google Single Sign-On for GCP Cloud Launcher integration.
 		MiddlewarePrefix{
-			"/api/users/gcp/sso/login/{gcpAccountId}",
+			"/api/users/gcp/sso/login",
 			[]PrefixRoutable{
 				Prefix{"/", c.usersHost},
 			},
@@ -322,6 +324,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			),
 		},
 
+		// GCP billing integration
+		// Redirect POST requests to /subscribe-via/gcp and /login-via/gcp coming from GCP Marketplace to GET requests
+		// which can be handled by the frontend
+		PathMethods{
+			"/{action:subscribe|login}-via/gcp",
+			[]string{http.MethodPost},
+			redirectWithQuery,
+		},
 		Path{
 			"/api/ui/analytics",
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
@@ -732,3 +742,30 @@ func redirect(dest string) http.Handler {
 		http.Redirect(w, r, dest, 302)
 	})
 }
+
+var redirectWithQuery = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	logger := logging.WithField("url", r.URL.Path)
+	logger.Infoln("Handling GCP integration request")
+
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// Limit request body to 16KiB
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	if err := r.ParseForm(); err != nil {
+		logger.Errorf("Error parsing form: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	gcpToken := r.PostForm.Get(gcp.MarketplaceTokenParam)
+	if gcpToken == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	query := r.URL.Query()
+	query.Add(gcp.MarketplaceTokenParam, gcpToken)
+	redirectURL := fmt.Sprintf("%s?%s", r.URL.Path, query.Encode())
+	http.Redirect(w, r, redirectURL, http.StatusFound)
+})
