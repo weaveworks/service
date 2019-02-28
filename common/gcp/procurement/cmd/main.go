@@ -55,7 +55,7 @@ func main() {
 
 func approve(client *procurement.Client, entitlementName string) error {
 	ctx := context.Background()
-	if err := client.ApproveEntitlement(ctx, entitlementName, ""); err != nil {
+	if err := client.ApproveEntitlement(ctx, entitlementName); err != nil {
 		return err
 	}
 	return nil

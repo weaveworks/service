@@ -430,7 +430,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	err = database.UpdateGCP(context.TODO(),
 		accountID,
 		"project_number:123",
-		"entitlements/123",
+		"providers/weaveworks-dev/entitlements/123",
 		"standard",
 		string(procurement.Active),
 	)

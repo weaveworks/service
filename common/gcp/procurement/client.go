@@ -67,12 +67,21 @@ func init() {
 
 // API defines methods to interact with the Google Partner Procurement API.
 type API interface {
+	// ApproveAccount marks the account as approved.
 	ApproveAccount(ctx context.Context, externalAccountID string) error
 
-	ApproveEntitlement(ctx context.Context, name, approvalName string) error
+	// ApproveEntitlement marks the entitlement as approved.
+	ApproveEntitlement(ctx context.Context, name string) error
+	// ApprovePlanChangeEntitlement approves the plan change.
 	ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error
+	// GetEntitlement fetches the entitlement from the Procurement API.
 	GetEntitlement(ctx context.Context, name string) (*Entitlement, error)
+	// ListEntitlements returns all entitlements found of given user.
 	ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error)
+
+	// ResourceName builds the name according to the format
+	// `providers/<provider-id>/<collection>/<id>`
+	ResourceName(collection, id string) string
 }
 
 // Client provides access to Google Partner Procurement API
@@ -84,9 +93,9 @@ type Client struct {
 // Entitlement represents a procured product of a customer.
 // See https://cloud.google.com/marketplace/docs/partners/commerce-procurement-api/reference/rest/v1/providers.entitlements
 type Entitlement struct {
-	Name             string           `json:"name"`     // "entitlements/{entitlement_id}"
+	Name             string           `json:"name"`     // "providers/{provider_id}/entitlements/{entitlement_id}"
 	Account          string           `json:"account"`  // "providers/{provider_id}/accounts/{account_id}"
-	Provider         string           `json:"provider"` // Same as the configured providerid ("weaveworks-public")
+	Provider         string           `json:"provider"` // Same as the configured providerid (e.g., "weaveworks-public")
 	Product          string           `json:"product"`  // "weave-cloud"
 	Plan             string           `json:"plan"`     // "standard"|"enterprise"
 	State            EntitlementState `json:"state"`
@@ -117,7 +126,7 @@ type ErrorResponse struct {
 
 // Error returns status code and message.
 func (a *APIError) Error() string {
-	return fmt.Sprintf("request failed: (%d) %s", a.Code, a.Message)
+	return fmt.Sprintf("Procurement API request failed: (%d) %s", a.Code, a.Message)
 }
 
 // AccountID extracts the account id from the referenced parent account.
@@ -159,19 +168,28 @@ func NewClientFromJSONKey(cfg Config, jsonKey []byte) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) urlEntitlement(name, method string) string {
+// url builds the URL with the given name and method. Name
+// is expected to have the form `providers/<provider-id>/<collection-name>/<item-id>`
+// such as `providers/weaveworks-public/entitlements/1234598`.
+func (c *Client) url(name, method string) string {
 	if method != "" {
 		method = ":" + method
 	}
-	return fmt.Sprintf("%s/v1/providers/%s/%s%s", basePath, c.cfg.ProviderID, name, method)
+	return fmt.Sprintf("%s/v1/%s%s", basePath, name, method)
 }
 
-// ApproveAccount marks the account as approved.
+// ResourceName implements API.
+func (c *Client) ResourceName(collection, id string) string {
+	return fmt.Sprintf("providers/%s/%s/%s", c.cfg.ProviderID, collection, id)
+}
+
+// ApproveAccount implements API.
 func (c *Client) ApproveAccount(ctx context.Context, externalAccountID string) error {
 	var response ErrorResponse
-	err := c.Post(ctx, "account:approve",
-		fmt.Sprintf("%s/v1/providers/%s/accounts/%s:approve", basePath, c.cfg.ProviderID, externalAccountID),
-		nil, &response)
+	// This request fails if the body isn't a valid json object
+	data := map[string]string{"approvalName": "signup"}
+	name := c.ResourceName("accounts", externalAccountID)
+	err := c.Post(ctx, "account:approve", c.url(name, "approve"), data, &response)
 	if err != nil {
 		if response.Error != nil {
 			return response.Error
@@ -181,16 +199,12 @@ func (c *Client) ApproveAccount(ctx context.Context, externalAccountID string) e
 	return nil
 }
 
-// ApproveEntitlement marks the entitlement as approved.
-// `approvalName` is the source of approval and will be set to
-// "signup" by Google if omitted.
-func (c *Client) ApproveEntitlement(ctx context.Context, name, approvalName string) error {
-	var data map[string]string
-	if approvalName != "" {
-		data = map[string]string{"approvalName": approvalName}
-	}
+// ApproveEntitlement implements API.
+func (c *Client) ApproveEntitlement(ctx context.Context, name string) error {
 	var response ErrorResponse
-	err := c.Post(ctx, "entitlement:approve", c.urlEntitlement(name, "approve"), data, &response)
+	// This request fails if the body isn't a valid json object
+	data := map[string]string{}
+	err := c.Post(ctx, "entitlement:approve", c.url(name, "approve"), data, &response)
 	if err != nil {
 		if response.Error != nil {
 			return response.Error
@@ -200,11 +214,11 @@ func (c *Client) ApproveEntitlement(ctx context.Context, name, approvalName stri
 	return nil
 }
 
-// ApprovePlanChangeEntitlement approves the plan change.
+// ApprovePlanChangeEntitlement implements API.
 func (c *Client) ApprovePlanChangeEntitlement(ctx context.Context, name, pendingPlanName string) error {
 	data := map[string]string{"pendingPlanName": pendingPlanName}
 	var response ErrorResponse
-	err := c.Post(ctx, "entitlement:approvePlanChange", c.urlEntitlement(name, "approvePlanChange"), data, &response)
+	err := c.Post(ctx, "entitlement:approvePlanChange", c.url(name, "approvePlanChange"), data, &response)
 	if err != nil {
 		if response.Error != nil {
 			return response.Error
@@ -219,13 +233,13 @@ func isNotFound(err error) bool {
 	return ok && hse.Code == http.StatusNotFound
 }
 
-// GetEntitlement fetches the entitlement from the Procurement API.
+// GetEntitlement implements API.
 func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement, error) {
 	var response struct {
 		ErrorResponse
 		Entitlement Entitlement `json:",inline"`
 	}
-	err := c.Get(ctx, "entitlement:get", c.urlEntitlement(name, "get"), &response)
+	err := c.Get(ctx, "entitlement:get", c.url(name, "get"), &response)
 	if err != nil {
 		if isNotFound(err) {
 			return nil, nil
@@ -238,14 +252,14 @@ func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement,
 	return &response.Entitlement, err
 }
 
-// ListEntitlements returns all entitlements found of given user.
+// ListEntitlements implements API.
 func (c *Client) ListEntitlements(ctx context.Context, externalAccountID string) ([]Entitlement, error) {
 	var response struct {
 		ErrorResponse
 		Entitlements []Entitlement `json:"entitlements"`
 	}
 	q := url.Values{"filter": []string{"account=" + externalAccountID}}
-	u := c.urlEntitlement("entitlements", "") + "?" + q.Encode()
+	u := c.url(c.ResourceName("entitlements", ""), "") + "?" + q.Encode()
 	err := c.Get(ctx, "entitlement:list", u, &response)
 	if err != nil {
 		if isNotFound(err) {

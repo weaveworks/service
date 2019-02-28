@@ -41,7 +41,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	}
 
 	// Fetch entitlement to get to know the external account ID
-	entitlementName := "entitlements/" + payload.Entitlement.ID
+	entitlementName := m.Procurement.ResourceName("entitlements", payload.Entitlement.ID)
 	ent, err := m.Procurement.GetEntitlement(ctx, entitlementName)
 	switch {
 	case err != nil:
@@ -88,7 +88,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			// it becomes active before setting up the service for the
 			// customer and updating our records.
 			logger.Info("Approving entitlement")
-			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name, ""); err != nil {
+			if err := m.Procurement.ApproveEntitlement(ctx, ent.Name); err != nil {
 				logger.WithError(err).Error("Failed to approve entitlement")
 				return err
 			}

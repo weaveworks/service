@@ -33,7 +33,7 @@ var (
 		Activated:         true,
 	}
 	entID               = "1"
-	entName             = "entitlements/1"
+	entName             = "providers/weaveworks-dev/entitlements/1"
 	entMsg              = makeMessage(event.CreationRequested, entID, "")
 	accMsg              = makeMessage("SOMETHING", "", externalAccountID)
 	entUsageReportingID = "product_number:123"
@@ -83,11 +83,9 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	p := mock_procurement.NewMockAPI(ctrl)
-	p.EXPECT().
-		GetEntitlement(ctx, entName).
-		Return(ent, nil)
+	expectGetEntitlement(p, ent)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
@@ -104,11 +102,9 @@ func TestMessageHandler_Handle_getError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	p := mock_procurement.NewMockAPI(ctrl)
-	p.EXPECT().
-		GetEntitlement(ctx, entName).
-		Return(ent, nil)
+	expectGetEntitlement(p, ent)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
@@ -123,14 +119,11 @@ func TestMessageHandler_Handle_gcpInacative(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
 	p := mock_procurement.NewMockAPI(ctrl)
-	p.EXPECT().
-		GetEntitlement(ctx, entName).
-		Return(ent, nil)
+	expectGetEntitlement(p, ent)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
+		GetGCP(context.TODO(), &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpInactive}, nil)
 
 	mh := entitlement.MessageHandler{Users: client, Procurement: p}
@@ -170,9 +163,7 @@ func TestMessageHandler_Handle_cancelled(t *testing.T) {
 		Return(nil, nil)
 
 	p := mock_procurement.NewMockAPI(ctrl)
-	p.EXPECT().
-		GetEntitlement(ctx, entName).
-		Return(makeEntitlement(entID, procurement.Cancelled), nil)
+	expectGetEntitlement(p, makeEntitlement(entID, procurement.Cancelled))
 
 	mh := entitlement.MessageHandler{Users: client, Procurement: p}
 	err := mh.Handle(makeMessage(event.Cancelled, entID, ""))
@@ -183,7 +174,7 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	client := mock_users.NewMockUsersClient(ctrl)
 	p := mock_procurement.NewMockAPI(ctrl)
 	mh := entitlement.MessageHandler{Users: client, Procurement: p}
@@ -192,9 +183,7 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 		client.EXPECT().
 			GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 			Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
-		p.EXPECT().
-			GetEntitlement(gomock.Any(), entName).
-			Return(makeEntitlement(entID, procurement.PendingPlanChangeApproval), nil)
+		expectGetEntitlement(p, makeEntitlement(entID, procurement.PendingPlanChangeApproval))
 		p.EXPECT().
 			ApprovePlanChangeEntitlement(gomock.Any(), entName, entNewPlan)
 
@@ -202,6 +191,8 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	t.Run("write to database", func(t *testing.T) {
+		expectGetEntitlement(p, entNew)
+
 		client.EXPECT().
 			GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 			Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
@@ -210,9 +201,6 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 				ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
 			}).
 			Return(&users.GetOrganizationResponse{Organization: org}, nil)
-		p.EXPECT().
-			GetEntitlement(gomock.Any(), entName).
-			Return(entNew, nil)
 		client.EXPECT().
 			SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
 			Return(&users.SetOrganizationFlagResponse{}, nil)
@@ -237,7 +225,7 @@ func TestMessageHandler_Handle_changePlan(t *testing.T) {
 
 func makeEntitlement(id string, state procurement.EntitlementState) *procurement.Entitlement {
 	return &procurement.Entitlement{
-		Name:             fmt.Sprintf("entitlements/%s", id),
+		Name:             fmt.Sprintf("providers/weaveworks-dev/entitlements/%s", id),
 		Account:          fmt.Sprintf("providers/weaveworks-dev/accounts/%s", externalAccountID),
 		Provider:         "weaveworks",
 		Product:          "weave-cloud",
@@ -247,3 +235,13 @@ func makeEntitlement(id string, state procurement.EntitlementState) *procurement
 		UsageReportingID: entUsageReportingID,
 	}
 }
+
+func expectGetEntitlement(api *mock_procurement.MockAPI, e *procurement.Entitlement) {
+	api.EXPECT().
+		ResourceName("entitlements", entID).
+		Return(entName)
+	api.EXPECT().
+		GetEntitlement(context.TODO(), entName).
+		Return(e, nil)
+}
+

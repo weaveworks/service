@@ -105,11 +105,13 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 			return nil, ErrAlreadyActivated
 		}
 
+		logger.Info("Approving account")
 		if err := a.procurement.ApproveAccount(r.Context(), externalAccountID); err != nil {
 			return nil, err
 		}
 
-		if err := a.procurement.ApproveEntitlement(r.Context(), ent.Name, ""); err != nil {
+		logger.Info("Approving entitlement")
+		if err := a.procurement.ApproveEntitlement(r.Context(), ent.Name); err != nil {
 			return nil, err
 		}
 	} else {

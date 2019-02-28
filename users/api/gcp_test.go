@@ -72,7 +72,7 @@ func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 		ApproveAccount(r.Context(), ent.AccountID()).
 		Return(nil)
 	client.EXPECT().
-		ApproveEntitlement(r.Context(), ent.Name, gomock.Any()).
+		ApproveEntitlement(r.Context(), ent.Name).
 		Return(nil)
 
 	t.Run("resuming inactive GCP account", func(t *testing.T) {
@@ -191,7 +191,7 @@ func testGCPSubscribe(t *testing.T, database db.DB, a *api.API, client *mock_pro
 		ApproveAccount(r.Context(), ent.AccountID()).
 		Return(nil)
 	client.EXPECT().
-		ApproveEntitlement(r.Context(), ent.Name, gomock.Any()).
+		ApproveEntitlement(r.Context(), ent.Name).
 		Return(nil)
 
 	org, err := a.GCPSubscribe(user, ent.AccountID(), w, r)
@@ -237,7 +237,7 @@ func createAPI(client procurement.API) *api.API {
 }
 func makeEntitlement(state procurement.EntitlementState) procurement.Entitlement {
 	return procurement.Entitlement{
-		Name:             fmt.Sprintf("entitlements/%d", rand.Int63()),
+		Name:             fmt.Sprintf("providers/weaveworks-dev/entitlements/%d", rand.Int63()),
 		Account:          fmt.Sprintf("providers/weaveworks-dev/accounts/E-%d", rand.Int63()),
 		Provider:         "weaveworks",
 		Product:          "weave-cloud",

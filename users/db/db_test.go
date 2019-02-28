@@ -193,7 +193,7 @@ func TestDB_FindGCP(t *testing.T) {
 	assert.NoError(t, err)
 	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID, u.TrialExpiresAt())
 	assert.NoError(t, err)
-	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "entitlements/1", "enterprise", string(procurement.Active))
+	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "providers/weaveworks-dev/entitlements/1", "enterprise", string(procurement.Active))
 	assert.NoError(t, err)
 
 	// Database request returns same values
@@ -201,7 +201,7 @@ func TestDB_FindGCP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, externalAccountID, gcp.ExternalAccountID)
 	assert.Equal(t, "project_number:123", gcp.ConsumerID)
-	assert.Equal(t, "entitlements/1", gcp.SubscriptionName)
+	assert.Equal(t, "providers/weaveworks-dev/entitlements/1", gcp.SubscriptionName)
 	assert.Equal(t, "enterprise", gcp.SubscriptionLevel)
 	assert.EqualValues(t, procurement.Active, gcp.SubscriptionStatus)
 
