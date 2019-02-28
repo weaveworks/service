@@ -239,7 +239,7 @@ func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement,
 		ErrorResponse
 		Entitlement Entitlement `json:",inline"`
 	}
-	err := c.Get(ctx, "entitlement:get", c.url(name, "get"), &response)
+	err := c.Get(ctx, "entitlement:get", c.url(name, ""), &response)
 	if err != nil {
 		if isNotFound(err) {
 			return nil, nil
