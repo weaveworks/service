@@ -6,15 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/common/gcp"
-	"github.com/weaveworks/service/common/gcp/gke"
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
-	plus "google.golang.org/api/plus/v1"
+	"google.golang.org/api/plus/v1"
 )
 
 // GoogleProviderID is the ID to register this login provider.
@@ -43,38 +39,8 @@ func NewGoogleProvider() Provider {
 
 func (g *google) Link(r *http.Request) (Link, bool) {
 	l, ok := g.OAuth.Link(r)
-	// If user is subscribing from GCP Cloud Launcher,
-	// we request one additional scope to be able to access his subscriptions,
-	// in order to be able to bill her via GCP and manage access to Weave Cloud.
-	if isSubscribingFromGCP(r) {
-		l.Href = addGCPSubscriptionScope(l.Href)
-	}
 	l.BackgroundColor = "#4285F4"
 	return l, ok
-}
-
-func isSubscribingFromGCP(r *http.Request) bool {
-	// N.B.: when user is subscribing from GCP, the only gcpAccountId is provided
-	// as a query parameter. When user is SSO-ing from GCP, both are provided.
-	gcpAccountID := r.URL.Query().Get("gcpAccountId")
-	ssoToken := r.URL.Query().Get("ssoToken")
-	return gcpAccountID != "" && ssoToken == ""
-}
-
-func addGCPSubscriptionScope(oauthURL string) string {
-	u, err := url.Parse(oauthURL)
-	if err != nil {
-		log.Errorf("Failed to parse Google OAuth URL, falling back to existing URL. Root cause: %v", err)
-		return oauthURL
-	}
-	q := u.Query()
-	q.Set("scope", strings.Join([]string{
-		q.Get("scope"),
-		gcp.OAuthScopeCloudBillingPartnerSubscriptionsRO,
-		gke.OAuthScopeCloudPlatform,
-	}, " "))
-	u.RawQuery = q.Encode()
-	return u.String()
 }
 
 // Login converts a user to a db ID
