@@ -41,6 +41,7 @@ var permissions = map[string]*users.Permission{
 	"scope.container.exec":         {ID: "scope.container.exec", Name: "Scope.container.exec", Description: "derp"},
 	"scope.container.attach.out":   {ID: "scope.container.attach.out", Name: "Scope.container.attach.out", Description: "derp"},
 	"scope.replicas.update":        {ID: "scope.replicas.update", Name: "Scope.replicas.update", Description: "derp"},
+	"scope.pod.logs.view":          {ID: "scope.pod.logs.view", Name: "Scope.pod.logs.view", Description: "derp"},
 	"scope.pod.delete":             {ID: "scope.pod.delete", Name: "Scope.pod.delete", Description: "derp"},
 	"flux.image.deploy":            {ID: "flux.image.deploy", Name: "Flux.image.deploy", Description: "derp"},
 	"flux.policy.update":           {ID: "flux.policy.update", Name: "Flux.policy.update", Description: "derp"},
@@ -48,18 +49,66 @@ var permissions = map[string]*users.Permission{
 	"instance.token.view":          {ID: "instance.token.view", Name: "Instance.token.view", Description: "derp"},
 	"instance.webhook.create":      {ID: "instance.webhook.create", Name: "Instance.webhook.create", Description: "derp"},
 	"instance.webhook.delete":      {ID: "instance.webhook.delete", Name: "Instance.webhook.delete", Description: "derp"},
+	"scope.container.attach.in":    {ID: "scope.container.attach.in", Name: "Scope.container.attach.in", Description: "derp"},
+	"scope.container.pause":        {ID: "scope.container.pause", Name: "Scope.container.pause", Description: "derp"},
+	"scope.container.restart":      {ID: "scope.container.restart", Name: "Scope.container.restart", Description: "derp"},
+	"scope.container.stop":         {ID: "scope.container.stop", Name: "Scope.container.stop", Description: "derp"},
 }
 
 // New creates a new in-memory database
 func New(_, _ string, passwordHashingCost int) (*DB, error) {
 	rolesPermissions := map[string][]string{
-		"admin":  {},
-		"editor": {},
-		"viewer": {},
-	}
-
-	for roleID := range permissions {
-		rolesPermissions["admin"] = append(rolesPermissions["admin"], roleID)
+		"admin": {
+			"team.member.invite",
+			"instance.delete",
+			"instance.billing.update",
+			"alert.settings.update",
+			"team.member.update",
+			"team.member.remove",
+			"team.members.view",
+			"instance.transfer",
+			"notebook.create",
+			"notebook.update",
+			"notebook.delete",
+			"scope.host.exec",
+			"scope.container.exec",
+			"scope.container.attach.out",
+			"scope.replicas.update",
+			"scope.pod.delete",
+			"scope.pod.logs.view",
+			"flux.image.deploy",
+			"flux.policy.update",
+			"notification.settings.update",
+			"instance.token.view",
+			"instance.webhook.create",
+			"instance.webhook.delete",
+			"scope.container.attach.in",
+			"scope.container.pause",
+			"scope.container.restart",
+			"scope.container.stop",
+		},
+		"editor": {
+			"alert.settings.update",
+			"team.members.view",
+			"notebook.create",
+			"notebook.update",
+			"notebook.delete",
+			"scope.container.attach.out",
+			"scope.replicas.update",
+			"scope.pod.delete",
+			"flux.image.deploy",
+			"flux.policy.update",
+			"scope.pod.logs.view",
+			"scope.container.pause",
+			"scope.container.restart",
+			"scope.container.stop",
+			"instance.webhook.create",
+			"instance.webhook.delete",
+		},
+		"viewer": {
+			"team.members.view",
+			"scope.pod.logs.view",
+		},
 	}
 
 	return &DB{
@@ -72,7 +121,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		teamMemberships:      make(map[string]map[string]string),
 		roles: map[string]*users.Role{
 			"admin":  {ID: "admin", Name: "Admin", Description: "Can add/remove team members, update billing info, delete and move instances"},
-			"editor": {ID: "editor", Name: "Editor", Description: "Can deploy new image versions, change alert configurations, edit notebooks and delete pods etc"},
+			"editor": {ID: "editor", Name: "Editor", Description: "Can update deployments, change configuration, delete pods, edit notebooks and perform other editing actions"},
 			"viewer": {ID: "viewer", Name: "Viewer", Description: "Has a read-only view of the cluster"},
 		},
 		permissions:         permissions,

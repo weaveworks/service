@@ -26,6 +26,12 @@ func GetUser(t *testing.T, db db.DB) *users.User {
 	return GetUserWithDomain(t, db, "domain.com")
 }
 
+// GetUserInTeam makes a randomly named user and adds it as a team member
+func GetUserInTeam(t *testing.T, db db.DB, team *users.Team, roleID string) (*users.User, error) {
+	user := GetUser(t, db)
+	return user, db.AddUserToTeam(context.TODO(), user.ID, team.ID, roleID)
+}
+
 // GetUserWithDomain makes a randomly named user with an address email finishing with the provided domain
 func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
 	email := fmt.Sprintf("%d@%v", rand.Int63(), domain)

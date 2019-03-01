@@ -639,7 +639,7 @@ func Test_Organization_Delete(t *testing.T) {
 	{
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 
 	// Create the org so it exists
