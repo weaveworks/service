@@ -237,7 +237,7 @@ func isNotFound(err error) bool {
 func (c *Client) GetEntitlement(ctx context.Context, name string) (*Entitlement, error) {
 	var response struct {
 		ErrorResponse
-		Entitlement Entitlement `json:",inline"`
+		Entitlement
 	}
 	err := c.Get(ctx, "entitlement:get", c.url(name, ""), &response)
 	if err != nil {
