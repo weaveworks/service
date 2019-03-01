@@ -330,7 +330,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		PathMethods{
 			"/{action:subscribe|login}-via/gcp",
 			[]string{http.MethodPost},
-			redirectWithQuery,
+			uiHTTPlogger.Wrap(redirectWithQuery),
 		},
 		Path{
 			"/api/ui/analytics",
