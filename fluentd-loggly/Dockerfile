@@ -8,7 +8,7 @@ RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool lib
          fluent-plugin-loggly:0.0.9 \
          fluent-plugin-kubernetes_metadata_filter:1.0.1 \
          fluent-plugin-cloudwatch-logs:0.4.4 \
-         fluent-plugin-systemd:0.3.1 \
+         fluent-plugin-systemd:1.0.1 \
          fluent-plugin-concat:2.2.0 \
          fluent-plugin-fields-parser:0.1.2 \
          fluent-plugin-rewrite-tag-filter:2.0.2 \
