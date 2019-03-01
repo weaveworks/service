@@ -63,7 +63,7 @@ func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyrepo
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = collectEmails(members)
-	e.Subject = fmt.Sprintf("%s · %s Report", summary.DateInterval, summary.OrganizationName)
+	e.Subject = fmt.Sprintf("%s · %s Report", summary.DateInterval, summary.Organization.Name)
 	data := map[string]interface{}{
 		"Report": summary,
 	}

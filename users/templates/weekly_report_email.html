@@ -1,59 +1,90 @@
 <p>Hi,</p>
 
 {{with .Report}}
-  {{if .OrganizationCreationDay}}
-    <p style="line-height: 20px;">
-      You created <b>{{.OrganizationName}}</b> on {{.OrganizationCreationDay}}.<br>
-      Here is an overview of that instance this past week.
-    </p>
-  {{else}}
-    <p>Here is an overview of <b>{{.OrganizationName}}</b> this past week.</p>
-  {{end}}
-
-  <div style="margin-bottom: 60px;">
-    <h2 style="color: #666; font-size: 18px; font-weight: normal; margin: 30px 0 5px;">Deployments</h2>
-    <p style="color: #666; font-size: 12px; margin: 0 0 5px;">Days are based on <b>UTC</b></p>
-
-    <div style="margin-top: 10px; height: 200px; width: 100%;">
-      {{range .Deployments}}
-        <div style="display: inline-block; height: 100%; position: relative; width: 12.5%;">
-          {{if .LinkTo}}
-            <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
-          {{end}}
-            <div style="bottom: 0; color: #1a1a1a; position: absolute; text-align: center; width: 100%;">
-              <span style="color: hsl(191,100%,30%); display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
-              <div style="background: hsl(191,100%,45%); border-radius: 2px; height: {{.BarHeightPx}}px; margin: auto; width: 70%;"></div>
-              <span style="color: #666; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
-            </div>
-          {{if .LinkTo}}
-            </a>
-          {{end}}
-        </div>
+  {{if .HasData}}
+    {{with .Organization}}
+      {{if .CreationDay}}
+        <p style="line-height: 20px;">
+          You created <b><a href="{{.HomepageURL}}" style="color: #666; outline: none; text-decoration: none">{{.Name}}</a></b> on {{.CreationDay}}.<br>
+          Here is an overview of that instance this past week.
+        </p>
+      {{else}}
+        <p>Here is an overview of <b><a href="{{.HomepageURL}}" style="color: #666; outline: none; text-decoration: none">{{.Name}}</a></b> this past week.</p>
       {{end}}
-    </div>
-  </div>
+    {{end}}
 
-  <div style="margin-bottom: 30px;">
-    <h2 style="color: #666; font-size: 18px; font-weight: normal; margin-bottom: 5px;">Resource consumption</h2>
-    <p style="color: #666; font-size: 12px; margin: 0 0 15px;">Showing workloads consuming most resources (% of total cluster capacity)</p>
-
-    {{range .Resources}}
-      <div class="resource-section" style="display: inline-block; margin: 0 4% 30px 0;vertical-align: top">
-        <h3 style="color: #666; font-size: 14px; font-weight: bold; margin-bottom: 20px;">{{.Label}}</h3>
-        {{range .TopConsumers}}
-          <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
-            <div style="color: #1a1a1a; margin-top: 20px;">
-              <span title="{{.WorkloadNameFull}}">{{.WorkloadNameShort}}</span>
-              <div style="margin-top: 5px;">
-                <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPercent}}%;"></span>
-                <span style="color: hsl(191,100%,30%); display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
-              </div>
-            </div>
+    {{with .Deployments}}
+      <div style="margin-bottom: 60px;">
+        {{if .HasData}}
+          <a href="{{.LinkTo}}" style="color: #666; outline: none; text-decoration: none">
+            <h2 style="font-size: 18px; font-weight: normal; margin: 30px 0 5px;">Deployments</h2>
+            <p style="font-size: 12px; margin: 0 0 15px;">Days are based on <b>UTC</b></p>
           </a>
+          <div style="margin-top: 10px; height: 200px; width: 100%;">
+            {{range .Histogram}}
+              <div style="display: inline-block; height: 100%; position: relative; width: 12.5%;">
+                {{if .LinkTo}}
+                  <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+                {{end}}
+                  <div style="bottom: 0; color: #1a1a1a; position: absolute; text-align: center; width: 100%;">
+                    <span style="color: hsl(191,100%,30%); display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
+                    <div style="background: hsl(191,100%,45%); border-radius: 2px; height: {{.BarHeightPx}}px; margin: auto; width: 70%;"></div>
+                    <span style="color: #666; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
+                  </div>
+                {{if .LinkTo}}
+                  </a>
+                {{end}}
+              </div>
+            {{end}}
+          </div>
+        {{else}}
+          <a href="{{.LinkTo}}" style="color: #666; outline: none; text-decoration: none">
+            <h2 style="font-size: 18px; font-weight: normal; margin: 30px 0 15px;">Deployments</h2>
+          </a>
+          <p style="margin: 0 0 15px;"><i>There have been no recent deployments on this instance.</i></p>
         {{end}}
       </div>
     {{end}}
-  </div>
+
+    {{with .Resources}}
+      <div style="margin-bottom: 30px;">
+        {{if .HasData}}
+          <a href="{{.LinkTo}}" style="color: #666; outline: none; text-decoration: none">
+            <h2 style="font-size: 18px; font-weight: normal; margin-bottom: 5px;">Resource consumption</h2>
+            <p style="font-size: 12px; margin: 0 0 15px;">Showing workloads consuming most resources (% of total cluster capacity)</p>
+          </a>
+          {{range .TopConsumers}}
+            <div class="resource-section" style="display: inline-block; margin: 0 4% 30px 0;vertical-align: top">
+              <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+                <h3 style="color: #666; font-size: 14px; font-weight: bold; margin-bottom: 20px;">{{.Label}}</h3>
+              </a>
+              {{range .Workloads}}
+                <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+                  <div style="color: #1a1a1a; margin-top: 20px;">
+                    <span title="{{.WorkloadNameFull}}">{{.WorkloadNameShort}}</span>
+                    <div style="margin-top: 5px;">
+                      <span style="background: hsl(191,100%,45%); border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPercent}}%;"></span>
+                      <span style="color: hsl(191,100%,30%); display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
+                    </div>
+                  </div>
+                </a>
+              {{end}}
+            </div>
+          {{end}}
+        {{else}}
+          <a href="{{.LinkTo}}" style="color: #666; outline: none; text-decoration: none">
+            <h2 style="font-size: 18px; font-weight: normal; margin-bottom: 15px;">Resource consumption</h2>
+          </a>
+          <p style="margin: 0 0 15px;"><i>None of the workloads have resource consumption data available.</i></p>
+        {{end}}
+      </div>
+    {{end}}
+  {{else}}
+    {{with .Organization}}
+      <p><b><a href="{{.HomepageURL}}" style="color: #666; outline: none; text-decoration: none">{{.Name}}</a></b> had no activity in the past week.</p>
+      <p>Is the instance still in use? You might want to <a href="{{.StatusURL}}" style="color: #666; outline: none;">check the status</a> of Weave agents or otherwise <a href="{{.DeleteURL}}" style="color: #666; outline: none;">delete the instance</a>.</p>
+    {{end}}
+  {{end}}
 {{end}}
 
 <p>Thanks,<br />
