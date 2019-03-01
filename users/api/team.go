@@ -24,6 +24,7 @@ type TeamsView struct {
 type TeamView struct {
 	ExternalID string `json:"id"`
 	Name       string `json:"name"`
+	RoleID     string `json:"roleId,omitempty"`
 }
 
 // RolesView describes an array of user roles
@@ -33,8 +34,9 @@ type RolesView struct {
 
 // RoleView describes a user role
 type RoleView struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Permissions []PermissionView `json:"permissions,omitempty"`
 }
 
 // PermissionsView describes an array of permissions
@@ -70,9 +72,15 @@ func (a *API) listRoles(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 	view := RolesView{Roles: make([]RoleView, 0, len(roles))}
 	for _, role := range roles {
+		permissions, err := a.db.ListPermissionsForRoleID(r.Context(), role.ID)
+		if err != nil {
+			renderError(w, r, err)
+			return
+		}
 		view.Roles = append(view.Roles, RoleView{
-			ID:   role.ID,
-			Name: role.Name,
+			ID:          role.ID,
+			Name:        role.Name,
+			Permissions: renderPermissions(permissions),
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
@@ -84,11 +92,19 @@ func (a *API) listTeams(currentUser *users.User, w http.ResponseWriter, r *http.
 		renderError(w, r, err)
 		return
 	}
+
 	view := TeamsView{Teams: make([]TeamView, 0, len(teams))}
 	for _, team := range teams {
+		role, err := a.db.GetUserRoleInTeam(r.Context(), currentUser.ID, team.ID)
+		if err != nil {
+			renderError(w, r, err)
+			return
+		}
+
 		view.Teams = append(view.Teams, TeamView{
 			ExternalID: team.ExternalID,
 			Name:       team.Name,
+			RoleID:     role.ID,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
@@ -156,16 +172,16 @@ func (a *API) updateUserRoleInTeam(currentUser *users.User, w http.ResponseWrite
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func renderPermissions(permissions []*users.Permission) *PermissionsView {
-	view := PermissionsView{Permissions: make([]PermissionView, 0, len(permissions))}
+func renderPermissions(permissions []*users.Permission) []PermissionView {
+	view := make([]PermissionView, 0, len(permissions))
 	for _, permission := range permissions {
-		view.Permissions = append(view.Permissions, PermissionView{
+		view = append(view, PermissionView{
 			ID:          permission.ID,
 			Name:        permission.Name,
 			Description: permission.Description,
 		})
 	}
-	return &view
+	return view
 }
 
 func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -197,7 +213,7 @@ func (a *API) listTeamPermissions(currentUser *users.User, w http.ResponseWriter
 		return
 	}
 
-	render.JSON(w, http.StatusOK, renderPermissions(permissions))
+	render.JSON(w, http.StatusOK, PermissionsView{Permissions: renderPermissions(permissions)})
 }
 
 func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
