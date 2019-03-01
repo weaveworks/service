@@ -71,9 +71,9 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		teams:                make(map[string]*users.Team),
 		teamMemberships:      make(map[string]map[string]string),
 		roles: map[string]*users.Role{
-			"admin":  {ID: "admin", Name: "Admin"},
-			"editor": {ID: "editor", Name: "Editor"},
-			"viewer": {ID: "viewer", Name: "Viewer"},
+			"admin":  {ID: "admin", Name: "Admin", Description: "Can add/remove team members, update billing info, delete and move instances"},
+			"editor": {ID: "editor", Name: "Editor", Description: "Can deploy new image versions, change alert configurations, edit notebooks and delete pods etc"},
+			"viewer": {ID: "viewer", Name: "Viewer", Description: "Has a read-only view of the cluster"},
 		},
 		permissions:         permissions,
 		rolesPermissions:    rolesPermissions,
