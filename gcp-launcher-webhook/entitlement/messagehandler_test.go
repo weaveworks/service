@@ -244,4 +244,3 @@ func expectGetEntitlement(api *mock_procurement.MockAPI, e *procurement.Entitlem
 		GetEntitlement(context.TODO(), entName).
 		Return(e, nil)
 }
-
