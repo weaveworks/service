@@ -29,7 +29,7 @@ const (
 	MaxEventsList          = 10000
 	notificationConfigPath = "/org/notifications"
 	alertsConfigPath       = "/org/alerts"
-	alertsPage             = "/prom/alerts"
+	alertsPage             = "/monitor/alerts"
 	alertLinkText          = "View firing alerts"
 	deployPage             = "/deploy/services"
 	deployLinkText         = "Weave Cloud Deploy"
