@@ -61,6 +61,8 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context, no
 			// Only log the error and move to the next instance if sending out weekly report fails.
 			j.log.Errorf("WeeklyReports: error sending report for '%s': %v", organization.ExternalID, err)
 		}
+
+		span.Finish()
 	}
 
 	return nil
