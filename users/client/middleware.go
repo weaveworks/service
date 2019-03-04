@@ -53,6 +53,7 @@ type AuthOrgMiddleware struct {
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
 	AuthorizeFor        users.AuthorizedAction
+	SkipAuthorization   bool
 }
 
 // Wrap implements middleware.Interface
@@ -430,7 +431,7 @@ func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, p := range a.Permissions {
 			// TODO(fbarl): Find a better way to check for the API route.
-			URIMatched := regexp.MustCompile(p.RequestURIMatcher).MatchString(r.RequestURI)
+			URIMatched := regexp.MustCompile(p.RequestURIMatcher).MatchString(r.URL.String())
 
 			MethodMatched := false
 			for _, m := range p.RequestMethods {
@@ -440,6 +441,7 @@ func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 			}
 
 			if MethodMatched && URIMatched {
+				fmt.Printf("bla %s\n", p.PermissionID)
 				if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
 					OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{mux.Vars(r)["orgExternalID"]},
 					UserID:       r.Header.Get(a.UserIDHeader),

@@ -90,16 +90,16 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		}
 	}
 
-	authUserOrgDataAccessMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: authenticator,
-		OrgExternalID: func(r *http.Request) (string, bool) {
-			v, ok := mux.Vars(r)["orgExternalID"]
-			return v, ok
-		},
-		UserIDHeader:       userIDHeader,
-		FeatureFlagsHeader: featureFlagsHeader,
-		AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
-	}
+	// authUserOrgDataAccessMiddleware := users_client.AuthOrgMiddleware{
+	// 	UsersClient: authenticator,
+	// 	OrgExternalID: func(r *http.Request) (string, bool) {
+	// 		v, ok := mux.Vars(r)["orgExternalID"]
+	// 		return v, ok
+	// 	},
+	// 	UserIDHeader:       userIDHeader,
+	// 	FeatureFlagsHeader: featureFlagsHeader,
+	// 	AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
+	// }
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
 		UsersClient: authenticator,
@@ -503,7 +503,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		AuthHeaderStrippingMiddleware{},
 		originChecker,
 		stripSetCookieHeader{prefixes: stripSetCookieHeaderPrefixes},
-		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie, domain: c.cookieDomain},
+		csrfTokenVerifier{skipChecks: c.skipCsrfChecks, exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie, domain: c.cookieDomain},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
 		}),
@@ -565,9 +565,14 @@ type csrfTokenVerifier struct {
 	exemptPrefixes []string
 	secure         bool
 	domain         string
+	skipChecks     bool
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
+	if c.skipChecks {
+		return next
+	}
+
 	h := nosurf.New(injectTokenInHTMLResponses(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// NoSurf might have parsed the body for us already; if so,
 		// copy that back into Body.

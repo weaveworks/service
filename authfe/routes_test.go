@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -89,6 +91,39 @@ func TestRoutes(t *testing.T) {
 			}
 		})
 	}
+}
+func TestBlu(t *testing.T) {
+	// Create mock config
+	cfg := Config{
+		launcherServiceExternalHost: "get.weave.works",
+		testMode:                    true,
+	}
+	// Initialize all of the proxies with mock which wrties the proxy name in the body
+	for name, proxyCfg := range cfg.proxies() {
+		mockProxyCfg := &proxyConfig{
+			name:     name,
+			protocol: "mock",
+		}
+		handler, err := newProxy(*mockProxyCfg)
+		assert.NoError(t, err, "Error creating the proxy")
+		proxyCfg.Handler = handler
+	}
+
+	// Create the routes handler
+	list := []string{}
+	authenticator := users.MockClient{
+		Log: func(s string) { list = append(list, s) },
+	}
+	w := httptest.NewRecorder()
+	handler, _ := routes(cfg, authenticator, nil, nil)
+	requestBody, _ := json.Marshal(map[string]string{
+		"email":  "blu@blu.blu",
+		"roleId": "viewer",
+	})
+	req, _ := http.NewRequest("POST", "/api/app/blu/api/prom/configs/rules", bytes.NewReader(requestBody))
+	handler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []string{""}, list)
 }
 
 func TestStripSetCookieHeader(t *testing.T) {

@@ -34,6 +34,7 @@ type Config struct {
 	targetOrigin          string
 	allowedOriginSuffixes common.ArrayFlags
 	cookieDomain          string
+	testMode              bool
 
 	// External hostnames
 	launcherServiceExternalHost string

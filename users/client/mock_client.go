@@ -8,7 +8,9 @@ import (
 )
 
 // MockClient is a mock usersClient that can be used in testing
-type MockClient struct{}
+type MockClient struct {
+	Log func(string)
+}
 
 // LookupOrg authenticates a cookie for access to an org by external ID.
 func (MockClient) LookupOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
@@ -156,6 +158,7 @@ func (MockClient) RequireTeamMemberPermissionTo(ctx context.Context, req *users.
 }
 
 // RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
-func (MockClient) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.Empty, error) {
+func (m MockClient) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.Empty, error) {
+	m.Log("RequireOrgMemberPermissionTo")
 	return &users.Empty{}, nil
 }
