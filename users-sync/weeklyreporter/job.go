@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/robfig/cron"
+	"golang.org/x/time/rate"
+
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
-	"golang.org/x/time/rate"
 )
 
 const (
@@ -46,8 +49,15 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context, no
 
 	for _, organization := range resp.Organizations {
 		limiter.Wait(ctx)
+
+		span, sendContext := opentracing.StartSpanFromContext(ctx, "SendOutWeeklyReport")
+		span.SetTag("organization", organization.ID)
+
+		// Force sampling to debug weaveworks/service-conf#2959
+		ext.SamplingPriority.Set(span, 1)
+
 		request := users.SendOutWeeklyReportRequest{Now: now, ExternalID: organization.ExternalID}
-		if _, err := j.users.SendOutWeeklyReport(ctx, &request); err != nil {
+		if _, err := j.users.SendOutWeeklyReport(sendContext, &request); err != nil {
 			// Only log the error and move to the next instance if sending out weekly report fails.
 			j.log.Errorf("WeeklyReports: error sending report for '%s': %v", organization.ExternalID, err)
 		}
