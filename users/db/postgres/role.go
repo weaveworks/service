@@ -12,7 +12,8 @@ import (
 func (d DB) rolesQuery() squirrel.SelectBuilder {
 	return d.Select(`
 		roles.id,
-		roles.name
+		roles.name,
+		roles.description
 	`).
 		From("roles").
 		Where("roles.deleted_at is null").
@@ -36,7 +37,7 @@ func (d DB) scanRoles(rows *sql.Rows) ([]*users.Role, error) {
 
 func (d DB) scanRole(row squirrel.RowScanner) (*users.Role, error) {
 	r := &users.Role{}
-	if err := row.Scan(&r.ID, &r.Name); err != nil {
+	if err := row.Scan(&r.ID, &r.Name, &r.Description); err != nil {
 		return nil, err
 	}
 	return r, nil

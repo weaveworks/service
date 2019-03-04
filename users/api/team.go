@@ -36,6 +36,7 @@ type RolesView struct {
 type RoleView struct {
 	ID          string           `json:"id"`
 	Name        string           `json:"name"`
+	Description string           `json:"description"`
 	Permissions []PermissionView `json:"permissions,omitempty"`
 }
 
@@ -80,6 +81,7 @@ func (a *API) listRoles(currentUser *users.User, w http.ResponseWriter, r *http.
 		view.Roles = append(view.Roles, RoleView{
 			ID:          role.ID,
 			Name:        role.Name,
+			Description: role.Description,
 			Permissions: renderPermissions(permissions),
 		})
 	}

@@ -435,6 +435,7 @@ message Permission {
 message Role {
     string ID = 1;
     string Name = 2;
+    string Description = 3;
 }
 
 message RequireTeamMemberPermissionToRequest {
