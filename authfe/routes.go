@@ -25,7 +25,6 @@ import (
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
-	"github.com/weaveworks/service/common/permission"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
 )
@@ -139,28 +138,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	userPermissionsMiddleware := users_client.UserPermissionsMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
-		Permissions: []users_client.RequestPermission{
-			// Prometheus
-			{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
-			// Scope
-			{"/api/control/.*/.*/host_exec", []string{"POST"}, permission.OpenHostShell},
-			{"/api/control/.*/.*/docker_exec_container", []string{"POST"}, permission.OpenContainerShell},
-			{"/api/control/.*/.*/docker_attach_container", []string{"POST"}, permission.AttachToContainer},
-			{"/api/control/.*/.*/docker_(pause|unpause)_container", []string{"POST"}, permission.PauseContainer},
-			{"/api/control/.*/.*/docker_restart_container", []string{"POST"}, permission.RestartContainer},
-			{"/api/control/.*/.*/docker_stop_container", []string{"POST"}, permission.StopContainer},
-			{"/api/control/.*/.*/kubernetes_get_logs", []string{"POST"}, permission.ViewPodLogs},
-			{"/api/control/.*/.*/kubernetes_scale_(up|down)", []string{"POST"}, permission.UpdateReplicaCount},
-			{"/api/control/.*/.*/kubernetes_delete_pod", []string{"POST"}, permission.DeletePod},
-			// Flux
-			// TODO(fbarl): At the moment, `update-manifests` API is only used for pushing releases in the Flux UI,
-			// so setting the permission here works, but in the future, we should probably introduce case branching.
-			{"/api/flux/v9/update-manifests", []string{"POST"}, permission.DeployImage},
-			{"/api/flux/v6/update-images", []string{"POST"}, permission.DeployImage},
-			{"/api/flux/v6/policies", []string{"PATCH"}, permission.UpdateDeploymentPolicy},
-			// Notifications
-			{"/api/notification/config/.*", []string{"POST", "PUT"}, permission.UpdateNotificationSettings},
-		},
 	}
 
 	// middleware to set header to disable caching if path == "/" exactly

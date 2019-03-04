@@ -21,7 +21,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
 
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // Constants exported for testing
@@ -335,25 +335,42 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 type UserPermissionsMiddleware struct {
 	UsersClient  users.UsersClient
 	UserIDHeader string
-	Permissions  []RequestPermission
-}
-
-// RequestPermission describes a permission check to be performed on the requests.
-type RequestPermission struct {
-	RequestURIMatcher string
-	RequestMethods    []string
-	PermissionID      string
 }
 
 // Wrap implements middleware.Interface
 func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, p := range a.Permissions {
+		for _, p := range []struct {
+			Path         string
+			Methods      []string
+			PermissionID string
+		}{
+			// Prometheus
+			{"/api/prom/configs/rules", []string{"POST"}, permission.UpdateAlertingSettings},
+			// Scope
+			{"/api/control/.*/.*/host_exec", []string{"POST"}, permission.OpenHostShell},
+			{"/api/control/.*/.*/docker_exec_container", []string{"POST"}, permission.OpenContainerShell},
+			{"/api/control/.*/.*/docker_attach_container", []string{"POST"}, permission.AttachToContainer},
+			{"/api/control/.*/.*/docker_(pause|unpause)_container", []string{"POST"}, permission.PauseContainer},
+			{"/api/control/.*/.*/docker_restart_container", []string{"POST"}, permission.RestartContainer},
+			{"/api/control/.*/.*/docker_stop_container", []string{"POST"}, permission.StopContainer},
+			{"/api/control/.*/.*/kubernetes_get_logs", []string{"POST"}, permission.ViewPodLogs},
+			{"/api/control/.*/.*/kubernetes_scale_(up|down)", []string{"POST"}, permission.UpdateReplicaCount},
+			{"/api/control/.*/.*/kubernetes_delete_pod", []string{"POST"}, permission.DeletePod},
+			// Flux
+			// TODO(fbarl): At the moment, `update-manifests` API is only used for pushing releases in the Flux UI,
+			// so setting the permission here works, but in the future, we should probably introduce case branching.
+			{"/api/flux/v9/update-manifests", []string{"POST"}, permission.DeployImage},
+			{"/api/flux/v6/update-images", []string{"POST"}, permission.DeployImage},
+			{"/api/flux/v6/policies", []string{"PATCH"}, permission.UpdateDeploymentPolicy},
+			// Notifications
+			{"/api/notification/config/.*", []string{"POST", "PUT"}, permission.UpdateNotificationSettings},
+		} {
 			// TODO(fbarl): Find a better way to check for the API route.
-			URIMatched := regexp.MustCompile(p.RequestURIMatcher).MatchString(r.RequestURI)
+			URIMatched := regexp.MustCompile(p.Path).MatchString(r.URL.String())
 
 			MethodMatched := false
-			for _, m := range p.RequestMethods {
+			for _, m := range p.Methods {
 				if m == r.Method {
 					MethodMatched = true
 				}
