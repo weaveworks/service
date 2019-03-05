@@ -157,16 +157,17 @@ func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Af
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
 func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(userIDs, false)
+	return d.listOrganizationsForUserIDs(userIDs, false, "")
 }
 
 // ListAllOrganizationsForUserIDs lists the organizations these users
 // belong to, including deleted ones.
-func (d *DB) ListAllOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(userIDs, true)
+func (d *DB) ListAllOrganizationsForUserIDs(_ context.Context, orderBy string, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(userIDs, true, orderBy)
 }
 
-func (d *DB) listOrganizationsForUserIDs(userIDs []string, includeDeletedOrgs bool) ([]*users.Organization, error) {
+// FIXME: orderBy is not implemented!
+func (d *DB) listOrganizationsForUserIDs(userIDs []string, includeDeletedOrgs bool, orderBy string) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgIDs := map[string]struct{}{}

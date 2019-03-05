@@ -114,9 +114,9 @@ func (t traced) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...stri
 	return t.d.ListOrganizationsForUserIDs(ctx, userIDs...)
 }
 
-func (t traced) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (os []*users.Organization, err error) {
-	defer t.trace("ListAllOrganizationsForUserIDs", userIDs, os, err)
-	return t.d.ListAllOrganizationsForUserIDs(ctx, userIDs...)
+func (t traced) ListAllOrganizationsForUserIDs(ctx context.Context, orderBy string, userIDs ...string) (os []*users.Organization, err error) {
+	defer t.trace("ListAllOrganizationsForUserIDs", orderBy, userIDs, os, err)
+	return t.d.ListAllOrganizationsForUserIDs(ctx, orderBy, userIDs...)
 }
 
 func (t traced) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) (ls []*login.Login, err error) {

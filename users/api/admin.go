@@ -215,7 +215,7 @@ func (a *API) adminWeeklyReportsPreview(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/admin/users/weeklyreports", http.StatusFound)
 }
 
-func getTableHeaders(requestURL url.URL, sortBy, query, sortDirection string) []tableHeaderView {
+func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHeaderView {
 	tableHeaders := []string{
 		"ID",
 		"Name",
@@ -292,25 +292,26 @@ func getSortableColumns() map[string]string {
 
 func parseSortParams(r http.Request) (string, string, string) {
 	sortBy := r.FormValue("sortBy")
-	sortColumn := getSortableColumns()[sortBy]
-	if sortBy == "" || sortColumn == "" {
+	sortableColumns := getSortableColumns()
+	if sortBy == "" || sortableColumns[sortBy] == "" {
 		sortBy = "CreatedAt"
 	}
+	sortColumn := sortableColumns[sortBy]
 
 	sortDirection := "ASC"
 	if r.FormValue("sortDescending") != "" {
 		sortDirection = "DESC"
 	}
 
-	return sortBy, sortColumn, sortDirection
+	orderClause := fmt.Sprintf("%s %s", sortColumn, sortDirection)
+	return sortBy, sortDirection, orderClause
 }
 
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
 
-	sortBy, sortColumn, sortDirection := parseSortParams(*r)
-	orderClause := fmt.Sprintf("%s %s", sortColumn, sortDirection)
+	sortBy, sortDirection, orderClause := parseSortParams(*r)
 
 	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), orderClause, page)
 	if err != nil {
@@ -333,7 +334,7 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		"NextPage":           page + 1,
 		"Message":            r.FormValue("msg"),
 		"BillingFeatureFlag": featureflag.Billing,
-		"Headers":            getTableHeaders(*r.URL, sortBy, query, sortDirection),
+		"Headers":            getTableHeaders(*r.URL, sortBy, sortDirection),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -356,7 +357,10 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		renderError(w, r, err)
 		return
 	}
-	organizations, err := a.db.ListAllOrganizationsForUserIDs(r.Context(), userID)
+
+	sortBy, sortDirection, orderClause := parseSortParams(*r)
+
+	organizations, err := a.db.ListAllOrganizationsForUserIDs(r.Context(), orderClause, userID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -373,6 +377,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		"MoreUsersCount":     moreUsersCount,
 		"UserEmail":          user.Email,
 		"BillingFeatureFlag": featureflag.Billing,
+		"Headers":            getTableHeaders(*r.URL, sortBy, sortDirection),
 	})
 	if err != nil {
 		renderError(w, r, err)

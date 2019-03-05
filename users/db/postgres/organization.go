@@ -73,6 +73,9 @@ func (d DB) organizationsQueryWithDeleted(includeDeleted bool) squirrel.SelectBu
 }
 
 func (d DB) organizationsQueryWithDeletedAnyOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
+	if orderBy == "" {
+		orderBy = "organizations.created_at DESC"
+	}
 	query := d.organizationsQueryHelper().OrderBy(orderBy)
 	if includeDeleted {
 		query = query.Where("organizations.deleted_at is null")
@@ -203,13 +206,13 @@ func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, inc
 // ListOrganizationsForUserIDs lists the organizations these users belong to.
 // This includes direct membership and team membership.
 func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, false)
+	return d.listOrganizationsForUserIDs(ctx, userIDs, false, "")
 }
 
 // ListAllOrganizationsForUserIDs lists the organizations these users
 // belong to, including deleted ones.
-func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, true)
+func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, orderBy string, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(ctx, userIDs, true, orderBy)
 }
 
 // GenerateOrganizationExternalID returns an available organization external
