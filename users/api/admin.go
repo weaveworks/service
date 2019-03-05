@@ -259,9 +259,9 @@ func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHe
 			if sortBy == id {
 				if sortDirection == "ASC" {
 					q.Set("sortDescending", "1")
-					label = template.HTML(fmt.Sprintf("%s ▼", label))
-				} else {
 					label = template.HTML(fmt.Sprintf("%s ▲", label))
+				} else {
+					label = template.HTML(fmt.Sprintf("%s ▼", label))
 				}
 			}
 			linkURL.RawQuery = q.Encode()
