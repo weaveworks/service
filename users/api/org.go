@@ -42,6 +42,7 @@ type OrgView struct {
 	RefuseDataUpload      bool       `json:"refuseDataUpload"`
 	FirstSeenConnectedAt  *time.Time `json:"firstSeenConnectedAt"`
 	Platform              string     `json:"platform"`
+	PlatformVersion       string     `json:"platformVersion"`
 	Environment           string     `json:"environment"`
 	TrialExpiresAt        time.Time  `json:"trialExpiresAt"`
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
@@ -92,6 +93,7 @@ func (a *API) createOrgView(ctx context.Context, currentUser *users.User, org *u
 		RefuseDataUpload:     org.RefuseDataUpload,
 		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 		Platform:             org.Platform,
+		PlatformVersion:      org.PlatformVersion,
 		Environment:          org.Environment,
 		TrialExpiresAt:       org.TrialExpiresAt,
 		BillingProvider:      org.BillingProvider(),

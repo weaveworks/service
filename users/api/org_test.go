@@ -57,6 +57,7 @@ func Test_Org(t *testing.T) {
 		"refuseDataUpload":      org.RefuseDataUpload,
 		"firstSeenConnectedAt":  nil,
 		"platform":              org.Platform,
+		"platformVersion":       org.PlatformVersion,
 		"environment":           org.Environment,
 		"trialExpiresAt":        string(trialExpiresAt),
 		"zuoraAccountNumber":    "",
@@ -121,6 +122,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"refuseDataUpload":      org.RefuseDataUpload,
 		"firstSeenConnectedAt":  nil,
 		"platform":              org.Platform,
+		"platformVersion":       org.PlatformVersion,
 		"environment":           org.Environment,
 		"trialExpiresAt":        string(trialExpiresAt),
 		"zuoraAccountNumber":    "",
@@ -857,4 +859,30 @@ func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNot
 	assert.Contains(t, org.FeatureFlags, featureflag.Billing)
 	assert.True(t, org.RefuseDataAccess)
 	assert.True(t, org.RefuseDataUpload)
+}
+
+func Test_Organization_UpdatePlatformVersion(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org, _ := dbtest.GetOrgAndTeam(t, database)
+
+	bytes := doRequest(t, user, "GET", "/api/users/org/"+org.ExternalID, nil, http.StatusOK)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(bytes, &body))
+	assert.Equal(t, "", body["platformVersion"])
+
+	body = map[string]interface{}{"platformVersion": "redredred"}
+	request, err := http.NewRequest("PUT", "/api/users/org/platform_version", jsonBody(body).Reader(t))
+	require.NoError(t, err)
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", org.ProbeToken))
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, request)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	bytes = doRequest(t, user, "GET", "/api/users/org/"+org.ExternalID, nil, http.StatusOK)
+	body = map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(bytes, &body))
+	assert.Equal(t, "redredred", body["platformVersion"])
+
 }
