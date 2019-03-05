@@ -94,9 +94,9 @@ func (t traced) ListOrganizations(ctx context.Context, f filter.Organization, pa
 	return t.d.ListOrganizations(ctx, f, page)
 }
 
-func (t traced) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
-	defer t.trace("ListAllOrganizations", page, os, err)
-	return t.d.ListAllOrganizations(ctx, f, page)
+func (t traced) ListAllOrganizations(ctx context.Context, f filter.Organization, orderBy string, page uint64) (os []*users.Organization, err error) {
+	defer t.trace("ListAllOrganizations", orderBy, page, os, err)
+	return t.d.ListAllOrganizations(ctx, f, orderBy, page)
 }
 
 func (t traced) ListOrganizationsInTeam(ctx context.Context, teamID string) (os []*users.Organization, err error) {

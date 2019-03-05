@@ -83,7 +83,8 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 }
 
 // ListAllOrganizations lists all organizations including deleted ones
-func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+// FIXME: orderBy is NOT implemented!
+func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, orderBy string, page uint64) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var orgs []*users.Organization
