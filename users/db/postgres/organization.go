@@ -63,16 +63,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		OrderBy("organizations.created_at DESC")
 }
 
-func (d DB) organizationsQueryWithDeleted(includeDeleted bool) squirrel.SelectBuilder {
-	query := d.organizationsQueryHelper().
-		OrderBy("organizations.created_at DESC")
-	if includeDeleted {
-		query = query.Where("organizations.deleted_at is null")
-	}
-	return query
-}
-
-func (d DB) organizationsQueryWithDeletedAnyOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
+func (d DB) organizationsQueryWithDeletedAndOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
 	if orderBy == "" {
 		orderBy = "organizations.created_at DESC"
 	}
@@ -148,7 +139,7 @@ func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, ord
 	if err != nil {
 		return nil, err
 	}
-	q := d.organizationsQueryWithDeletedAnyOrder(true, orderBy)
+	q := d.organizationsQueryWithDeletedAndOrder(true, orderBy)
 	if queryStr != "" {
 		q = q.Where(f.Where())
 	}
