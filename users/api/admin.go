@@ -259,9 +259,9 @@ func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHe
 			if sortBy == id {
 				if sortDirection == "ASC" {
 					q.Set("sortDescending", "1")
-					label = template.HTML(fmt.Sprintf("%s ▲", label))
+					label = template.HTML(fmt.Sprintf("▲ %s", label))
 				} else {
-					label = template.HTML(fmt.Sprintf("%s ▼", label))
+					label = template.HTML(fmt.Sprintf("▼ %s", label))
 				}
 			}
 			linkURL.RawQuery = q.Encode()
@@ -280,7 +280,7 @@ func getSortableColumns() map[string]string {
 	return map[string]string{
 		"ID":                     "organizations.id",
 		"Name":                   "organizations.name",
-		"Team":                   "teams.name",
+		"Team":                   "teams.external_id",
 		"CreatedAt":              "organizations.created_at",
 		"LastSentWeeklyReportAt": "organizations.last_sent_weekly_report_at",
 		"DeletedAt":              "organizations.deleted_at",
@@ -288,6 +288,16 @@ func getSortableColumns() map[string]string {
 		"PlatformVersion":        "string_to_array(regexp_replace(organizations.platform_version, '[^0-9.]', '', 'g'), '.')::int[]",
 		"TrialRemaining":         "organizations.trial_expires_at",
 	}
+}
+
+func getNextPageLink(requestURL url.URL) template.URL {
+	// have to make a copy?
+	url := requestURL
+	q := url.Query()
+	nextPage := filter.ParsePageValue(q.Get("page")) + 1
+	q.Set("page", fmt.Sprintf("%v", nextPage))
+	url.RawQuery = q.Encode()
+	return template.URL(url.String())
 }
 
 func parseSortParams(r http.Request) (string, string, string) {
@@ -331,10 +341,10 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		"MoreUsersCount":     moreUsersCount,
 		"Query":              r.FormValue("query"),
 		"Page":               page,
-		"NextPage":           page + 1,
 		"Message":            r.FormValue("msg"),
 		"BillingFeatureFlag": featureflag.Billing,
 		"Headers":            getTableHeaders(*r.URL, sortBy, sortDirection),
+		"NextPageLink":       getNextPageLink(*r.URL),
 	})
 	if err != nil {
 		renderError(w, r, err)
