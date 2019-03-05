@@ -103,6 +103,18 @@ func (p PrefixMethods) Handler() http.Handler {
 	return p.handler
 }
 
+// PathMethods maps a path with certain request methods to a handler
+type PathMethods struct {
+	path    string
+	methods []string
+	handler http.Handler
+}
+
+// RegisterRoutes adds routes to a router
+func (p PathMethods) RegisterRoutes(r *mux.Router) {
+	r.Path(p.path).Methods(p.methods...).Handler(p.handler)
+}
+
 /***************************************************************************/
 
 // A MiddlewarePrefix says "for each of these PrefixRoutables, add our path prefix

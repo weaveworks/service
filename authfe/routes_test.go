@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,32 +36,58 @@ func TestRoutes(t *testing.T) {
 	assert.NoError(t, err, "Error creating the routes handler")
 
 	tests := []struct {
-		url               string
+		url    string
+		method string
+		body   io.Reader
+
 		expectedProxyName string
+		expectedCode      int
+		expectedLocation  string
 	}{
 		// HostnameSpecific
-		{"https://get.weave.works/", "launcher-service"},
-		{"https://get.weave.works/bootstrap", "launcher-service"},
+		{url: "https://get.weave.works/", expectedProxyName: "launcher-service"},
+		{url: "https://get.weave.works/bootstrap", expectedProxyName: "launcher-service"},
 
 		// Weave Cloud
-		{"/", "ui-server"},
-		{"/launch/k8s", "launch-generator"},
-		{"/k8s", "launch-generator"},
-		{"/api/ui/metrics", "ui-metrics"},
-		{"/api/users", "users"},
+		{url: "/", expectedProxyName: "ui-server"},
+		{url: "/launch/k8s", expectedProxyName: "launch-generator"},
+		{url: "/k8s", expectedProxyName: "launch-generator"},
+		{url: "/api/ui/metrics", expectedProxyName: "ui-metrics"},
+		{url: "/api/users", expectedProxyName: "users"},
+		// GCP redirect
+		{url: "/subscribe-via/gcp?retain=me", method: "POST", body: strings.NewReader(`x-gcp-marketplace-token=foo`),
+			expectedCode: 302, expectedLocation: "/subscribe-via/gcp?retain=me&x-gcp-marketplace-token=foo"},
+		{url: "/login-via/gcp?retain=me", method: "POST", body: strings.NewReader(`x-gcp-marketplace-token=foo`),
+			expectedCode: 302, expectedLocation: "/login-via/gcp?retain=me&x-gcp-marketplace-token=foo"},
 	}
 
 	for _, tc := range tests {
-		req, err := http.NewRequest("GET", tc.url, nil)
-		assert.NoError(t, err, "Error creating the request")
+		t.Run(tc.method+" "+tc.url, func(t *testing.T) {
+			if tc.method == "" {
+				tc.method = "GET"
+			}
+			req, err := http.NewRequest(tc.method, tc.url, tc.body)
+			if tc.method == "POST" {
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			}
+			assert.NoError(t, err, "Error creating the request")
 
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		resp := rr.Result()
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+			resp := rr.Result()
 
-		body, _ := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		assert.Equal(t, tc.expectedProxyName, string(body))
+			if tc.expectedCode != 0 {
+				assert.Equal(t, tc.expectedCode, rr.Code)
+			}
+			if tc.expectedProxyName != "" {
+				body, _ := ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				assert.Equal(t, tc.expectedProxyName, string(body))
+			}
+			if tc.expectedLocation != "" {
+				assert.Equal(t, tc.expectedLocation, rr.Header().Get("Location"))
+			}
+		})
 	}
 }
 

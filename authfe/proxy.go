@@ -28,9 +28,7 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	switch cfg.protocol {
 	case "grpc":
 		return httpgrpc_server.NewClient(cfg.hostAndPort)
-	case "https":
-		fallthrough
-	case "http":
+	case "https", "http":
 		// Make all transformations outside of the director since
 		// they are also required when proxying websockets
 		return &httpProxy{cfg, httputil.ReverseProxy{
@@ -40,7 +38,7 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	case "mock":
 		return &mockProxy{cfg}, nil
 	}
-	return nil, fmt.Errorf("Unknown protocol %q for service %s", cfg.protocol, cfg.name)
+	return nil, fmt.Errorf("unknown protocol %q for service %s", cfg.protocol, cfg.name)
 }
 
 type httpProxy struct {
