@@ -101,7 +101,7 @@ func (s Store) Decode(encoded string) (Session, error) {
 
 // Set stores the session with the given userID for the user.
 func (s Store) Set(w http.ResponseWriter, r *http.Request, userID string, impersonatingUserID string) error {
-	cookie, err := s.Cookie(userID, impersonatingUserID, s.domain)
+	cookie, err := s.Cookie(userID, impersonatingUserID)
 	impersonationCookieShouldExist := false
 	if err == nil {
 		http.SetCookie(w, cookie)
@@ -121,6 +121,7 @@ func (s Store) Clear(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().UTC().Add(-1 * time.Second),
 		MaxAge:   -1,
 		Secure:   s.secure,
+		Domain:   s.domain,
 	})
 	// Cannot be impersonating => ensure impersonation cookie absent
 	s.applyImpersonationCookie(w, r, false)
@@ -154,7 +155,7 @@ func (s Store) applyImpersonationCookie(w http.ResponseWriter, r *http.Request, 
 }
 
 // Cookie creates the http cookie to set for this user's session.
-func (s Store) Cookie(userID, impersonatingUserID, domain string) (*http.Cookie, error) {
+func (s Store) Cookie(userID, impersonatingUserID string) (*http.Cookie, error) {
 	value, err := s.Encode(userID, impersonatingUserID)
 	return &http.Cookie{
 		Name:     client.AuthCookieName,
@@ -164,7 +165,7 @@ func (s Store) Cookie(userID, impersonatingUserID, domain string) (*http.Cookie,
 		Expires:  time.Now().UTC().Add(SessionDuration),
 		MaxAge:   int(SessionDuration / time.Second),
 		Secure:   s.secure,
-		Domain:   domain,
+		Domain:   s.domain,
 	}, err
 }
 
