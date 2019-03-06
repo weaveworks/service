@@ -40,10 +40,10 @@ func init() {
 // ------------------------------------------------------------
 // ATTENTION
 // ------------------------------------------------------------
-// IF YOU ARE ABOUT TO CHANGE THESE SCHEMAS:
+// IF YOU ARE ABOUT TO CHANGE ANY OF THESE SCHEMAS:
 //
 // These definitions must be manually kept in sync with the BigQuery table schemas.
-// If you add a field to bqUser please head to the BigQuery UI and add a
+// For example if you add a field to bqUser please head to the BigQuery UI and add a
 // corresponding column to both service.users and service_dev.users!
 //
 
