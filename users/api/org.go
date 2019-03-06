@@ -397,7 +397,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err == users.ErrNotFound {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	if err != nil {
