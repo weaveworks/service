@@ -58,7 +58,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 // Validate returns an error if anything is wrong with the configuration.
 func (c *Config) Validate(requirePlanID bool) error {
 	if requirePlanID && c.ProductRatePlanID == "" {
-		return errors.New("-zuora.subscription-plan-id cannot be empty")
+		return errors.New("-zuora.product-rate-plan-id cannot be empty")
 	}
 	return nil
 }

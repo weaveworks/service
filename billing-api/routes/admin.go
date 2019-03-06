@@ -19,9 +19,14 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-type instanceMonthSums map[string]map[time.Month]map[string]int64
-type monthSums map[time.Month]map[string]int64
 type totalSums map[string]int64
+type monthSums map[time.Month]totalSums
+type instanceMonthSums map[string]monthSums
+
+// totalSums is our storage mechanism and is defined as int64 values
+// node-usage is going to be a float, but needs to be stores as int64
+// So, we preserve a digit for every power of ten
+const nodeUsagePrecision int = 1000000
 
 // healthCheck handles a very simple health check
 func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +76,8 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	renderCSV(w, csvLines, logger)
 }
 
+// Generates the header for the CSV file: first block is hard-coded names;
+// second block is auto-generated monthly usage stat headers
 func header(months []time.Month, amountTypes []string) []string {
 	header := []string{
 		"TeamExternalID", "TeamName", "OrgID", "OrgExternalID", "OrgName", "OrgCreatedAt",
@@ -87,7 +94,7 @@ func header(months []time.Month, amountTypes []string) []string {
 	return header
 }
 
-func usages(usage map[time.Month]map[string]int64, months []time.Month, amountTypes []string) []int64 {
+func usages(usage monthSums, months []time.Month, amountTypes []string) []int64 {
 	var values []int64
 	for _, month := range months {
 		for _, amountType := range amountTypes {
@@ -267,11 +274,21 @@ func months(from, to time.Time) []time.Month {
 	return months
 }
 
+// From: https://stackoverflow.com/a/35482679/506244
+func secondsInMonth(y int, m time.Month) int {
+	start := time.Date(y, m, 0, 0, 0, 0, 0, time.UTC)
+	end := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC)
+	return int(end.Sub(start).Seconds())
+}
+
 func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]struct{}) {
 	instanceMonthSums := instanceMonthSums{}
+	// Actually a set
 	amountTypesMap := map[string]struct{}{}
+	// Loop over instances
 	for instanceID, aggs := range sums {
 		monthSums := monthSums{}
+		// Loop over month sums
 		for _, agg := range aggs {
 			s, ok := monthSums[agg.BucketStart.Month()]
 			if !ok {
@@ -282,6 +299,15 @@ func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]
 
 			amountTypesMap[agg.AmountType] = struct{}{}
 		}
+		// Loop over months to produce node-usage metric
+		// Note, loop mutates monthSums
+		// @TODO Specifying 2019 for year, terrible hack -- year should be preserved in data from db.
+		for month, totalSums := range monthSums {
+			totalSums["node-usage"] = int64(
+				(float64(totalSums["node-seconds"]) / float64(secondsInMonth(2019, month))) * float64(nodeUsagePrecision))
+		}
+		amountTypesMap["node-usage"] = struct{}{}
+
 		instanceMonthSums[instanceID] = monthSums
 	}
 	return instanceMonthSums, amountTypesMap
@@ -367,16 +393,19 @@ var adminTemplate = `
 		<div id="orgs">
 			{{if .Query}}
 			<div class="mdl-grid">
-				<p>Displaying results for «{{.Query}}» <a href="{{$admurl}}/billing/admin">show all</a></p>
+				<p>Displaying results for «{{.Query}}» <a href="{{$admurl}}/billing/organizations">show all</a></p>
 			</div>
 			{{end}}
 
 			<div class="mdl-grid">
+				{{/* TODO: Potentially delete this code (why is it here?) #########
 				{{range $key, $value := $colors}}
 					<span style="color: {{ $value }}">{{$key}}</span>
 				{{- end}}
+				*/}}
 				<table class="mdl-data-table mdl-js-data-table">
 					<thead>
+						{{/*  ##### MONTHS HEADER WRITER ########
 						<tr>
 							<th></th><th></th><th></th>
 							{{- range $months -}}
@@ -386,17 +415,20 @@ var adminTemplate = `
 								{{- end -}}
 							{{- end -}}
 						</tr>
+						*/}}
 						<tr>
 							<th class="mdl-data-table__cell--non-numeric">InstanceID</th>
 							<th class="mdl-data-table__cell--non-numeric">BillingEnabled</th>
 							<th class="mdl-data-table__cell--non-numeric">TrialRemaining</th>
+							{{/* #### DATA HEADER WRITER ####
 							{{range $months -}}
 								{{ range $amountType, $color := $colors -}}
 									<th style="color: {{$color}}">{{$amountType}}</th>
 								{{- end }}
 							{{- end }}
+							*/}}
 						</tr>
-					</thread>
+					</thead>
 					{{range .Organizations }}
 						{{ $org := . }}
 						<tr>
@@ -405,20 +437,47 @@ var adminTemplate = `
 							</td>
 							<td class="mdl-data-table__cell--non-numeric">{{$org.HasFeatureFlag $billing}}</td>
 							<td class="mdl-data-table__cell--non-numeric">{{with (index $trialInfo $org.ID)}}{{.Remaining}}/{{.Length}} days{{else}}err{{end}}</td>
-							{{ range $k, $month := $months -}}
-							  {{- range $amountType, $color := $colors -}}
-									<td>
-										{{- with (index $sums $org.ID) -}}
-											{{- with (index . $month) -}}
-												{{- with (index . $amountType) -}}
-													<div style="color: {{$color}}">{{.}}</div>
-												{{- end -}}
-											{{- end -}}
-										{{- end -}}
-									</td>
-								{{- end -}}
-							{{end}}
 						</tr>
+
+						{{/* NEW CODE BY CRAIG */}}
+						<tr>
+							<td colspan=3>
+								<table class="mdl-data-table mdl-js-data-table">
+									<thead>
+										<th>Month</th>
+										{{ range $amountType, $color := $colors -}}
+											<th style="color: {{$color}}">{{$amountType}}</th>
+										{{- end }}
+
+									</thead>
+
+									{{ range $k, $month := $months -}}
+										<tr>
+											<td class="mdl-data-table__cell--non-numeric">{{$month}}</td>
+										  {{- range $amountType, $color := $colors -}}
+												<td>
+													{{- with (index $sums $org.ID) -}}
+														{{- with (index . $month) -}}
+															{{- with (index . $amountType) -}}
+																<div style="color: {{$color}}">
+																	{{- if (eq $amountType "node-usage") -}}
+																		{{- renderNodeUsage . -}}
+																	{{- else -}}
+																		{{- . -}}
+																	{{- end -}}
+																</div>
+															{{- end -}}
+														{{- end -}}
+													{{- end -}}
+												</td>
+											{{- end -}}
+										</tr>
+									{{end}}
+								</table>
+							</td>
+						</tr>
+
+
 					{{ end }}
 				</table>
 				<div class="mdl-cell mdl-cell--12-col">
