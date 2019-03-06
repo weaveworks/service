@@ -117,7 +117,7 @@ func testEmailSender(e *email.Email) error {
 // RequestAs makes a request as the given user.
 func requestAs(t *testing.T, u *users.User, method, endpoint string, body io.Reader) *http.Request {
 	impersonatingUserID := "" // this test doesn't involve impersonation
-	cookie, err := sessionStore.Cookie(u.ID, impersonatingUserID, "")
+	cookie, err := sessionStore.Cookie(u.ID, impersonatingUserID)
 	assert.NoError(t, err)
 
 	r, err := http.NewRequest(method, endpoint, body)
