@@ -36,6 +36,17 @@ func init() {
 	postRequestCollector.Register()
 }
 
+//
+// ------------------------------------------------------------
+// ATTENTION
+// ------------------------------------------------------------
+// IF YOU ARE ABOUT TO CHANGE THESE SCHEMAS:
+//
+// These definitions must be manually kept in sync with the BigQuery table schemas.
+// If you add a field to bqUser please head to the BigQuery UI and add a
+// corresponding column to both service.users and service_dev.users!
+//
+
 type bqUser struct {
 	ID        string
 	Email     string
@@ -76,6 +87,10 @@ type bqTeam struct {
 	TrialExpiredNotifiedAt       *time.Time
 	CreatedAt                    time.Time
 }
+
+//
+// ------------------------------------------------------------
+//
 
 func main() {
 	var (
