@@ -227,11 +227,12 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 			CreatedAt:            instance.CreatedAt,
 			FirstSeenConnectedAt: instance.FirstSeenConnectedAt,
 			Platform:             instance.Platform,
-			PlatformVersion:      instance.PlatformVersion,
 			Environment:          instance.Environment,
+			PlatformVersion:      instance.PlatformVersion,
 			BillingProvider:      instance.BillingProvider(),
 			RefuseDataAccess:     boolString(instance.RefuseDataAccess),
 			RefuseDataUpload:     boolString(instance.RefuseDataUpload),
+			TeamID:               instance.TeamID,
 		}
 		results = append(results, result)
 	}
