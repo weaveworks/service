@@ -131,10 +131,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		Secret: c.gcpWebhookSecret,
 	}
 
-	gcpLoginSecretMiddleware := users_client.GCPLoginSecretMiddleware{
-		Secret: c.gcpSSOSecret,
-	}
-
 	scopeCensorMiddleware := users_client.ScopeCensorMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
@@ -305,10 +301,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			[]PrefixRoutable{
 				Prefix{"/", c.usersHost},
 			},
-			middleware.Merge(
-				gcpLoginSecretMiddleware,
-				uiHTTPlogger,
-			),
+			uiHTTPlogger,
 		},
 
 		// Webhook for events from Google PubSub require authentication through a secret.
