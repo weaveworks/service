@@ -3,6 +3,7 @@ package emailer
 import (
 	"fmt"
 	"net"
+	netmail "net/mail"
 	"net/smtp"
 	"net/textproto"
 	"net/url"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jordan-wright/email"
+	sendgrid "github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
@@ -19,10 +22,11 @@ import (
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
 // Implements Emailer, see MustNew() for instantiation.
 type SMTPEmailer struct {
-	Templates   templates.Engine
-	Sender      func(*email.Email) error
-	Domain      string
-	FromAddress string
+	Templates      templates.Engine
+	SendDirectly   func(*email.Email) error
+	SendGridClient *sendgrid.Client
+	Domain         string
+	FromAddress    string
 }
 
 // Date format to use in email templates
@@ -55,6 +59,32 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	}, nil
 }
 
+// SendThroughSendGrid sends an email through SendGrid if possible, otherwise sends directly.
+func (s SMTPEmailer) SendThroughSendGrid(e *email.Email) error {
+	// Fallback to direct sender if SendGrid client is not there.
+	if s.SendGridClient == nil {
+		return s.SendDirectly(e)
+	}
+
+	message := new(mail.SGMailV3)
+	message.Subject = e.Subject
+	from, _ := netmail.ParseAddress(s.FromAddress)
+	message.SetFrom(mail.NewEmail(from.Name, from.Address))
+
+	personalization := mail.NewPersonalization()
+	for _, email := range e.To {
+		personalization.AddTos(mail.NewEmail("", email))
+	}
+	message.AddPersonalizations(personalization)
+	message.AddContent(
+		mail.NewContent("text/plain", string(e.Text)),
+		mail.NewContent("text/html", string(e.HTML)),
+	)
+
+	_, err := s.SendGridClient.Send(message)
+	return err
+}
+
 // WeeklyReportEmail sends the weekly report email
 func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyreports.Report) error {
 	organizationURL := organizationURL(s.Domain, report.Organization.ExternalID)
@@ -69,7 +99,7 @@ func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyrepo
 	}
 	e.Text = s.Templates.QuietBytes("weekly_report_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("weekly_report_email.html", emailWrapperFilename, "", data)
-	return s.Sender(e)
+	return s.SendThroughSendGrid(e)
 }
 
 // LoginEmail sends the login email
@@ -84,7 +114,7 @@ func (s SMTPEmailer) LoginEmail(u *users.User, token string, queryParams map[str
 	}
 	e.Text = s.Templates.QuietBytes("login_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("login_email.html", emailWrapperFilename, e.Subject, data)
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 // InviteToTeamEmail sends the invite email
@@ -101,7 +131,7 @@ func (s SMTPEmailer) InviteToTeamEmail(inviter, invited *users.User, teamExterna
 	}
 	e.Text = s.Templates.QuietBytes("invite_to_team_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("invite_to_team_email.html", emailWrapperFilename, e.Subject, data)
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 // GrantAccessToTeamEmail sends the grant access email
@@ -117,7 +147,7 @@ func (s SMTPEmailer) GrantAccessToTeamEmail(inviter, invited *users.User, teamEx
 	}
 	e.Text = s.Templates.QuietBytes("grant_access_to_team_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("grant_access_to_team_email.html", emailWrapperFilename, e.Subject, data)
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 // TrialPendingExpiryEmail notifies all members of the organization that
@@ -135,8 +165,7 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_pending_expiry_email.html", emailWrapperFilename, e.Subject, data)
-
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 // TrialExpiredEmail notifies all members of the organization that
@@ -152,8 +181,7 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 	}
 	e.Text = s.Templates.QuietBytes("trial_expired_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_expired_email.html", emailWrapperFilename, e.Subject, data)
-
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 // TrialExtendedEmail notifies all members of the organization that the trial
@@ -172,8 +200,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 	e.Subject = fmt.Sprintf("%s left of your free trial", left)
 	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_extended_email.html", emailWrapperFilename, e.Subject, data)
-
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }
 
 func trialLeft(expires time.Time) string {
@@ -197,6 +224,5 @@ func (s SMTPEmailer) RefuseDataUploadEmail(members []*users.User, orgExternalID,
 	e.Subject = "Sorry to see you leave Weave Cloud!"
 	e.Text = s.Templates.QuietBytes("refuse_data_upload_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("refuse_data_upload_email.html", emailWrapperFilename, e.Subject, data)
-
-	return s.Sender(e)
+	return s.SendDirectly(e)
 }

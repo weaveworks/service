@@ -871,6 +871,25 @@
   revision = "204274ad699c0983a70203a566887f17a717fef4"
 
 [[projects]]
+  digest = "1:5cdaecf64c8b5bbc6212499e2194fa4febfb4de29dca3fe9de21c72ef0e67527"
+  name = "github.com/sendgrid/rest"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "306b9bef57dc36f3435ccfcc08fe6ae2c6920344"
+  version = "v2.4.1"
+
+[[projects]]
+  digest = "1:ad9e557460b8fae2b9d15bf29aff3f645d326587e7ceb2425e369d0f5af01b65"
+  name = "github.com/sendgrid/sendgrid-go"
+  packages = [
+    ".",
+    "helpers/mail",
+  ]
+  pruneopts = "NUT"
+  revision = "8caf17aa96b4a98bae8bd216878dd50ff12897b5"
+  version = "v3.4.1"
+
+[[projects]]
   digest = "1:1ac7b34d4aeee8a7cfc1383bce35622e94ad4976cb4d26549faec6212e6394ce"
   name = "github.com/sercand/kuberesolver"
   packages = ["."]
@@ -1434,6 +1453,8 @@
     "github.com/robfig/cron",
     "github.com/satori/go.uuid",
     "github.com/segmentio/analytics-go",
+    "github.com/sendgrid/sendgrid-go",
+    "github.com/sendgrid/sendgrid-go/helpers/mail",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",

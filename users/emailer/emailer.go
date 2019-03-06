@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/jordan-wright/email"
+	sendgrid "github.com/sendgrid/sendgrid-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
@@ -33,27 +35,33 @@ type Emailer interface {
 // MustNew creates a new Emailer, from the URI, or panics.
 // Supports scheme smtp:// and log:// in `emailURI`.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
-	var sender func(*email.Email) error
+	var sendDirectly func(*email.Email) error
+	var sendGridClient *sendgrid.Client
 	u, err := url.Parse(emailURI)
 	if err != nil {
 		log.Fatalf("Error parsing -email-uri: %s", err)
 	}
 	switch u.Scheme {
 	case "smtp":
-		sender, err = smtpEmailSender(u)
+		sendDirectly, err = smtpEmailSender(u)
 	case "log":
-		sender = logEmailSender()
+		sendDirectly = logEmailSender()
 	default:
 		err = ErrUnsupportedEmailProtocol
 	}
 	if err != nil {
 		log.Fatal(err)
 	}
+	sendGridAPIKey, ok := os.LookupEnv("SENDGRID_API_KEY")
+	if ok {
+		sendGridClient = sendgrid.NewSendClient(sendGridAPIKey)
+	}
 	return SMTPEmailer{
-		Templates:   templates,
-		Sender:      sender,
-		Domain:      domain,
-		FromAddress: fromAddress,
+		Templates:      templates,
+		SendDirectly:   sendDirectly,
+		SendGridClient: sendGridClient,
+		Domain:         domain,
+		FromAddress:    fromAddress,
 	}
 }
 
