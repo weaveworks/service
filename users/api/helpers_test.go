@@ -15,7 +15,6 @@ import (
 
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
-	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -54,8 +53,6 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 	templates := templates.MustNewEngine("../templates", "../../common/templates")
 	logins = login.NewProviders()
 	mixpanelClient := marketing.NewMixpanelClient("")
-	var partnerClient partner.API
-	partnerAccess := partner.NewAccess()
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
@@ -89,8 +86,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		grpcServer,
 		make(map[string]struct{}),
 		mixpanelClient,
-		partnerClient,
-		partnerAccess,
+		nil,
 		fluxAPI,
 		scopeAPI,
 		"",

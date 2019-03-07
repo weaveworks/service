@@ -147,7 +147,7 @@
           {{if .GCP}}
             {{if not .GCP.Activated}}<div class="material-icons" title="Account was not activated">error</div>{{end}}
             <strong title="{{.GCP.SubscriptionName}} [{{.GCP.ConsumerID}}]">GCP</strong> <em>{{.GCP.SubscriptionLevel}}</em> [{{.GCP.SubscriptionStatus}}]<br />
-            <a href="/admin/users/gcp/{{.GCP.ExternalAccountID}}/subscriptions">{{.GCP.ExternalAccountID}}</a>
+            <a href="/admin/users/gcp/{{.GCP.ExternalAccountID}}/entitlements">{{.GCP.ExternalAccountID}}</a>
           {{end}}
           {{if .ZuoraAccountNumber }}
             <strong>Zuora</strong><br />

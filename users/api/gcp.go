@@ -3,34 +3,37 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 )
 
-// We do not approve subscriptions coming from this accountID as to not
+// We do not approve entitlements coming from this accountID as to not
 // "waste" all of our staging billing accounts.
-const testingExternalAccountID = "E-97A7-79FC-AD2D-9D31"
+const testingExternalAccountID = "E-8A9F-4E2B-32D7-AC96"
 
 var (
 	// ErrAlreadyActivated says the account has already been activated and cannot be activated a second time.
 	ErrAlreadyActivated = errors.New("account has already been activated")
-	// ErrMissingConsumerID denotes the consumerId label is missing in the subscribed resource.
-	ErrMissingConsumerID = errors.New("missing consumer ID")
 )
 
 func (a *API) gcpSSOLogin(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	externalAccountID := mux.Vars(r)["externalAccountID"]
+	claims, err := gcp.ParseJWT(r.FormValue(gcp.MarketplaceTokenParam))
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	externalAccountID := claims.Subject
 	org, err := a.GCPSSOLogin(currentUser, externalAccountID, w, r)
 	if err != nil {
 		renderError(w, r, err)
@@ -62,7 +65,13 @@ func (a *API) GCPSSOLogin(currentUser *users.User, externalAccountID string, w h
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	externalAccountID := r.FormValue("gcpAccountId")
+	claims, err := gcp.ParseJWT(r.FormValue(gcp.MarketplaceTokenParam))
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	externalAccountID := claims.Subject
+
 	org, err := a.GCPSubscribe(currentUser, externalAccountID, w, r)
 	if err != nil {
 		renderError(w, r, err)
@@ -75,26 +84,12 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
 	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
 	logger.Info("Subscribing GCP Cloud Launcher user")
-	subName, err := a.getPendingSubscriptionName(r.Context(), logger, externalAccountID)
-	if err != nil {
-		return nil, err
-	}
 
-	token, err := a.getGoogleOAuthToken(r.Context(), logger, currentUser.ID)
+	ent, err := a.getPendingEntitlement(r.Context(), logger, externalAccountID)
 	if err != nil {
 		return nil, err
 	}
-	sub, err := a.partnerAccess.RequestSubscription(r.Context(), token, subName)
-	if err != nil {
-		return nil, err
-	}
-	logger.Infof("Pending subscription: %+v", sub)
-
-	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
-	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-	if consumerID == "" {
-		return nil, ErrMissingConsumerID
-	}
+	logger.Infof("Pending entitlement: %+v", ent)
 
 	// Are we resuming?
 	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
@@ -110,64 +105,68 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 			return nil, ErrAlreadyActivated
 		}
 
-		// Approve subscription
-		body := partner.RequestBodyWithSSOLoginKey(externalAccountID)
-		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
-		if err != nil {
+		logger.Info("Approving account")
+		if err := a.procurement.ApproveAccount(r.Context(), externalAccountID); err != nil {
 			return nil, err
 		}
+
+		logger.Info("Approving entitlement")
+		if err := a.procurement.ApproveEntitlement(r.Context(), ent.Name); err != nil {
+			return nil, err
+		}
+	} else {
+		logger.Info("Not approving account/entitlement for testing account")
 	}
 
 	// Mark GCP account as activated account.
 	// Set subscription status to ACTIVE because approval passed. We will also receive a PubSub message
 	// with Status = ACTIVE later. If we set it to PENDING here (what sub.Status currently is), we get
 	// into a race with the PubSub message.
-	err = a.db.UpdateGCP(r.Context(), externalAccountID, consumerID, sub.Name, level, string(partner.Active))
-	if err != nil {
+	if err = a.db.UpdateGCP(r.Context(), externalAccountID, ent.UsageReportingID, ent.Name, ent.Plan,
+		string(procurement.Active)); err != nil {
 		return nil, err
 	}
 
 	return org, nil
 }
 
-func (a *API) adminGCPListSubscriptions(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminGCPListEntitlements(w http.ResponseWriter, r *http.Request) {
 	externalAccountID := mux.Vars(r)["externalAccountID"]
-	subs, err := a.partner.ListSubscriptions(r.Context(), externalAccountID)
+	ents, err := a.procurement.ListEntitlements(r.Context(), externalAccountID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-
-	render.JSON(w, http.StatusOK, subs)
+	render.JSON(w, http.StatusOK, ents)
 }
 
-func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, externalAccountID string) (string, error) {
-	subs, err := a.partner.ListSubscriptions(ctx, externalAccountID)
+func (a *API) getPendingEntitlement(ctx context.Context, logger *log.Entry, externalAccountID string) (*procurement.Entitlement, error) {
+	ents, err := a.procurement.ListEntitlements(ctx, externalAccountID)
 	if err != nil {
-		return "", err
+		return nil, errors.Wrap(err, "cannot list entitlements")
 	}
-	logger.Infof("Received subscriptions: %+v", subs)
-	for _, sub := range subs {
-		if sub.Status == partner.Pending {
-			return sub.Name, nil
+	logger.Infof("Received entitlements: %+v", ents)
+	for _, e := range ents {
+		if e.State == procurement.ActivationRequested {
+			return &e, nil
 		}
 	}
 	// In case our test account no longer has a PENDING subscription,
 	// try to re-use an ACTIVE subscription, and if none,
 	// fallback on the first subscription found, even if COMPLETE:
 	if externalAccountID == testingExternalAccountID {
-		return getTestSubscriptionName(externalAccountID, subs)
+		return findTestEntitlement(ents)
 	}
-	return "", users.NewMalformedInputError(fmt.Errorf("no pending subscription found"))
+	return nil, users.NewMalformedInputError(fmt.Errorf("no pending entitlement found"))
 }
 
-func getTestSubscriptionName(externalAccountID string, subs []partner.Subscription) (string, error) {
-	for _, sub := range subs {
-		if sub.Status == partner.Active {
-			return sub.Name, nil
+func findTestEntitlement(ents []procurement.Entitlement) (*procurement.Entitlement, error) {
+	for _, e := range ents {
+		if e.State == procurement.Active {
+			return &e, nil
 		}
 	}
-	return subs[0].Name, nil
+	return &ents[0], nil
 }
 
 func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID string) (*oauth2.Token, error) {

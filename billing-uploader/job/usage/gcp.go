@@ -13,7 +13,7 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/gcp/control"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 )
 
@@ -73,7 +73,7 @@ func (g *GCP) Upload(ctx context.Context, id string) error {
 func (g *GCP) IsSupported(org users.Organization) bool {
 	// Note that users.GetBillableOrganizations should already check for all of these except
 	// GCP != nil. Better safe than sorry.
-	return org.GCP != nil && org.GCP.Activated && org.GCP.SubscriptionStatus == string(partner.Active)
+	return org.GCP != nil && org.GCP.Activated && org.GCP.SubscriptionStatus == string(procurement.Active)
 }
 
 // ThroughTime truncates to the hour. We always want to upload everything that has been fully aggregated.

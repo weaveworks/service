@@ -99,9 +99,9 @@ var (
 				ExternalAccountID:  "F-EEE",
 				ConsumerID:         "project_number:123",
 				Activated:          true,
-				SubscriptionName:   "partnerSubscriptions/123",
+				SubscriptionName:   "providers/weaveworks-dev/entitlements/123",
 				SubscriptionLevel:  "standard",
-				SubscriptionStatus: "ACTIVE",
+				SubscriptionStatus: "ENTITLEMENT_ACTIVE",
 			},
 		},
 		{
@@ -111,9 +111,9 @@ var (
 				ExternalAccountID:  "F-EEE",
 				ConsumerID:         "project_number:123",
 				Activated:          false,
-				SubscriptionName:   "partnerSubscriptions/123",
+				SubscriptionName:   "providers/weaveworks-dev/entitlements/123",
 				SubscriptionLevel:  "standard",
-				SubscriptionStatus: "ACTIVE",
+				SubscriptionStatus: "ENTITLEMENT_ACTIVE",
 			},
 		},
 		{

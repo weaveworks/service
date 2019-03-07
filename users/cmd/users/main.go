@@ -19,7 +19,7 @@ import (
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/featureflag"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/api"
@@ -79,11 +79,11 @@ func main() {
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
-		dbCfg        dbconfig.Config
-		partnerCfg   partner.Config
-		billingCfg   billing_grpc.Config
-		usersSyncCfg users_sync.Config
-		marketoCfg   marketing.MarketoConfig
+		dbCfg          dbconfig.Config
+		procurementCfg procurement.Config
+		billingCfg     billing_grpc.Config
+		usersSyncCfg   users_sync.Config
+		marketoCfg     marketing.MarketoConfig
 
 		cleanupURLs common.ArrayFlags
 
@@ -100,13 +100,10 @@ func main() {
 	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
-	partnerCfg.RegisterFlags(flag.CommandLine)
+	procurementCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
 	usersSyncCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
-
-	partnerAccess := partner.NewAccess()
-	partnerAccess.Flags(flag.CommandLine)
 
 	flag.Parse()
 
@@ -149,12 +146,12 @@ func main() {
 		mixpanelClient = marketing.NewMixpanelClient(*mixpanelToken)
 	}
 
-	var partnerClient partner.API
-	if partnerCfg.ServiceAccountKeyFile != "" {
+	var procurementClient procurement.API
+	if procurementCfg.ServiceAccountKeyFile != "" {
 		var err error
-		partnerClient, err = partner.NewClient(partnerCfg)
+		procurementClient, err = procurement.NewClient(procurementCfg)
 		if err != nil {
-			log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
+			log.Fatalf("Failed creating Google Partner Procurement API client: %v", err)
 		}
 	}
 
@@ -188,8 +185,7 @@ func main() {
 		grpcServer,
 		webhookTokenMap,
 		mixpanelClient,
-		partnerClient,
-		partnerAccess,
+		procurementClient,
 		*fluxStatusAPI,
 		*scopeProbesAPI,
 		*promMetricsAPI,

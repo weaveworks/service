@@ -7,7 +7,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 )
 
@@ -63,14 +63,14 @@ type GCPSubscription bool
 // Where returns the query to filter by a running GCP subscription.
 func (g GCPSubscription) Where() squirrel.Sqlizer {
 	if bool(g) {
-		return squirrel.Expr("gcp_accounts.activated AND gcp_accounts.subscription_status = 'ACTIVE'")
+		return squirrel.Expr("gcp_accounts.activated AND gcp_accounts.subscription_status = ?", procurement.Active)
 	}
-	return squirrel.Expr("gcp_accounts.activated = false OR gcp_accounts.subscription_status <> 'ACTIVE'")
+	return squirrel.Expr("gcp_accounts.activated = false OR gcp_accounts.subscription_status <> ?", procurement.Active)
 }
 
 // MatchesOrg checks whether the organization matches this filter.
 func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
-	active := o.GCP != nil && o.GCP.Activated && o.GCP.SubscriptionStatus == string(partner.Active)
+	active := o.GCP != nil && o.GCP.Activated && o.GCP.SubscriptionStatus == string(procurement.Active)
 	if bool(g) {
 		return active
 	}

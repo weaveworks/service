@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/common/constants/webhooks"
-	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/db/filter"
@@ -193,7 +193,7 @@ func TestDB_FindGCP(t *testing.T) {
 	assert.NoError(t, err)
 	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID, u.TrialExpiresAt())
 	assert.NoError(t, err)
-	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "partnerSubscriptions/1", "enterprise", string(partner.Active))
+	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "providers/weaveworks-dev/entitlements/1", "enterprise", string(procurement.Active))
 	assert.NoError(t, err)
 
 	// Database request returns same values
@@ -201,9 +201,9 @@ func TestDB_FindGCP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, externalAccountID, gcp.ExternalAccountID)
 	assert.Equal(t, "project_number:123", gcp.ConsumerID)
-	assert.Equal(t, "partnerSubscriptions/1", gcp.SubscriptionName)
+	assert.Equal(t, "providers/weaveworks-dev/entitlements/1", gcp.SubscriptionName)
 	assert.Equal(t, "enterprise", gcp.SubscriptionLevel)
-	assert.EqualValues(t, partner.Active, gcp.SubscriptionStatus)
+	assert.EqualValues(t, procurement.Active, gcp.SubscriptionStatus)
 
 	// FindOrganization returns same GCP as FindGCP
 	neworg, err := db.FindOrganizationByID(ctx, org.ExternalID)

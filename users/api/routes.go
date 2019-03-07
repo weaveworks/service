@@ -36,7 +36,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_update", "PUT", "/api/users/user", a.authenticateUser(a.updateUser)},
 		{"api_users_user", "GET", "/api/users/user", a.authenticateUser(a.getCurrentUser)},
 		{"api_users_gcp_subscribe", "POST", "/api/users/gcp/subscribe", a.authenticateUser(a.gcpSubscribe)},
-		{"api_users_gcp_sso_login", "GET", "/api/users/gcp/sso/login/{externalAccountID}", a.authenticateUser(a.gcpSSOLogin)},
+		{"api_users_gcp_sso_login", "GET", "/api/users/gcp/sso/login", a.authenticateUser(a.gcpSSOLogin)},
 		// The same as api_users_signup, but exempt from CRSF in authfe and authenticated via header here
 		{"api_users_signup_webhook", "POST", "/api/users/signup_webhook", a.authenticateWebhook(a.signup)},
 
@@ -91,7 +91,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_weekly_reports_send_single", "POST", "/admin/users/weeklyreports/send_single", a.adminWeeklyReportsSendSingle},
 		{"admin_users_weekly_reports_preview", "POST", "/admin/users/weeklyreports/preview", a.adminWeeklyReportsPreview},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
-		{"admin_users_gcp_externalAccountID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},
+		{"admin_users_gcp_externalAccountID_entitlements", "GET", "/admin/users/gcp/{externalAccountID}/entitlements", a.adminGCPListEntitlements},
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.adminListUsersForOrganization},
 		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.adminRemoveUserFromOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.adminChangeOrgFields},

@@ -22,6 +22,16 @@ func NewJSONClient(client client.Requester) *JSONClient {
 	return &JSONClient{client}
 }
 
+// HTTPStatusError represents an HTTP error for status codes not within 200 to 299
+type HTTPStatusError struct {
+	Code int
+}
+
+// Error returns the error message
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("request failed: %d", e.Code)
+}
+
 // Get does a GET request and unmarshals the response into dest.
 func (c *JSONClient) Get(ctx context.Context, operation, url string, dest interface{}) error {
 	r, err := c.get(ctx, operation, url)
@@ -89,7 +99,9 @@ func (c *JSONClient) parseJSON(resp *http.Response, dest interface{}) error {
 		err = json.NewDecoder(resp.Body).Decode(dest)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		err = fmt.Errorf("request failed: %v", resp.Status)
+		err = &HTTPStatusError{
+			Code: resp.StatusCode,
+		}
 	}
 	return err
 }

@@ -55,10 +55,9 @@ MOCK_BILLING_GRPC := common/billing/grpc/mock_grpc.go
 # Mocks can only be generated once protoc has generated the *.pb.go file:
 $(MOCK_BILLING_GRPC): $(BILLING_GRPC)
 
-MOCK_COMMON_GCP_PARTNER_CLIENT := common/gcp/partner/mock_partner/mock_client.go
-MOCK_COMMON_GCP_PARTNER_ACCESS := common/gcp/partner/mock_partner/mock_access.go
+MOCK_COMMON_GCP_PROCUREMENT_CLIENT := common/gcp/procurement/mock_procurement/mock_client.go
 
-MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_BILLING_GRPC) $(MOCK_COMMON_GCP_PARTNER_CLIENT) $(MOCK_COMMON_GCP_PARTNER_ACCESS)
+MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_BILLING_GRPC) $(MOCK_COMMON_GCP_PROCUREMENT_CLIENT)
 
 # copy billing migrations into each billing application's directory
 billing-aggregator/migrations/%: $(BILLING_DB)/migrations/%
@@ -292,12 +291,8 @@ $(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
 $(MOCK_BILLING_GRPC): build/$(UPTODATE)
 	mockgen -source=$(BILLING_GRPC) -destination=$@ -package=grpc
 
-$(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
-		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
-
-$(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
+$(MOCK_COMMON_GCP_PROCUREMENT_CLIENT): build/$(UPTODATE)
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/procurement API \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS) $(CODECGEN_TARGETS)

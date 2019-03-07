@@ -179,6 +179,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:7a6852b35eb5bbc184561443762d225116ae630c26a7c4d90546619f1e7d2ad2"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
+
+[[projects]]
   branch = "master"
   digest = "1:7a4e746e7cf5bc0e0e9c36ae2d805bff239ba7ed24cbf77538e45312f9771e0a"
   name = "github.com/docker/distribution"
@@ -1383,6 +1391,7 @@
     "github.com/badoux/checkmail",
     "github.com/bluele/gcache",
     "github.com/certifi/gocertifi",
+    "github.com/dgrijalva/jwt-go",
     "github.com/dukex/mixpanel",
     "github.com/fluent/fluent-logger-golang/fluent",
     "github.com/go-kit/kit/log",
