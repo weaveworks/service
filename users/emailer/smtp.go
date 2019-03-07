@@ -3,7 +3,6 @@ package emailer
 import (
 	"fmt"
 	"net"
-	netmail "net/mail"
 	"net/smtp"
 	"net/textproto"
 	"net/url"
@@ -12,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jordan-wright/email"
 	sendgrid "github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
@@ -57,32 +55,6 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 
 		return e.Send(addr, auth)
 	}, nil
-}
-
-// SendThroughSendGrid sends an email through SendGrid if possible, otherwise sends directly.
-func (s SMTPEmailer) SendThroughSendGrid(e *email.Email) error {
-	// Fallback to direct sender if SendGrid client is not there.
-	if s.SendGridClient == nil {
-		return s.SendDirectly(e)
-	}
-
-	message := new(mail.SGMailV3)
-	message.Subject = e.Subject
-	from, _ := netmail.ParseAddress(s.FromAddress)
-	message.SetFrom(mail.NewEmail(from.Name, from.Address))
-
-	personalization := mail.NewPersonalization()
-	for _, email := range e.To {
-		personalization.AddTos(mail.NewEmail("", email))
-	}
-	message.AddPersonalizations(personalization)
-	message.AddContent(
-		mail.NewContent("text/plain", string(e.Text)),
-		mail.NewContent("text/html", string(e.HTML)),
-	)
-
-	_, err := s.SendGridClient.Send(message)
-	return err
 }
 
 // WeeklyReportEmail sends the weekly report email

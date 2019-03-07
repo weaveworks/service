@@ -56,10 +56,10 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
-		Templates:   templates,
-		Sender:      testEmailSender,
-		Domain:      domain,
-		FromAddress: "test@test.com",
+		Templates:    templates,
+		SendDirectly: testEmailSendDirectly,
+		Domain:       domain,
+		FromAddress:  "test@test.com",
 	}
 	grpcServer := grpc.New(sessionStore, database, nil, []*marketing.Queue{}, []string{})
 
@@ -105,7 +105,7 @@ func cleanup(t *testing.T) {
 	dbtest.Cleanup(t, database)
 }
 
-func testEmailSender(e *email.Email) error {
+func testEmailSendDirectly(e *email.Email) error {
 	sentEmails = append(sentEmails, e)
 	return nil
 }
