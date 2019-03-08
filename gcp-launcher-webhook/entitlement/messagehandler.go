@@ -26,7 +26,12 @@ type MessageHandler struct {
 
 // Handle proceeds entitlement messages from PubSub.
 func (m MessageHandler) Handle(msg dto.Message) error {
-	log.Infof("Incoming webhook message: %+v", string(msg.Data))
+	log.Infof("Incoming webhook message %q (attributes %+v): %+v", msg.MessageID, msg.Attributes, string(msg.Data))
+	if len(msg.Data) == 0 {
+		log.Warnf("Ignoring empty message %q with attributes: %+v", msg.MessageID, msg.Attributes)
+		return nil // ACK
+
+	}
 	ctx := context.Background()
 
 	var payload event.Payload
