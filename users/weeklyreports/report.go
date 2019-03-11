@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -42,16 +43,36 @@ const (
 			"pod_name", "$0", "pod", ".*")
 		)
 	`
+
+	podOwnersByWorkloadsQuery = `
+		max by (namespace, pod_name, owner_kind) (
+			label_replace(
+				label_replace(
+						kube_pod_owner{owner_kind!="ReplicaSet"},
+						"owner_kind", "Pod", "owner_kind", "<none>"
+				) or
+				label_replace(
+						kube_pod_owner{owner_kind="ReplicaSet"} * on (owner_name) group_left(owner_kind) label_replace(
+								kube_replicaset_owner,
+								"owner_name", "$0", "replicaset", ".*"
+						),
+						"owner_kind", "ReplicaSet", "owner_kind", "<none>"
+				),
+				"pod_name", "$0", "pod", ".*"
+			)
+		)
+	`
 )
 
 func buildWorkloadsResourceConsumptionQuery(resourceQuery string) string {
 	return fmt.Sprintf(`
 		sort_desc(
-			sum by (namespace, service) (
+			sum by (namespace, service, owner_kind) (
 				%s * on (pod_name) group_left(namespace, service) (%s)
+				* on (namespace, pod_name) group_left(owner_kind) (%s)
 			)
 		)
-	`, resourceQuery, podsByWorkloadsQuery)
+	`, resourceQuery, podsByWorkloadsQuery, podOwnersByWorkloadsQuery)
 }
 
 // WorkloadResourceConsumptionRaw has unformatted consumption data returned by Prometheus.
@@ -121,15 +142,16 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 	}
 
 	// ... and store that data, together with the workload names.
-	topWorkloads := []WorkloadResourceConsumptionRaw{}
-	for _, workload := range workloadsVector {
-		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
-		// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
-		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["service"])
-		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionRaw{
+	topWorkloads := make([]WorkloadResourceConsumptionRaw, len(workloadsVector))
+	for i, workload := range workloadsVector {
+		// TODO: use the pod's owner as the service name?
+		workloadName := fmt.Sprintf("%s:%s/%s", workload.Metric["namespace"],
+			strings.ToLower(string(workload.Metric["owner_kind"])), workload.Metric["service"])
+
+		topWorkloads[i] = WorkloadResourceConsumptionRaw{
 			WorkloadName:       workloadName,
 			ClusterConsumption: float64(workload.Value),
-		})
+		}
 	}
 	return topWorkloads, nil
 }
