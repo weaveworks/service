@@ -128,7 +128,7 @@ func getWorkloadDeploymentsPerDay(ctx context.Context, org *users.Organization, 
 	return weeklyHistogram, nil
 }
 
-func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, resourceQuery string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
+func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, resourceQuery string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
 	// Get the sorted list of workloads based on the query.
 	workloadsSeries, err := api.Query(ctx, buildWorkloadsResourceConsumptionQuery(resourceQuery), EndAt)
 	if err != nil {
@@ -156,7 +156,7 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 	return topWorkloads, nil
 }
 
-func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
+func getPromAPI(uri string) (v1.API, error) {
 	client, err := common.NewPrometheusClient(uri)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func GenerateReport(org *users.Organization, timestamp time.Time) (*Report, erro
 
 	ctx := user.InjectOrgID(context.Background(), org.ID)
 
-	promAPI, err := getPromAPI(ctx, promURI)
+	promAPI, err := getPromAPI(promURI)
 	if err != nil {
 		return nil, err
 	}
@@ -191,11 +191,11 @@ func GenerateReport(org *users.Organization, timestamp time.Time) (*Report, erro
 	if err != nil {
 		return nil, err
 	}
-	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopCPUWorkloadsQuery, endAt)
+	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopCPUWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
-	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopMemoryWorkloadsQuery, endAt)
+	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopMemoryWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
