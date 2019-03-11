@@ -39,6 +39,11 @@
         </a>
       </div>
     </div>
+    {{if .Unsubscribable}}
+      <p style="text-align: center; font-style: italic; font-size: 12px; margin: 20px 0 30px;">
+        If you would like to unsubscribe and stop receiving these emails <a href="<%asm_group_unsubscribe_raw_url%>" style="color: #666; outline: none;">click here</a>.
+      </p>
+    {{end}}
     <div style="text-align: center; font-size: 9px; margin: 24px 0;">
       <span>Copyright 2019 Weaveworks</span>
     </div>

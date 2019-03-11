@@ -7,8 +7,11 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
+// See https://app.sendgrid.com/suppressions/advanced_suppression_manager
+const weeklyReportGroupID = 9852
+
 // ToSendGridMessage converts our standard email data structure into one that SendGrid accepts.
-func ToSendGridMessage(e *email.Email) *mail.SGMailV3 {
+func ToSendGridMessage(e *email.Email, groupID int) *mail.SGMailV3 {
 	message := new(mail.SGMailV3)
 	message.Subject = e.Subject
 
@@ -23,6 +26,11 @@ func ToSendGridMessage(e *email.Email) *mail.SGMailV3 {
 	}
 	message.AddPersonalizations(personalization)
 
+	// Classify the email in the appropriate unsubscribe group.
+	asm := mail.NewASM()
+	asm.SetGroupID(groupID)
+	message.SetASM(asm)
+
 	// Finally, fill in the email content.
 	message.AddContent(
 		mail.NewContent("text/plain", string(e.Text)),
@@ -32,9 +40,9 @@ func ToSendGridMessage(e *email.Email) *mail.SGMailV3 {
 }
 
 // SendThroughSendGrid sends an email through SendGrid if possible, otherwise sends directly.
-func (s SMTPEmailer) SendThroughSendGrid(e *email.Email) error {
+func (s SMTPEmailer) SendThroughSendGrid(e *email.Email, groupID int) error {
 	if s.SendGridClient != nil {
-		message := ToSendGridMessage(e)
+		message := ToSendGridMessage(e, groupID)
 		_, err := s.SendGridClient.Send(message)
 		return err
 	}

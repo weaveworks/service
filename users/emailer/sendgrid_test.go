@@ -20,6 +20,7 @@ func TestToSendGridMessage(t *testing.T) {
 			Text: []byte("text content"),
 			HTML: []byte("html content"),
 		},
+		1234,
 	)
 	assert.Equal(t, "Weekly Report", message.Subject)
 	assert.Equal(t, "John Smith", message.From.Name)
@@ -30,10 +31,10 @@ func TestToSendGridMessage(t *testing.T) {
 	assert.Equal(t, "", message.Personalizations[0].To[1].Name)
 	assert.Equal(t, "to1@test.test", message.Personalizations[0].To[0].Address)
 	assert.Equal(t, "to2@test.test", message.Personalizations[0].To[1].Address)
+	assert.Equal(t, 1234, message.Asm.GroupID)
 	assert.Equal(t, 2, len(message.Content))
 	assert.Equal(t, "text/plain", message.Content[0].Type)
 	assert.Equal(t, "text/html", message.Content[1].Type)
 	assert.Equal(t, "text content", message.Content[0].Value)
 	assert.Equal(t, "html content", message.Content[1].Value)
-
 }

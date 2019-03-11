@@ -75,7 +75,7 @@ type Engine interface {
 	Lookup(name string) (Executor, error)
 	Bytes(name string, data interface{}) ([]byte, error)
 	QuietBytes(name string, data interface{}) []byte
-	EmbedHTML(name string, wrapper string, title string, data interface{}) []byte
+	EmbedHTML(name string, wrapper string, title string, data map[string]interface{}) []byte
 }
 
 type extensionsTemplateEngine struct {
@@ -123,19 +123,23 @@ func (l *extensionsTemplateEngine) QuietBytes(name string, data interface{}) []b
 }
 
 // Embed HTML content in a wrapper HTML page. This keeps emails looking consistent.
-func (l *extensionsTemplateEngine) EmbedHTML(name, wrapper, title string, data interface{}) []byte {
+func (l *extensionsTemplateEngine) EmbedHTML(name, wrapper, title string, data map[string]interface{}) []byte {
 	content, err := l.Bytes(name, data)
-
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
 
-	h, err := l.Bytes(wrapper, map[string]html.HTML{
+	metadata := map[string]html.HTML{
 		"Content": html.HTML(content),
 		"Title":   html.HTML(title),
-	})
+	}
+	// Pass on the 'Unsubscribable' bool as string to the wrapper template as the link is shown at the bottom of the email.
+	if unsubscribable, ok := data["Unsubscribable"].(bool); ok && unsubscribable {
+		metadata["Unsubscribable"] = "true"
+	}
 
+	h, err := l.Bytes(wrapper, metadata)
 	if err != nil {
 		log.Error(err)
 		return nil
