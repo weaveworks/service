@@ -135,9 +135,9 @@ func (t timed) ListOrganizations(ctx context.Context, f filter.Organization, pag
 	return
 }
 
-func (t timed) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
+func (t timed) ListAllOrganizations(ctx context.Context, f filter.Organization, orderBy string, page uint64) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListAllOrganizations", func(ctx context.Context) error {
-		os, err = t.d.ListAllOrganizations(ctx, f, page)
+		os, err = t.d.ListAllOrganizations(ctx, f, orderBy, page)
 		return err
 	})
 	return
@@ -167,9 +167,9 @@ func (t timed) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...strin
 	return
 }
 
-func (t timed) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (os []*users.Organization, err error) {
+func (t timed) ListAllOrganizationsForUserIDs(ctx context.Context, orderBy string, userIDs ...string) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListAllOrganizationsForUserIDs", func(ctx context.Context) error {
-		os, err = t.d.ListAllOrganizationsForUserIDs(ctx, userIDs...)
+		os, err = t.d.ListAllOrganizationsForUserIDs(ctx, orderBy, userIDs...)
 		return err
 	})
 	return

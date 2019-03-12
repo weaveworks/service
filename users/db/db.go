@@ -59,14 +59,14 @@ type DB interface {
 	// NB: page 0 will return all matches. Use page >= 1 for paginated responses
 	ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error)
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
-	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
+	ListAllOrganizations(ctx context.Context, f filter.Organization, orderBy string, page uint64) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs, excludeNewUsers bool) ([]*users.User, error)
 	ListOrganizationsInTeam(ctx context.Context, teamID string) ([]*users.Organization, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
 	ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)
-	ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)
+	ListAllOrganizationsForUserIDs(ctx context.Context, orderBy string, userIDs ...string) ([]*users.Organization, error)
 
 	// ListLoginsForUserIDs lists all the logins associated with these users
 	ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*login.Login, error)

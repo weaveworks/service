@@ -66,19 +66,17 @@
     <div class="mdl-grid">
     <table class="mdl-data-table mdl-js-data-table">
       <thead>
-          <tr>
-            <th class="mdl-data-table__cell--non-numeric">ID</th>
-            <th class="mdl-data-table__cell--non-numeric">Name<br />Instance</th>
-            <th class="mdl-data-table__cell--non-numeric">Team</th>
-            <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼<br />FirstSeenConnectedAt</th>
-            <th class="mdl-data-table__cell--non-numeric">LastSentWeeklyReportAt</th>
-            <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
-            <th class="mdl-data-table__cell--non-numeric">Platform / Env /<br />K8s version</th>
-            <th class="mdl-data-table__cell--non-numeric">Fields</th>
-            <th class="mdl-data-table__cell--non-numeric">Trial days remaining</th>
-            <th class="mdl-data-table__cell--non-numeric">Billing</th>
-            <th class="mdl-data-table__cell--non-numeric">Admin</th>
-          </tr>
+        <tr>
+          {{range .Headers}}
+          <th class="mdl-data-table__cell--non-numeric">
+            {{if eq .Link ""}}
+            {{.Label}}
+            {{else}}
+            <a href="{{.Link}}">{{.Label}}</a>
+            {{end}}
+          </th>
+          {{end}}
+        </tr>
       </thead>
       <tbody>
       {{ $organizationUsers := .OrganizationUsers }}
@@ -121,8 +119,9 @@
             {{if .DeletedBy}}<br /><a href="users?query=id:{{.DeletedBy}}">Deleted by</a>{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
-          {{.Platform}} / <br />{{.Environment}} / <br />{{.PlatformVersion}}
+          {{.Platform}} / <br />{{.Environment}}
         </td>
+        <td>{{.PlatformVersion}}</td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">
               <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
@@ -175,7 +174,7 @@
     {{if .Page}}
     <div class="mdl-grid">
         <div class="mdl-layout-spacer"></div>
-        <a href="organizations?query={{.Query}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
+				<a href="{{.NextPageLink}}" class="mdl-button mdl-js-button mdl-button--raised">
             Next page
         </a>
     </div>

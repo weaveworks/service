@@ -58,15 +58,24 @@ func (d DB) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (b
 }
 
 func (d DB) organizationsQuery() squirrel.SelectBuilder {
-	return d.organizationsQueryHelper(false)
+	return d.organizationsQueryHelper().
+		Where("organizations.deleted_at is null").
+		OrderBy("organizations.created_at DESC")
 }
 
-func (d DB) organizationsQueryWithDeleted() squirrel.SelectBuilder {
-	return d.organizationsQueryHelper(true)
+func (d DB) organizationsQueryWithDeletedAndOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
+	if orderBy == "" {
+		orderBy = "organizations.created_at DESC"
+	}
+	query := d.organizationsQueryHelper().OrderBy(orderBy)
+	if includeDeleted {
+		query = query.Where("organizations.deleted_at is null")
+	}
+	return query
 }
 
-func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
-	query := d.Select(
+func (d DB) organizationsQueryHelper() squirrel.SelectBuilder {
+	return d.Select(
 		"organizations.id",
 		"organizations.external_id",
 		"organizations.name",
@@ -105,12 +114,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
-		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null").
-		OrderBy("organizations.created_at DESC")
-	if !deleted {
-		query = query.Where("organizations.deleted_at is null")
-	}
-	return query
+		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null")
 }
 
 // ListOrganizations lists organizations. Pagination starts at 1, provide 0 to disable.
@@ -129,13 +133,13 @@ func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page u
 }
 
 // ListAllOrganizations lists all organizations including deleted ones
-func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, orderBy string, page uint64) ([]*users.Organization, error) {
 	// check that query is not empty, otherwise q might be like "... where order by ..."
 	queryStr, _, err := f.Where().ToSql()
 	if err != nil {
 		return nil, err
 	}
-	q := d.organizationsQueryWithDeleted()
+	q := d.organizationsQueryWithDeletedAndOrder(true, orderBy)
 	if queryStr != "" {
 		q = q.Where(f.Where())
 	}
@@ -193,13 +197,13 @@ func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, inc
 // ListOrganizationsForUserIDs lists the organizations these users belong to.
 // This includes direct membership and team membership.
 func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, false)
+	return d.listOrganizationsForUserIDs(ctx, userIDs, false, "")
 }
 
 // ListAllOrganizationsForUserIDs lists the organizations these users
 // belong to, including deleted ones.
-func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
-	return d.listOrganizationsForUserIDs(ctx, userIDs, true)
+func (d DB) ListAllOrganizationsForUserIDs(ctx context.Context, orderBy string, userIDs ...string) ([]*users.Organization, error) {
+	return d.listOrganizationsForUserIDs(ctx, userIDs, true, orderBy)
 }
 
 // GenerateOrganizationExternalID returns an available organization external
