@@ -215,7 +215,7 @@ func (a *API) adminWeeklyReportsPreview(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/admin/users/weeklyreports", http.StatusFound)
 }
 
-func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHeaderView {
+func getTableHeaders(requestURL url.URL, sortBy string, sortAscending bool) []tableHeaderView {
 	tableHeaders := []string{
 		"ID",
 		"Name",
@@ -255,13 +255,13 @@ func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHe
 			linkURL := requestURL
 			q := linkURL.Query()
 			q.Set("sortBy", id)
-			q.Del("sortDescending")
+			q.Del("sortAscending")
 			if sortBy == id {
-				if sortDirection == "ASC" {
-					q.Set("sortDescending", "1")
-					label = template.HTML(fmt.Sprintf("▲ %s", label))
-				} else {
+				if !sortAscending {
+					q.Set("sortAscending", "1")
 					label = template.HTML(fmt.Sprintf("▼ %s", label))
+				} else {
+					label = template.HTML(fmt.Sprintf("▲ %s", label))
 				}
 			}
 			linkURL.RawQuery = q.Encode()
@@ -277,15 +277,18 @@ func getTableHeaders(requestURL url.URL, sortBy, sortDirection string) []tableHe
 }
 
 func getSortableColumns() map[string]string {
+	// PlatformVersion
+	//  - Sort versions nicely
+	//  - nullif converts empty list to NULL. So we can put them at last when combined with "nulls last".
 	return map[string]string{
-		"ID":                     "organizations.id",
+		"ID":                     "organizations.id::int",
 		"Name":                   "organizations.name",
 		"Team":                   "teams.external_id",
 		"CreatedAt":              "organizations.created_at",
 		"LastSentWeeklyReportAt": "organizations.last_sent_weekly_report_at",
 		"DeletedAt":              "organizations.deleted_at",
 		"Platform":               "organizations.platform",
-		"PlatformVersion":        "string_to_array(regexp_replace(organizations.platform_version, '[^0-9.]', '', 'g'), '.')::int[]",
+		"PlatformVersion":        "nullif(string_to_array(regexp_replace(organizations.platform_version, '[^0-9.]', '', 'g'), '.')::int[],'{}')",
 		"TrialRemaining":         "organizations.trial_expires_at",
 	}
 }
@@ -300,30 +303,38 @@ func getNextPageLink(requestURL url.URL) template.URL {
 	return template.URL(url.String())
 }
 
-func parseSortParams(r http.Request) (string, string, string) {
-	sortBy := r.FormValue("sortBy")
+func parseSortParams(r http.Request) (string, bool) {
+	sortByFormValue := r.FormValue("sortBy")
+	sortAscendingFormValue := r.FormValue("sortAscending")
+
+	sortBy := "CreatedAt"
+	if sortByFormValue != "" && getSortableColumns()[sortByFormValue] != "" {
+		sortBy = sortByFormValue
+	}
+
+	sortAscending := false
+	if sortAscendingFormValue != "" {
+		sortAscending = true
+	}
+
+	return sortBy, sortAscending
+}
+
+func getOrderClause(sortBy string, sortAscending bool) string {
 	sortableColumns := getSortableColumns()
-	if sortBy == "" || sortableColumns[sortBy] == "" {
-		sortBy = "CreatedAt"
+	sortDirection := "desc"
+	if sortAscending {
+		sortDirection = "asc"
 	}
-	sortColumn := sortableColumns[sortBy]
-
-	sortDirection := "ASC"
-	if r.FormValue("sortDescending") != "" {
-		sortDirection = "DESC"
-	}
-
-	orderClause := fmt.Sprintf("%s %s", sortColumn, sortDirection)
-	return sortBy, sortDirection, orderClause
+	return fmt.Sprintf("%s %s nulls last", sortableColumns[sortBy], sortDirection)
 }
 
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
 
-	sortBy, sortDirection, orderClause := parseSortParams(*r)
-
-	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), orderClause, page)
+	sortBy, sortAscending := parseSortParams(*r)
+	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), getOrderClause(sortBy, sortAscending), page)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -343,7 +354,7 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		"Page":               page,
 		"Message":            r.FormValue("msg"),
 		"BillingFeatureFlag": featureflag.Billing,
-		"Headers":            getTableHeaders(*r.URL, sortBy, sortDirection),
+		"Headers":            getTableHeaders(*r.URL, sortBy, sortAscending),
 		"NextPageLink":       getNextPageLink(*r.URL),
 	})
 	if err != nil {
@@ -368,9 +379,8 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	sortBy, sortDirection, orderClause := parseSortParams(*r)
-
-	organizations, err := a.db.ListAllOrganizationsForUserIDs(r.Context(), orderClause, userID)
+	sortBy, sortAscending := parseSortParams(*r)
+	organizations, err := a.db.ListAllOrganizationsForUserIDs(r.Context(), getOrderClause(sortBy, sortAscending), userID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -387,7 +397,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		"MoreUsersCount":     moreUsersCount,
 		"UserEmail":          user.Email,
 		"BillingFeatureFlag": featureflag.Billing,
-		"Headers":            getTableHeaders(*r.URL, sortBy, sortDirection),
+		"Headers":            getTableHeaders(*r.URL, sortBy, sortAscending),
 	})
 	if err != nil {
 		renderError(w, r, err)
