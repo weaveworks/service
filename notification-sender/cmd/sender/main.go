@@ -7,8 +7,7 @@ import (
 
 	googleLogging "cloud.google.com/go/logging"
 	"github.com/gorilla/mux"
-	nats "github.com/nats-io/go-nats"
-	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
+	"github.com/nats-io/go-nats"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
@@ -40,6 +39,8 @@ func main() {
 		emailURI         string
 		emailFrom        string
 		emailReplyTo     string
+		opsgenieURL      string
+		opsgenieEUURL    string
 	)
 
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -54,6 +55,8 @@ func main() {
 	flag.StringVar(&emailURI, "emailURI", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port. Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
 	flag.StringVar(&emailFrom, "emailFrom", "Weave Cloud <notifications@weave.works>", "From address for emails.")
 	flag.StringVar(&emailReplyTo, "emailReplyTo", "Weave Cloud <support@weave.works>", "Reply-To for emails.")
+	flag.StringVar(&opsgenieURL, "opsgenieURL", "https://api.opsgenie.com", "Opsgenie API URL")
+	flag.StringVar(&opsgenieEUURL, "opsgenieEUURL", "https://api.eu.opsgenie.com", "Opsgenie EU API URL")
 
 	flag.Parse()
 
@@ -81,8 +84,14 @@ func main() {
 		Clients: make(map[string]*googleLogging.Client),
 	}
 
-	ogs := &sender.OpsGenieSender{
-		Clients: make(map[string]*ogcli.OpsGenieAlertV2Client),
+	ogs, err := sender.NewOpsGenie(opsgenieURL)
+	if err != nil {
+		log.Fatalf("error creating OpsGenieSender: %v", err)
+	}
+
+	ogsEU, err := sender.NewOpsGenie(opsgenieEUURL)
+	if err != nil {
+		log.Fatalf("error creating OpsGenieSender for EU region: %v", err)
 	}
 
 	pds := sender.NewPagerDutySender()
@@ -112,6 +121,7 @@ func main() {
 	s.RegisterNotifier(types.BrowserReceiver, bs.Send)
 	s.RegisterNotifier(types.StackdriverReceiver, sds.Send)
 	s.RegisterNotifier(types.OpsGenieReceiver, ogs.Send)
+	s.RegisterNotifier(types.OpsGenieEUReceiver, ogsEU.Send)
 	s.RegisterNotifier(types.PagerDutyReceiver, pds.Send)
 
 	ctx, cancel := context.WithCancel(context.Background())

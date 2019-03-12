@@ -118,6 +118,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 			types.SlackReceiver:       slackMsg,
 			types.StackdriverReceiver: sdMsg,
 			types.OpsGenieReceiver:    opsGenieMsg,
+			types.OpsGenieEUReceiver:  opsGenieMsg,
 			types.PagerDutyReceiver:   pagerDutyMsg,
 		},
 	}

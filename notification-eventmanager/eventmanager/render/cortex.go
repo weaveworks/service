@@ -136,6 +136,7 @@ func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, inst
 			types.EmailReceiver:       emailMsg,
 			types.StackdriverReceiver: stackdriverMsg,
 			types.OpsGenieReceiver:    opsGenieMsg,
+			types.OpsGenieEUReceiver:  opsGenieMsg,
 			types.PagerDutyReceiver:   pagerDutyMsg,
 		},
 	}

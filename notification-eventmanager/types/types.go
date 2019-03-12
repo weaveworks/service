@@ -229,8 +229,10 @@ const (
 	BrowserReceiver = "browser"
 	// StackdriverReceiver is the type of receiver for Stackdriver
 	StackdriverReceiver = "stackdriver"
-	// OpsGenieReceiver is the type of receiver for OpsGenie
+	// OpsGenieReceiver is the type of receiver for OpsGenie US region (default)
 	OpsGenieReceiver = "opsgenie"
+	// OpsGenieEUReceiver is the type of receiver for OpsGenie EU region
+	OpsGenieEUReceiver = "opsgenie-eu"
 	// PagerDuty is the type of receiver for PagerDuty
 	PagerDutyReceiver = "pagerduty"
 )

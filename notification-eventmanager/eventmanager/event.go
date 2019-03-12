@@ -400,6 +400,7 @@ func (em *EventManager) buildEvent(body []byte, sm types.SlackMessage, etype, in
 		types.EmailReceiver:       emailMsg,
 		types.StackdriverReceiver: stackdriverMsg,
 		types.OpsGenieReceiver:    opsGenieMsg,
+		types.OpsGenieEUReceiver:  opsGenieMsg,
 	}
 
 	return event, nil
