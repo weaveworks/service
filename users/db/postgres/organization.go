@@ -68,7 +68,7 @@ func (d DB) organizationsQueryWithDeletedAndOrder(includeDeleted bool, orderBy s
 		orderBy = "organizations.created_at DESC"
 	}
 	query := d.organizationsQueryHelper().OrderBy(orderBy)
-	if includeDeleted {
+	if !includeDeleted {
 		query = query.Where("organizations.deleted_at is null")
 	}
 	return query

@@ -672,6 +672,16 @@ func Test_Organization_Delete(t *testing.T) {
 	isMember, err := database.UserIsMemberOf(context.Background(), user.ID, org.ExternalID)
 	require.NoError(t, err)
 	assert.False(t, isMember, "Expected user not to have the deleted org any more")
+
+	// Check org doesn't appear in listing.
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 0)
+
+	// Check org still appears in "all" listing including deleted orgs
+	organizations, err = database.ListAllOrganizationsForUserIDs(context.Background(), "", user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 1)
 }
 
 func Test_Organization_DeleteGCP(t *testing.T) {
