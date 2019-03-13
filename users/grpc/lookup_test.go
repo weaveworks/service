@@ -146,7 +146,7 @@ func Test_NotifyTrialPendingExpiry(t *testing.T) {
 	_, org := dbtest.GetOrg(t, database)
 
 	var sent bool
-	smtp.Sender = func(e *email.Email) error {
+	smtp.SendDirectly = func(e *email.Email) error {
 		sent = true
 		return nil
 	}
@@ -172,7 +172,7 @@ func Test_NotifyTrialExpired(t *testing.T) {
 	_, org := dbtest.GetOrg(t, database)
 
 	var sent bool
-	smtp.Sender = func(e *email.Email) error {
+	smtp.SendDirectly = func(e *email.Email) error {
 		sent = true
 		return nil
 	}

@@ -12,13 +12,13 @@ import (
 	"github.com/weaveworks/service/users/templates"
 )
 
-func createEmailer(sender func(*email.Email) error) emailer.SMTPEmailer {
+func createEmailer(sendDirectly func(*email.Email) error) emailer.SMTPEmailer {
 	templates := templates.MustNewEngine("../templates")
 	return emailer.SMTPEmailer{
-		Templates:   templates,
-		Domain:      "https://weave.test",
-		FromAddress: "from@weave.test",
-		Sender:      sender,
+		Templates:    templates,
+		Domain:       "https://weave.test",
+		FromAddress:  "from@weave.test",
+		SendDirectly: sendDirectly,
 	}
 }
 
