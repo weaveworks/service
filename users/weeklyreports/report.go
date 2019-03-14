@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -42,16 +43,36 @@ const (
 			"pod_name", "$0", "pod", ".*")
 		)
 	`
+
+	podOwnersByWorkloadsQuery = `
+		max by (namespace, pod_name, owner_kind) (
+			label_replace(
+				label_replace(
+						kube_pod_owner{owner_kind!="ReplicaSet"},
+						"owner_kind", "Pod", "owner_kind", "<none>"
+				) or
+				label_replace(
+						kube_pod_owner{owner_kind="ReplicaSet"} * on (owner_name) group_left(owner_kind) label_replace(
+								kube_replicaset_owner,
+								"owner_name", "$0", "replicaset", ".*"
+						),
+						"owner_kind", "ReplicaSet", "owner_kind", "<none>"
+				),
+				"pod_name", "$0", "pod", ".*"
+			)
+		)
+	`
 )
 
 func buildWorkloadsResourceConsumptionQuery(resourceQuery string) string {
 	return fmt.Sprintf(`
 		sort_desc(
-			sum by (namespace, service) (
+			sum by (namespace, service, owner_kind) (
 				%s * on (pod_name) group_left(namespace, service) (%s)
+				* on (namespace, pod_name) group_left(owner_kind) (%s)
 			)
 		)
-	`, resourceQuery, podsByWorkloadsQuery)
+	`, resourceQuery, podsByWorkloadsQuery, podOwnersByWorkloadsQuery)
 }
 
 // WorkloadResourceConsumptionRaw has unformatted consumption data returned by Prometheus.
@@ -107,7 +128,7 @@ func getWorkloadDeploymentsPerDay(ctx context.Context, org *users.Organization, 
 	return weeklyHistogram, nil
 }
 
-func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, resourceQuery string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
+func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, resourceQuery string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
 	// Get the sorted list of workloads based on the query.
 	workloadsSeries, err := api.Query(ctx, buildWorkloadsResourceConsumptionQuery(resourceQuery), EndAt)
 	if err != nil {
@@ -121,20 +142,21 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 	}
 
 	// ... and store that data, together with the workload names.
-	topWorkloads := []WorkloadResourceConsumptionRaw{}
-	for _, workload := range workloadsVector {
-		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
-		// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
-		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["service"])
-		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionRaw{
+	topWorkloads := make([]WorkloadResourceConsumptionRaw, len(workloadsVector))
+	for i, workload := range workloadsVector {
+		// TODO: use the pod's owner as the service name?
+		workloadName := fmt.Sprintf("%s:%s/%s", workload.Metric["namespace"],
+			strings.ToLower(string(workload.Metric["owner_kind"])), workload.Metric["service"])
+
+		topWorkloads[i] = WorkloadResourceConsumptionRaw{
 			WorkloadName:       workloadName,
 			ClusterConsumption: float64(workload.Value),
-		})
+		}
 	}
 	return topWorkloads, nil
 }
 
-func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
+func getPromAPI(uri string) (v1.API, error) {
 	client, err := common.NewPrometheusClient(uri)
 	if err != nil {
 		return nil, err
@@ -160,7 +182,7 @@ func GenerateReport(org *users.Organization, timestamp time.Time) (*Report, erro
 
 	ctx := user.InjectOrgID(context.Background(), org.ID)
 
-	promAPI, err := getPromAPI(ctx, promURI)
+	promAPI, err := getPromAPI(promURI)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +191,11 @@ func GenerateReport(org *users.Organization, timestamp time.Time) (*Report, erro
 	if err != nil {
 		return nil, err
 	}
-	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopCPUWorkloadsQuery, endAt)
+	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopCPUWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
-	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopMemoryWorkloadsQuery, endAt)
+	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopMemoryWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
