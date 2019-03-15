@@ -67,11 +67,12 @@ func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyrepo
 	e.To = collectEmails(members)
 	e.Subject = fmt.Sprintf("%s · %s Report", summary.DateInterval, summary.Organization.Name)
 	data := map[string]interface{}{
-		"Report": summary,
+		"Report":         summary,
+		"Unsubscribable": true,
 	}
 	e.Text = s.Templates.QuietBytes("weekly_report_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("weekly_report_email.html", emailWrapperFilename, "", data)
-	return s.SendThroughSendGrid(e)
+	return s.SendThroughSendGrid(e, weeklyReportGroupID)
 }
 
 // LoginEmail sends the login email
