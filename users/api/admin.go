@@ -111,14 +111,29 @@ func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	us, err := a.db.ListOrganizationUsers(r.Context(), orgID, true, false)
+	org, err := a.db.FindOrganizationByID(r.Context(), orgID)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
+	usersRoles, err := a.db.ListTeamUsersWithRoles(r.Context(), org.TeamID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	// Generate an ordered array of roles with aligned indices to users array.
+	us := []users.User{}
+	roles := []users.Role{}
+	for _, userRole := range usersRoles {
+		us = append(us, userRole.User)
+		roles = append(roles, userRole.Role)
+	}
+
 	b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
 		"Users":         us,
+		"Roles":         roles,
 		"OrgExternalID": orgID,
 		"Message":       r.FormValue("msg"),
 	})

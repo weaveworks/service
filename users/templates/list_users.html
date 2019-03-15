@@ -1,9 +1,10 @@
 <!doctype html>
 <html>
+  {{$IsOnlyShowingOrgUsers := .OrgExternalID}}
   <head>
     <base href="/admin/users/"/>
-    {{if .OrgExternalID}}
-    <title>Users for {{.OrgExternalID}} – Weave Cloud</title>
+    {{if $IsOnlyShowingOrgUsers}}
+    <title>Users for {{$.OrgExternalID}} – Weave Cloud</title>
     {{else}}
     <title>Users – Weave Cloud</title>
     {{end}}
@@ -23,14 +24,14 @@
         <div class="mdl-layout__header-row">
             <span class="mdl-layout-title">
 				<div class="material-icons">mood</div>
-                {{if .OrgExternalID}}
-                Users for Organization «{{.OrgExternalID}}»
+                {{if $IsOnlyShowingOrgUsers}}
+                Users for Organization «{{$.OrgExternalID}}»
                 {{else}}
                 Users
                 {{end}}
             </span>
             <div class="mdl-layout-spacer"></div>
-            {{if not .OrgExternalID}}
+            {{if not $IsOnlyShowingOrgUsers}}
             <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
                 <i class="material-icons">search</i>
             </label>
@@ -64,13 +65,16 @@
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Email</th>
             <th class="mdl-data-table__cell--non-numeric">Name (Company)</th>
+            {{if $IsOnlyShowingOrgUsers}}
+              <th class="mdl-data-table__cell--non-numeric">Team Role</th>
+            {{end}}
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstLoginAt</th>
             <th class="mdl-data-table__cell--non-numeric">LastLoginAt</th>
-            <th class="mdl-data-table__cell--non-numeric">Admin</th>
+            <th class="mdl-data-table__cell--non-numeric">Weave Cloud Admin</th>
         </tr>
         </thead>
-      {{range .Users}}
+      {{range $i, $u := .Users}}
       <tr>
         <td>{{.ID}}</td>
         <td class="mdl-data-table__cell--non-numeric">
@@ -80,6 +84,11 @@
         <td class="mdl-data-table__cell--non-numeric">
             <div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Name}} ({{.Company}})</div>
         </td>
+        {{if $IsOnlyShowingOrgUsers}}
+          <td class="mdl-data-table__cell--non-numeric">
+            {{(index $.Roles $i).Name}}
+          </td>
+        {{end}}
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>{{.FormatLastLoginAt}}</td>
@@ -104,7 +113,7 @@
                    type="submit" value="Become User" />
           </form>
         </td>
-        {{if $.OrgExternalID}}
+        {{if $IsOnlyShowingOrgUsers}}
         <td>
           <form action="organizations/{{$.OrgExternalID}}/users/{{.ID}}/remove" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
