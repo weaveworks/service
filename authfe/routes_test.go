@@ -90,7 +90,6 @@ func TestRoutes(t *testing.T) {
 		})
 	}
 }
-
 func TestStripSetCookieHeader(t *testing.T) {
 	tests := []struct {
 		url      string
