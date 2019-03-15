@@ -64,13 +64,16 @@
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Email</th>
             <th class="mdl-data-table__cell--non-numeric">Name (Company)</th>
+            {{if .OrgExternalID}}
+              <th class="mdl-data-table__cell--non-numeric">Team Role</th>
+            {{end}}
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstLoginAt</th>
             <th class="mdl-data-table__cell--non-numeric">LastLoginAt</th>
-            <th class="mdl-data-table__cell--non-numeric">Admin</th>
+            <th class="mdl-data-table__cell--non-numeric">Weave Cloud Admin</th>
         </tr>
         </thead>
-      {{range .Users}}
+      {{range $i, $u := .Users}}
       <tr>
         <td>{{.ID}}</td>
         <td class="mdl-data-table__cell--non-numeric">
@@ -80,6 +83,11 @@
         <td class="mdl-data-table__cell--non-numeric">
             <div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Name}} ({{.Company}})</div>
         </td>
+        {{if $.OrgExternalID}}
+          <td class="mdl-data-table__cell--non-numeric">
+            {{(index $.Roles $i).Name}}
+          </td>
+        {{end}}
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>{{.FormatLastLoginAt}}</td>
