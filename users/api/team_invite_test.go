@@ -35,8 +35,8 @@ func requestOrgAs(t *testing.T, user *users.User, method string, org string, ema
 	return responseBody
 }
 
-func requestInvite(t *testing.T, user *users.User, org *users.Organization, email, role string, expectedStatus int) map[string]interface{} {
-	return teamRequest(t, user, "POST", org.TeamExternalID, "/users", jsonBody{"email": email}.Reader(t), expectedStatus)
+func requestInvite(t *testing.T, user *users.User, org *users.Organization, email, roleID string, expectedStatus int) map[string]interface{} {
+	return teamRequest(t, user, "POST", org.TeamExternalID, "/users", jsonBody{"email": email, "roleId": roleID}.Reader(t), expectedStatus)
 }
 
 // getOrgWithMembers populates the organization with given member count.
