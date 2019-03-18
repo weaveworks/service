@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"encoding/base64"
+
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/billing-api/db"

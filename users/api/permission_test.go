@@ -62,7 +62,7 @@ func Test_RolesIsInTeamResponse(t *testing.T) {
 			map[string]interface{}{
 				"id":     team.ExternalID,
 				"name":   team.Name,
-				"roleId": "admin",
+				"roleId": users.AdminRoleID,
 			},
 		},
 	}, body)
@@ -82,7 +82,7 @@ func Test_PermissionsInRoleResponse(t *testing.T) {
 
 	var admin api.RoleView
 	for _, role := range body.Roles {
-		if role.ID == "admin" {
+		if role.ID == users.AdminRoleID {
 			admin = role
 		}
 	}
@@ -102,12 +102,12 @@ func Test_PermissionInviteTeamMember(t *testing.T) {
 	path := fmt.Sprintf("/api/users/teams/%s/users", team.ExternalID)
 	requestBody, _ := json.Marshal(map[string]string{
 		"email":  "blu@blu.blu",
-		"roleId": "viewer",
+		"roleId": users.ViewerRoleID,
 	})
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	doRequest(t, viewer, "POST", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, editor, "POST", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, admin, "POST", path, bytes.NewReader(requestBody), http.StatusOK)
@@ -118,15 +118,15 @@ func Test_PermissionUpdateTeamMemberRole(t *testing.T) {
 
 	_, _, team := dbtest.GetOrgAndTeam(t, database)
 
-	other, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
+	other, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
 	path := fmt.Sprintf("/api/users/teams/%s/users/%s", team.ExternalID, other.Email)
 	requestBody, _ := json.Marshal(map[string]string{
-		"roleId": "viewer",
+		"roleId": users.ViewerRoleID,
 	})
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	doRequest(t, viewer, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, editor, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, admin, "PUT", path, bytes.NewReader(requestBody), http.StatusNoContent)
@@ -137,12 +137,12 @@ func Test_PermissionRemoveTeamMember(t *testing.T) {
 
 	_, _, team := dbtest.GetOrgAndTeam(t, database)
 
-	other, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
+	other, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
 	path := fmt.Sprintf("/api/users/teams/%s/users/%s", team.ExternalID, other.Email)
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	doRequest(t, viewer, "DELETE", path, nil, http.StatusForbidden)
 	doRequest(t, editor, "DELETE", path, nil, http.StatusForbidden)
 	doRequest(t, admin, "DELETE", path, nil, http.StatusOK)
@@ -155,9 +155,9 @@ func Test_PermissionViewTeamMembers(t *testing.T) {
 
 	path := fmt.Sprintf("/api/users/org/%s/users", org.ExternalID)
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	doRequest(t, viewer, "GET", path, nil, http.StatusOK)
 	doRequest(t, editor, "GET", path, nil, http.StatusOK)
 	doRequest(t, admin, "GET", path, nil, http.StatusOK)
@@ -170,9 +170,9 @@ func Test_PermissionDeleteInstance(t *testing.T) {
 
 	path := fmt.Sprintf("/api/users/org/%s", org.ExternalID)
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	doRequest(t, viewer, "DELETE", path, nil, http.StatusForbidden)
 	doRequest(t, editor, "DELETE", path, nil, http.StatusForbidden)
 	doRequest(t, admin, "DELETE", path, nil, http.StatusNoContent)
@@ -187,9 +187,9 @@ func Test_PermissionViewToken(t *testing.T) {
 	body := map[string]interface{}{}
 	path := fmt.Sprintf("/api/users/org/%s", org.ExternalID)
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	bodyBytes := doRequest(t, viewer, "GET", path, nil, http.StatusOK)
 	assert.NoError(t, json.Unmarshal(bodyBytes, &body))
 	assert.Equal(t, nil, body["probeToken"])
@@ -221,27 +221,27 @@ func Test_PermissionTransferInstance(t *testing.T) {
 			Provider:  provider.External,
 		}, nil)
 
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 	// Viewers in the other team
-	database.AddUserToTeam(context.TODO(), viewer.ID, otherTeam.ID, "viewer")
-	database.AddUserToTeam(context.TODO(), editor.ID, otherTeam.ID, "viewer")
-	database.AddUserToTeam(context.TODO(), admin.ID, otherTeam.ID, "viewer")
+	database.AddUserToTeam(context.TODO(), viewer.ID, otherTeam.ID, users.ViewerRoleID)
+	database.AddUserToTeam(context.TODO(), editor.ID, otherTeam.ID, users.ViewerRoleID)
+	database.AddUserToTeam(context.TODO(), admin.ID, otherTeam.ID, users.ViewerRoleID)
 	doRequest(t, viewer, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, editor, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, admin, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	// Editors in the other team
-	database.UpdateUserRoleInTeam(context.TODO(), viewer.ID, otherTeam.ID, "editor")
-	database.UpdateUserRoleInTeam(context.TODO(), editor.ID, otherTeam.ID, "editor")
-	database.UpdateUserRoleInTeam(context.TODO(), admin.ID, otherTeam.ID, "editor")
+	database.UpdateUserRoleInTeam(context.TODO(), viewer.ID, otherTeam.ID, users.EditorRoleID)
+	database.UpdateUserRoleInTeam(context.TODO(), editor.ID, otherTeam.ID, users.EditorRoleID)
+	database.UpdateUserRoleInTeam(context.TODO(), admin.ID, otherTeam.ID, users.EditorRoleID)
 	doRequest(t, viewer, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, editor, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, admin, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	// Admins in the other team
-	database.UpdateUserRoleInTeam(context.TODO(), viewer.ID, otherTeam.ID, "admin")
-	database.UpdateUserRoleInTeam(context.TODO(), editor.ID, otherTeam.ID, "admin")
-	database.UpdateUserRoleInTeam(context.TODO(), admin.ID, otherTeam.ID, "admin")
+	database.UpdateUserRoleInTeam(context.TODO(), viewer.ID, otherTeam.ID, users.AdminRoleID)
+	database.UpdateUserRoleInTeam(context.TODO(), editor.ID, otherTeam.ID, users.AdminRoleID)
+	database.UpdateUserRoleInTeam(context.TODO(), admin.ID, otherTeam.ID, users.AdminRoleID)
 	doRequest(t, viewer, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, editor, "PUT", path, bytes.NewReader(requestBody), http.StatusForbidden)
 	doRequest(t, admin, "PUT", path, bytes.NewReader(requestBody), http.StatusNoContent)
@@ -272,9 +272,9 @@ func Test_PermissionUpdateAlertingSettings(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.UpdateAlertingSettings),
@@ -295,9 +295,9 @@ func Test_PermissionOpenHostShell(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.OpenHostShell),
@@ -317,9 +317,9 @@ func Test_PermissionOpenContainerShell(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.OpenContainerShell),
@@ -339,9 +339,9 @@ func Test_PermissionAttachToContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.AttachToContainer),
@@ -361,9 +361,9 @@ func Test_PermissionPauseContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.PauseContainer),
@@ -391,9 +391,9 @@ func Test_PermissionRestartContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.RestartContainer),
@@ -414,9 +414,9 @@ func Test_PermissionStopContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.StopContainer),
@@ -437,9 +437,9 @@ func Test_PermissionViewPodLogs(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.ViewPodLogs),
@@ -460,9 +460,9 @@ func Test_PermissionUpdateReplicaCount(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.UpdateReplicaCount),
@@ -490,9 +490,9 @@ func Test_PermissionDeletePod(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.DeletePod),
@@ -513,9 +513,9 @@ func Test_PermissionDeployImage(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.DeployImage),
@@ -543,9 +543,9 @@ func Test_PermissionUpdateDeploymentPolicy(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.UpdateDeploymentPolicy),
@@ -566,9 +566,9 @@ func Test_PermissionUpdateNotificationSettings(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
-	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
-	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
+	viewer, _ := dbtest.GetUserInTeam(t, database, team, users.ViewerRoleID)
+	editor, _ := dbtest.GetUserInTeam(t, database, team, users.EditorRoleID)
+	admin, _ := dbtest.GetUserInTeam(t, database, team, users.AdminRoleID)
 
 	middleware := client.UserPermissionsMiddleware{
 		UsersClient:  usersClientMock(org, []*users.User{viewer, editor, admin}, permission.UpdateNotificationSettings),

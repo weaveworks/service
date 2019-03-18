@@ -73,7 +73,7 @@ func Test_OrgFiltersTokenIfMissingPermission(t *testing.T) {
 
 	admin, org, team := dbtest.GetOrgAndTeam(t, database)
 	user := getUser(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "viewer")
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, users.ViewerRoleID)
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -136,7 +136,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	user, org := getOrg(t)
 
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, users.AdminRoleID)
 	assert.NoError(t, err)
 
 	err = database.MoveOrganizationToTeam(context.TODO(), org.ExternalID, team.ExternalID, "", "")
@@ -145,10 +145,10 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	us, err := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(us))
-	assert.Equal(t, "admin", us[0].Role.ID)
+	assert.Equal(t, users.AdminRoleID, us[0].Role.ID)
 
 	fran := getUser(t)
-	fran, _, err = database.InviteUserToTeam(context.Background(), fran.Email, team.ExternalID, "admin")
+	fran, _, err = database.InviteUserToTeam(context.Background(), fran.Email, team.ExternalID, users.AdminRoleID)
 	require.NoError(t, err)
 
 	us, err = database.ListTeamUsersWithRoles(context.TODO(), team.ID)
@@ -166,12 +166,12 @@ func Test_ListOrganizationUsers(t *testing.T) {
 		"users": []interface{}{
 			map[string]interface{}{
 				"email":  fran.Email,
-				"roleId": "admin",
+				"roleId": users.AdminRoleID,
 			},
 			map[string]interface{}{
 				"email":  user.Email,
 				"self":   true,
-				"roleId": "admin",
+				"roleId": users.AdminRoleID,
 			},
 		},
 	}, responseBody)
@@ -257,7 +257,7 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 
 	{ // move from no-team to team
 		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, users.AdminRoleID)
 		assert.NoError(t, err)
 
 		body := map[string]interface{}{"teamId": team.ExternalID}
@@ -274,7 +274,7 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 	}
 	{ // move from team to team
 		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, users.AdminRoleID)
 		assert.NoError(t, err)
 
 		body := map[string]interface{}{"teamId": team.ExternalID}
@@ -308,7 +308,7 @@ func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
 	user, org, team := dbtest.GetOrgAndTeam(t, database)
 
 	exteam := getTeam(t)
-	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID, "admin")
+	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID, users.AdminRoleID)
 	assert.NoError(t, err)
 
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
@@ -798,7 +798,7 @@ func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAble
 
 	// Create a team, and simulate the fact that team is marked as "billed externally":
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, "admin")
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, users.AdminRoleID)
 	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
@@ -837,7 +837,7 @@ func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNot
 
 	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
 	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, "admin")
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, users.AdminRoleID)
 	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{}, nil)

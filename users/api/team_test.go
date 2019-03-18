@@ -32,17 +32,17 @@ func teamRequest(t *testing.T, user *users.User, method string, team string, add
 	return responseBody
 }
 
-func getTeamWithMembers(t *testing.T, count int) (team *users.Team, users []*users.User) {
+func getTeamWithMembers(t *testing.T, count int) (team *users.Team, us []*users.User) {
 	team = getTeam(t)
 
 	for ; count > 0; count-- {
 		u := getUser(t)
-		users = append(users, u)
+		us = append(us, u)
 
-		database.AddUserToTeam(context.TODO(), u.ID, team.ID, "admin")
+		database.AddUserToTeam(context.TODO(), u.ID, team.ID, users.AdminRoleID)
 	}
 
-	return team, users
+	return team, us
 }
 
 func getMemberWithRole(membersWithRoles []*users.UserWithRole, userID string) *users.UserWithRole {
@@ -90,9 +90,9 @@ func TestAPI_RemoveUserFromTeam(t *testing.T) {
 	user := members[0]
 	bUser := members[1]
 
-	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "admin")
+	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, users.AdminRoleID)
 	assert.NoError(t, err)
-	err = database.AddUserToTeam(context.TODO(), bUser.ID, team.ID, "editor")
+	err = database.AddUserToTeam(context.TODO(), bUser.ID, team.ID, users.EditorRoleID)
 	assert.NoError(t, err)
 
 	teams, _ := database.ListTeamsForUserID(context.TODO(), bUser.ID)
@@ -131,14 +131,14 @@ func TestAPI_changeRole(t *testing.T) {
 
 	assert.Len(t, sentEmails, 0)
 
-	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+userB.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusNoContent)
+	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+userB.Email, jsonBody{"roleId": users.EditorRoleID}.Reader(t), http.StatusNoContent)
 
 	membersWithRoles, err := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
 	assert.NoError(t, err)
 
 	userBWithRole := getMemberWithRole(membersWithRoles, userB.ID)
 
-	assert.Equal(t, userBWithRole.Role.ID, "editor")
+	assert.Equal(t, userBWithRole.Role.ID, users.EditorRoleID)
 }
 
 func TestAPI_changeOwnRole(t *testing.T) {
@@ -151,14 +151,14 @@ func TestAPI_changeOwnRole(t *testing.T) {
 	membersWithRoles, _ := database.ListTeamUsersWithRoles(context.TODO(), team.ID)
 	userWithRole := getMemberWithRole(membersWithRoles, user.ID)
 
-	assert.Equal(t, userWithRole.Role.ID, "admin")
+	assert.Equal(t, userWithRole.Role.ID, users.AdminRoleID)
 
-	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+user.Email, jsonBody{"roleId": "editor"}.Reader(t), http.StatusForbidden)
+	teamRequest(t, user, "PUT", team.ExternalID, "/users/"+user.Email, jsonBody{"roleId": users.EditorRoleID}.Reader(t), http.StatusForbidden)
 
 	membersWithRoles, _ = database.ListTeamUsersWithRoles(context.TODO(), team.ID)
 	userWithRole = getMemberWithRole(membersWithRoles, user.ID)
 
-	assert.Equal(t, userWithRole.Role.ID, "admin")
+	assert.Equal(t, userWithRole.Role.ID, users.AdminRoleID)
 }
 
 func TestAPI_RemoveOtherUsersAccess(t *testing.T) {

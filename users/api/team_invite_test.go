@@ -45,7 +45,7 @@ func getOrgWithMembers(t *testing.T, count int) (*users.User, []*users.User, *us
 	members := []*users.User{}
 	for ; count > 1; count-- {
 		u := getUser(t)
-		u, _, err := database.InviteUserToTeam(context.Background(), u.Email, org.TeamExternalID, "admin")
+		u, _, err := database.InviteUserToTeam(context.Background(), u.Email, org.TeamExternalID, users.AdminRoleID)
 		require.NoError(t, err)
 		members = append(members, u)
 	}
@@ -66,8 +66,8 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	user, org := getOrg(t)
 	franEmail := "fran@weave.works"
-	body := requestInvite(t, user, org, franEmail, "admin", http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": franEmail, "roleId": "admin"}, body)
+	body := requestInvite(t, user, org, franEmail, users.AdminRoleID, http.StatusOK)
+	assert.Equal(t, map[string]interface{}{"email": franEmail, "roleId": users.AdminRoleID}, body)
 
 	fran, err := database.FindUserByEmail(context.Background(), franEmail)
 	require.NoError(t, err)
@@ -87,8 +87,8 @@ func Test_InviteExistingUser(t *testing.T) {
 	user, org := getOrg(t)
 	fran := getUser(t)
 
-	body := requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
-	assert.Equal(t, map[string]interface{}{"email": fran.Email, "roleId": "admin"}, body)
+	body := requestInvite(t, user, org, fran.Email, users.AdminRoleID, http.StatusOK)
+	assert.Equal(t, map[string]interface{}{"email": fran.Email, "roleId": users.AdminRoleID}, body)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -115,7 +115,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	body := requestInvite(t, user, org, "", "admin", http.StatusBadRequest)
+	body := requestInvite(t, user, org, "", users.AdminRoleID, http.StatusBadRequest)
 	assert.Equal(t, map[string]interface{}{
 		"errors": []interface{}{
 			map[string]interface{}{
@@ -134,7 +134,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := database.CreateUser(context.Background(), "fran@weave.works", nil)
 	require.NoError(t, err)
-	fran, created, err := database.InviteUserToTeam(context.Background(), fran.Email, org.TeamExternalID, "admin")
+	fran, created, err := database.InviteUserToTeam(context.Background(), fran.Email, org.TeamExternalID, users.AdminRoleID)
 	require.NoError(t, err)
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	assert.Equal(t, org.ID, organizations[0].ID)
 	assert.Equal(t, created, false)
 
-	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
+	requestInvite(t, user, org, fran.Email, users.AdminRoleID, http.StatusOK)
 
 	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
@@ -160,7 +160,7 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	otherUser := getUser(t)
 	_, otherOrg := getOrg(t)
 
-	requestInvite(t, user, otherOrg, otherUser.Email, "admin", http.StatusForbidden)
+	requestInvite(t, user, otherOrg, otherUser.Email, users.AdminRoleID, http.StatusForbidden)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
@@ -175,7 +175,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	user, org := getOrg(t)
 	fran, _ := getOrg(t)
 
-	requestInvite(t, user, org, fran.Email, "admin", http.StatusOK)
+	requestInvite(t, user, org, fran.Email, users.AdminRoleID, http.StatusOK)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)

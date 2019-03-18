@@ -189,7 +189,7 @@ func (d *DB) CreateTeamAsUser(ctx context.Context, name, userID string) (*users.
 		return nil, err
 	}
 
-	err = d.AddUserToTeam(ctx, userID, team.ID, "admin")
+	err = d.AddUserToTeam(ctx, userID, team.ID, users.AdminRoleID)
 	if err != nil {
 		return nil, err
 	}
