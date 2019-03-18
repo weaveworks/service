@@ -89,7 +89,6 @@ func TestAPI_createOrganizationWebhookNonAdmin(t *testing.T) {
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
 	viewerUser := getUser(t)
-	database.AddFeatureFlag(ctx, org.ExternalID, "permissions")
 
 	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")
 	assert.NoError(t, err)
@@ -130,7 +129,6 @@ func TestAPI_deleteOrganizationWebhookNonAdmin(t *testing.T) {
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
 	viewerUser := getUser(t)
-	database.AddFeatureFlag(ctx, org.ExternalID, "permissions")
 	w1 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
 
 	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")

@@ -76,9 +76,6 @@ func Test_OrgFiltersTokenIfMissingPermission(t *testing.T) {
 	err := database.AddUserToTeam(context.TODO(), user.ID, team.ID, "viewer")
 	assert.NoError(t, err)
 
-	err = database.AddFeatureFlag(context.TODO(), org.ExternalID, "permissions")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
 	r := requestAs(t, admin, "GET", "/api/users/org/"+org.ExternalID, nil)
 	app.ServeHTTP(w, r)

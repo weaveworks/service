@@ -97,8 +97,7 @@ func Test_PermissionInviteTeamMember(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
+	_, _, team := dbtest.GetOrgAndTeam(t, database)
 
 	path := fmt.Sprintf("/api/users/teams/%s/users", team.ExternalID)
 	requestBody, _ := json.Marshal(map[string]string{
@@ -117,8 +116,7 @@ func Test_PermissionUpdateTeamMemberRole(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
+	_, _, team := dbtest.GetOrgAndTeam(t, database)
 
 	other, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	path := fmt.Sprintf("/api/users/teams/%s/users/%s", team.ExternalID, other.Email)
@@ -137,8 +135,7 @@ func Test_PermissionRemoveTeamMember(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
+	_, _, team := dbtest.GetOrgAndTeam(t, database)
 
 	other, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	path := fmt.Sprintf("/api/users/teams/%s/users/%s", team.ExternalID, other.Email)
@@ -155,7 +152,6 @@ func Test_PermissionViewTeamMembers(t *testing.T) {
 	defer cleanup(t)
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 
 	path := fmt.Sprintf("/api/users/org/%s/users", org.ExternalID)
 
@@ -171,7 +167,6 @@ func Test_PermissionDeleteInstance(t *testing.T) {
 	defer cleanup(t)
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 
 	path := fmt.Sprintf("/api/users/org/%s", org.ExternalID)
 
@@ -188,7 +183,6 @@ func Test_PermissionViewToken(t *testing.T) {
 	defer cleanup(t)
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 
 	body := map[string]interface{}{}
 	path := fmt.Sprintf("/api/users/org/%s", org.ExternalID)
@@ -212,9 +206,7 @@ func Test_PermissionTransferInstance(t *testing.T) {
 	defer cleanup(t)
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
-	_, otherOrg, otherTeam := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), otherOrg.ExternalID, []string{"permissions"})
+	_, _, otherTeam := dbtest.GetOrgAndTeam(t, database)
 
 	path := fmt.Sprintf("/api/users/org/%s", org.ExternalID)
 	requestBody, _ := json.Marshal(map[string]string{
@@ -280,7 +272,6 @@ func Test_PermissionUpdateAlertingSettings(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -304,7 +295,6 @@ func Test_PermissionOpenHostShell(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -327,7 +317,6 @@ func Test_PermissionOpenContainerShell(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -350,7 +339,6 @@ func Test_PermissionAttachToContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -373,7 +361,6 @@ func Test_PermissionPauseContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -404,7 +391,6 @@ func Test_PermissionRestartContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -428,7 +414,6 @@ func Test_PermissionStopContainer(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -452,7 +437,6 @@ func Test_PermissionViewPodLogs(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -476,7 +460,6 @@ func Test_PermissionUpdateReplicaCount(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -507,7 +490,6 @@ func Test_PermissionDeletePod(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -531,7 +513,6 @@ func Test_PermissionDeployImage(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -562,7 +543,6 @@ func Test_PermissionUpdateDeploymentPolicy(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
@@ -586,7 +566,6 @@ func Test_PermissionUpdateNotificationSettings(t *testing.T) {
 	defer ctrl.Finish()
 
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
-	database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{"permissions"})
 	viewer, _ := dbtest.GetUserInTeam(t, database, team, "viewer")
 	editor, _ := dbtest.GetUserInTeam(t, database, team, "editor")
 	admin, _ := dbtest.GetUserInTeam(t, database, team, "admin")
