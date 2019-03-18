@@ -11,7 +11,10 @@ import (
 func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionID string) error {
 	// Get all team permissions for the user
 	role, err := d.GetUserRoleInTeam(ctx, userID, teamID)
-	if err != nil {
+	if err == users.ErrNotFound {
+		// If user is not part of the team, forbid any actions on it
+		return users.ErrForbidden
+	} else if err != nil {
 		return err
 	}
 	permissions, err := d.ListPermissionsForRoleID(ctx, role.ID)

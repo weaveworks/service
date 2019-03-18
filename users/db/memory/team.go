@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/users"
-
 	"github.com/weaveworks/service/users/externalids"
 )
 
@@ -225,7 +225,8 @@ func (d *DB) DeleteTeam(ctx context.Context, teamID string) error {
 func (d *DB) GetUserRoleInTeam(_ context.Context, userID, teamID string) (*users.Role, error) {
 	roleID, exists := d.teamMemberships[userID][teamID]
 	if !exists {
-		return nil, fmt.Errorf("user %v is not part of the team %v", userID, teamID)
+		log.Errorf("user %v is not part of the team %v", userID, teamID)
+		return nil, users.ErrNotFound
 	}
 	return d.roles[roleID], nil
 }
@@ -233,7 +234,8 @@ func (d *DB) GetUserRoleInTeam(_ context.Context, userID, teamID string) (*users
 // UpdateUserRoleInTeam updates the role the given user has in the given team
 func (d *DB) UpdateUserRoleInTeam(_ context.Context, userID, teamID, roleID string) error {
 	if _, exists := d.teamMemberships[userID][teamID]; !exists {
-		return fmt.Errorf("user %v is not part of the team %v", userID, teamID)
+		log.Errorf("user %v is not part of the team %v", userID, teamID)
+		return users.ErrNotFound
 	}
 	d.teamMemberships[userID][teamID] = roleID
 	return nil
