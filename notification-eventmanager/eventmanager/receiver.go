@@ -36,7 +36,10 @@ func (em *EventManager) handleListReceivers(r *http.Request, instanceID string) 
 }
 
 func (em *EventManager) handleCreateReceiver(r *http.Request, instanceID string) (interface{}, int, error) {
-	receiver := types.Receiver{}
+	var receiver struct {
+		RType       string          `json:"type"`
+		AddressData json.RawMessage `json:"address_data"`
+	}
 	err := parseBody(r, &receiver)
 	if err != nil {
 		log.Errorf("cannot parse body, error: %s", err)
@@ -46,11 +49,10 @@ func (em *EventManager) handleCreateReceiver(r *http.Request, instanceID string)
 		log.Errorf("address validation failed for %s address, error: %s", receiver.RType, err)
 		return "address validation failed", http.StatusBadRequest, nil
 	}
-	// Validate they only set the fields we're going to use
-	if receiver.ID != "" || receiver.InstanceID != "" || len(receiver.EventTypes) != 0 {
-		return errors.New("ID, instance and event types should not be specified"), http.StatusBadRequest, nil
-	}
-	receiverID, err := em.DB.CreateReceiver(receiver, instanceID)
+	receiverID, err := em.DB.CreateReceiver(types.Receiver{
+		RType:       receiver.RType,
+		AddressData: receiver.AddressData,
+	}, instanceID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -116,7 +118,7 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 			}
 		}
 
-	case types.OpsGenieReceiver, types.PagerDutyReceiver:
+	case types.OpsGenieReceiver, types.OpsGenieEUReceiver, types.PagerDutyReceiver:
 		var key string
 		if err := json.Unmarshal(addressData, &key); err != nil {
 			return errors.Wrapf(err, "cannot unmarshal %s receiver address data", rtype)
