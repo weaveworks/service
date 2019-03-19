@@ -136,7 +136,7 @@ def push_to_repo(build_image, push_image, dry_run=False):
     """Push 'build_image' to a Docker repository as 'push_image'."""
     if build_image != push_image:
         print('Tagging build image {} for pushing as {}'.format(build_image, push_image))
-        subprocess.check_call(['docker', 'tag', '-f', build_image, push_image])
+        subprocess.check_call(['docker', 'tag', build_image, push_image])
 
     print('Pushing {}{}'.format('<dry run> ' if dry_run else '', push_image))
     if not dry_run:
