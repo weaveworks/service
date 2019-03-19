@@ -4,7 +4,6 @@ import (
 	"context"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 )
@@ -12,7 +11,10 @@ import (
 func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionID string) error {
 	// Get all team permissions for the user
 	role, err := d.GetUserRoleInTeam(ctx, userID, teamID)
-	if err != nil {
+	if err == users.ErrNotFound {
+		// If user is not part of the team, forbid any actions on it
+		return users.ErrForbidden
+	} else if err != nil {
 		return err
 	}
 	permissions, err := d.ListPermissionsForRoleID(ctx, role.ID)
@@ -34,28 +36,11 @@ func requirePermission(ctx context.Context, d db.DB, userID, teamID, permissionI
 
 // RequireTeamMemberPermissionTo requires team member permission for a specific action (and returns an error if denied).
 func RequireTeamMemberPermissionTo(ctx context.Context, d db.DB, userID, teamExternalID, permissionID string) error {
-	// Get all team organizations
+	// Find the team from its external ID.
 	team, err := d.FindTeamByExternalID(ctx, teamExternalID)
 	if err != nil {
 		return err
 	}
-	orgs, err := d.ListOrganizationsInTeam(ctx, team.ID)
-	if err != nil {
-		return err
-	}
-
-	// Assume team has the feature flag if any of its organizations have it.
-	hasFeatureFlag := false
-	for _, org := range orgs {
-		if org.HasFeatureFlag(featureflag.Permissions) {
-			hasFeatureFlag = true
-		}
-	}
-	// If the permissions are not enabled, everything is allowed.
-	if !hasFeatureFlag {
-		return nil
-	}
-
 	return requirePermission(ctx, d, userID, team.ID, permissionID)
 }
 
@@ -66,11 +51,5 @@ func RequireOrgMemberPermissionTo(ctx context.Context, d db.DB, userID, orgExter
 	if err != nil {
 		return err
 	}
-
-	// If the permissions are not enabled, everything is allowed.
-	if !org.HasFeatureFlag(featureflag.Permissions) {
-		return nil
-	}
-
 	return requirePermission(ctx, d, userID, org.TeamID, permissionID)
 }
