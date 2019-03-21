@@ -77,7 +77,7 @@ func (c *Client) ListImages(ctx context.Context, s update.ResourceSpec) ([]v6.Im
 
 func (c *Client) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) ([]v6.ImageStatus, error) {
 	var res []v6.ImageStatus
-	err := c.Get(ctx, &res, transport.ListImagesWithOptions, "service", string(opts.Spec), "containerFields", strings.Join(opts.OverrideContainerFields, ","))
+	err := c.Get(ctx, &res, transport.ListImagesWithOptions, "service", string(opts.Spec), "containerFields", strings.Join(opts.OverrideContainerFields, ","), "namespace", opts.Namespace)
 	return res, err
 }
 
@@ -178,7 +178,7 @@ func (c *Client) methodWithResp(ctx context.Context, method string, dest interfa
 	return nil
 }
 
-// get executes a get request against the flux server. it unmarshals the response into dest.
+// get executes a get request against the Flux server. it unmarshals the response into dest.
 func (c *Client) Get(ctx context.Context, dest interface{}, route string, queryParams ...string) error {
 	u, err := transport.MakeURL(c.endpoint, c.router, route, queryParams...)
 	if err != nil {

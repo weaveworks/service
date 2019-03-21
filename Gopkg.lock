@@ -81,7 +81,7 @@
   revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
 
 [[projects]]
-  digest = "1:a33c3e2b1bcbd0553f4d4b1cdec5eee6e47319eaafda01365ead083af33f7c65"
+  digest = "1:8469facc26c15ee6c08b9240bd4ed3fa51a6d3723799c51d6fb2645c662c57b8"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -102,10 +102,13 @@
     "aws/signer/v4",
     "internal/shareddefaults",
     "private/protocol",
+    "private/protocol/json/jsonutil",
+    "private/protocol/jsonrpc",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
+    "service/ecr",
     "service/sqs",
     "service/sqs/sqsiface",
     "service/sts",
@@ -1035,7 +1038,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fa2b52d225eb8701d7bd7610792ed61e827d6d5b3e2be8c48708dd78739ffbcd"
+  digest = "1:e17a5009ca4d3497d9258d7af8f44fafa76144739b720ec492f97d12289ca917"
   name = "github.com/weaveworks/flux"
   packages = [
     ".",
@@ -1067,7 +1070,7 @@
     "update",
   ]
   pruneopts = "NUT"
-  revision = "113e1280a27a4cec80465d1d0d0c69b696839f80"
+  revision = "48966b9d6191dee34c4c53115ee6cec2ff8d4998"
 
 [[projects]]
   branch = "master"
@@ -1106,6 +1109,14 @@
   ]
   pruneopts = "NUT"
   revision = "058eedc7f14ad7a09e374cbf9e5e4b9ad5c713e6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:b2d25f4c40d83f847540d20e5ba697a7dbe6476e3e27eee4f62522b14490fabb"
+  name = "github.com/whilp/git-urls"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "31bac0d230fa29f36ed1b3279c2343752e7196c0"
 
 [[projects]]
   branch = "master"
