@@ -77,7 +77,7 @@ func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *
 	assert.NotEqual(t, nil, team)
 	assert.NotEqual(t, "", team.ID)
 
-	err := db.AddUserToTeam(context.Background(), u.ID, team.ID, "admin")
+	err := db.AddUserToTeam(context.Background(), u.ID, team.ID, users.AdminRoleID)
 	require.NoError(t, err)
 
 	externalID, err := db.GenerateOrganizationExternalID(context.Background())

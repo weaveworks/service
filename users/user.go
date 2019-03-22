@@ -7,14 +7,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	// AdminRoleID stands for the ID of team admin role
+	AdminRoleID = "admin"
+	// EditorRoleID stands for the ID of team editor role
+	EditorRoleID = "editor"
+	// ViewerRoleID stands for the ID of team viewer role
+	ViewerRoleID = "viewer"
+)
+
 // TrialDuration is how long a user has a free trial
 // period before we start charging for it.
 const TrialDuration = 14 * 24 * time.Hour
 
 // DefaultRoleID is the role given to a new team member if no role is specified
 // used in entry points to the system like API endpoints.
-// TODO(fbarl): Change DefaultRoleID to 'viewer' once permissions UI is in place.
-const DefaultRoleID = "admin"
+const DefaultRoleID = ViewerRoleID
 
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
 // things to the db.DB

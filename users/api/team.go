@@ -254,11 +254,10 @@ func (a *API) removeUserFromTeam(currentUser *users.User, w http.ResponseWriter,
 
 	// A team always has to have at least one admin present,
 	// so if the user to be removed is the only admin, deny it.
-	// TODO(fbarl): Consider extracting "admin", "editor", "viewer" into constants.
-	if role.ID == "admin" {
+	if role.ID == users.AdminRoleID {
 		adminCount := 0
 		for _, m := range members {
-			if m.Role.ID == "admin" {
+			if m.Role.ID == users.AdminRoleID {
 				adminCount++
 			}
 		}

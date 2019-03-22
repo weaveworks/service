@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/service/common/constants/webhooks"
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/dbtest"
 )
 
@@ -90,7 +91,7 @@ func TestAPI_createOrganizationWebhookNonAdmin(t *testing.T) {
 	_, org, team := dbtest.GetOrgAndTeam(t, database)
 	viewerUser := getUser(t)
 
-	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")
+	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, users.ViewerRoleID)
 	assert.NoError(t, err)
 
 	payload, err := json.Marshal(map[string]string{"integrationType": webhooks.GithubPushIntegrationType})
@@ -131,7 +132,7 @@ func TestAPI_deleteOrganizationWebhookNonAdmin(t *testing.T) {
 	viewerUser := getUser(t)
 	w1 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
 
-	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, "viewer")
+	err := database.AddUserToTeam(context.TODO(), viewerUser.ID, team.ID, users.ViewerRoleID)
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
