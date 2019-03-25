@@ -21,13 +21,10 @@ RUN go get -tags netgo \
 		github.com/client9/misspell/cmd/misspell && \
 	rm -rf /go/pkg/ /go/src/
 RUN pip install attrs pyhcl yapf==0.16.2 flake8==3.3.0 urllib3==1.23
-RUN curl -fsSLO https://github.com/gogo/protobuf/archive/v1.2.1.tar.gz && \
-	echo "99e423905ba8921e86817607a5294ffeedb66fdd4a85efce5eb2848f715fdb3a  v1.2.1.tar.gz" | sha256sum -c && \
-	mkdir -p /go/src/github.com/gogo/protobuf && \
-	tar zxf v1.2.1.tar.gz -C /go/src/github.com/gogo/protobuf --strip 1 && \
-	cd /go/src/github.com/gogo/protobuf && \
-	make && \
-	rm -rf /go/pkg/ /go/src/ /go/v1.2.1.tar.gz /go/bin/gogoreplace /go/bin/protoc-gen-combo /go/bin/protoc-gen-gofast /go/bin/protoc-gen-gogo /go/bin/protoc-gen-gogofast /go/bin/protoc-gen-gogofaster /go/bin/protoc-gen-gogotypes /go/bin/protoc-gen-gostring /go/bin/protoc-min-version
+RUN git clone --branch v0.5 https://github.com/gogo/protobuf /go/src/github.com/gogo/protobuf && \
+    cd /go/src/github.com/gogo/protobuf/protoc-gen-gogoslick && \
+    go install && \
+	rm -rf /go/pkg/ /go/src/
 RUN curl -fsSL -o shfmt https://github.com/mvdan/sh/releases/download/v1.3.0/shfmt_v1.3.0_linux_amd64 && \
 	echo "b1925c2c405458811f0c227266402cf1868b4de529f114722c2e3a5af4ac7bb2  shfmt" | sha256sum -c && \
 	chmod +x shfmt && \
