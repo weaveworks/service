@@ -81,7 +81,7 @@
   revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
 
 [[projects]]
-  digest = "1:8469facc26c15ee6c08b9240bd4ed3fa51a6d3723799c51d6fb2645c662c57b8"
+  digest = "1:5f5931a436e1f6eff66de647cf0b828586964ad8becbaca28f8ac1fe62b9aad7"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -108,6 +108,7 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
+    "service/dynamodb",
     "service/ecr",
     "service/sqs",
     "service/sqs/sqsiface",
@@ -1416,6 +1417,7 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
     "github.com/aws/aws-sdk-go/aws/session",
+    "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/sqs",
     "github.com/aws/aws-sdk-go/service/sqs/sqsiface",
     "github.com/badoux/checkmail",
