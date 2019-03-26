@@ -592,7 +592,7 @@ func (d DB) DeleteOrganization(ctx context.Context, externalID string, actingID 
 // AddFeatureFlag adds a new feature flag to a organization.
 func (d DB) AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error {
 	_, err := d.ExecContext(ctx,
-		`update organizations set feature_flags = feature_flags || $1 where external_id = lower($2) and deleted_at is null`,
+		`update organizations set feature_flags = feature_flags || $1 where external_id = lower($2)`,
 		pq.Array([]string{featureFlag}), externalID,
 	)
 	return err
@@ -604,7 +604,7 @@ func (d DB) SetFeatureFlags(ctx context.Context, externalID string, featureFlags
 		featureFlags = []string{}
 	}
 	_, err := d.ExecContext(ctx,
-		`update organizations set feature_flags = $1 where external_id = lower($2) and deleted_at is null`,
+		`update organizations set feature_flags = $1 where external_id = lower($2)`,
 		pq.Array(featureFlags), externalID,
 	)
 	return err
