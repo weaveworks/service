@@ -123,9 +123,10 @@ KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
 NOTIFICATION_EXES := notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
 DASHBOARD_EXE := dashboard-api/dashboard-api
+NET_DISCOVERY_EXE := service-net-discovery/cmd/discovery/discovery
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(USERS_SYNC_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) \
 	$(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) \
-	$(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE) $(DASHBOARD_EXE)
+	$(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE) $(DASHBOARD_EXE) $(NET_DISCOVERY_EXE)
 
 # And what goes into each exe
 gofiles = $(shell find $1 -name '*.go')
@@ -144,6 +145,7 @@ $(GCP_SERVICE_EXE): $(shell find gcp-service -name '*.go') $(COMMON) $(KUBECTL_S
 $(NOTIFICATION_EXES): $(call gofiles,notification-*) $(COMMON)
 $(DASHBOARD_EXE): $(call gofiles,dashboard-*) $(COMMON)
 $(BILLING_USAGE_INJECTOR_EXE): $(CODECGEN_TARGETS)
+$(NET_DISCOVERY_EXE): $(call gofiles,service-net-discovery) $(COMMON)
 # See secondary expansion at bottom for BILLING_EXES gofiles
 
 test: $(PROTO_GOS)
@@ -163,6 +165,7 @@ kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
 billing-exporter/$(UPTODATE): $(shell find billing-exporter -name '*.py') billing-exporter/Pipfile billing-exporter/Pipfile.lock
+service-net-discovery/$(UPTODATE): $(NET_DISCOVERY_EXE)
 
 # Expands a list of binary paths to have their respective images depend on the binary
 # Example:
