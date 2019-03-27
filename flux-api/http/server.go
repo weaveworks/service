@@ -167,7 +167,7 @@ func (s Server) listServicesWithOptions(w http.ResponseWriter, r *http.Request) 
 		for _, svc := range strings.Split(services, ",") {
 			id, err := flux.ParseResourceID(svc)
 			if err != nil {
-				transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", svc))
+				writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", svc))
 				return
 			}
 			opts.Services = append(opts.Services, id)
@@ -189,7 +189,7 @@ func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
 		return
 	}
 
@@ -218,7 +218,7 @@ func (s Server) listImagesWithOptions(w http.ResponseWriter, r *http.Request) {
 	}
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
 		return
 	}
 	opts.Spec = spec
@@ -243,7 +243,7 @@ func (s Server) updateManifests(w http.ResponseWriter, r *http.Request) {
 
 	var spec update.Spec
 	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
+		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -283,7 +283,7 @@ func (s Server) gitRepoConfig(w http.ResponseWriter, r *http.Request) {
 
 	var regenerate bool
 	if err := json.NewDecoder(r.Body).Decode(&regenerate); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
+		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -301,7 +301,7 @@ func (s Server) logEvent(w http.ResponseWriter, r *http.Request) {
 
 	var event event.Event
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
+		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -319,7 +319,7 @@ func (s Server) history(w http.ResponseWriter, r *http.Request) {
 	service := mux.Vars(r)["service"]
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", spec))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", spec))
 		return
 	}
 
@@ -374,7 +374,7 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if repo == "" || owner == "" || tok == "" {
-		transport.WriteError(w, r, http.StatusUnprocessableEntity, errors.New("repo, owner or token is empty"))
+		writeError(w, r, http.StatusUnprocessableEntity, errors.New("repo, owner or token is empty"))
 		return
 	}
 
@@ -397,7 +397,7 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 		if isHTTPErr {
 			code = httpErr.StatusCode
 		}
-		transport.WriteError(w, r, code, err)
+		writeError(w, r, code, err)
 		return
 	}
 
@@ -407,7 +407,7 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 func (s Server) getGithubRepos(w http.ResponseWriter, r *http.Request) {
 	var tok = r.Header.Get("GithubToken")
 	if tok == "" {
-		transport.WriteError(w, r, http.StatusUnprocessableEntity, errors.New("GitHub token for user does not exist"))
+		writeError(w, r, http.StatusUnprocessableEntity, errors.New("GitHub token for user does not exist"))
 		return
 	}
 
@@ -420,7 +420,7 @@ func (s Server) getGithubRepos(w http.ResponseWriter, r *http.Request) {
 		if isHTTPErr {
 			code = httpErr.StatusCode
 		}
-		transport.WriteError(w, r, code, err)
+		writeError(w, r, code, err)
 		return
 	}
 
@@ -436,7 +436,7 @@ func (s Server) status(w http.ResponseWriter, r *http.Request) {
 		var err error
 		withPlatform, err = strconv.ParseBool(withPlatformValue)
 		if err != nil {
-			transport.WriteError(w, r, http.StatusBadRequest, err)
+			writeError(w, r, http.StatusBadRequest, err)
 			return
 		}
 	}
@@ -527,7 +527,7 @@ func (s Server) ping(w http.ResponseWriter, r *http.Request) {
 	if err, ok := err.(*fluxerr.Error); ok {
 		if err.Type == fluxerr.User {
 			// NB this has a specific contract for "cannot contact" -> // "404 not found"
-			transport.WriteError(w, r, http.StatusNotFound, err)
+			writeError(w, r, http.StatusNotFound, err)
 			return
 		} else if err.Type == fluxerr.Missing {
 			// From standalone, not connected.
@@ -592,26 +592,26 @@ func (s Server) updateImages(w http.ResponseWriter, r *http.Request) {
 		kind  = vars["kind"]
 	)
 	if err := r.ParseForm(); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing form"))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing form"))
 		return
 	}
 	var serviceSpecs []update.ResourceSpec
 	for _, service := range r.Form["service"] {
 		serviceSpec, err := update.ParseResourceSpec(service)
 		if err != nil {
-			transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+			writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
 			return
 		}
 		serviceSpecs = append(serviceSpecs, serviceSpec)
 	}
 	imageSpec, err := update.ParseImageSpec(image)
 	if err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing image spec %q", image))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing image spec %q", image))
 		return
 	}
 	releaseKind, err := update.ParseReleaseKind(kind)
 	if err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing release kind %q", kind))
+		writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing release kind %q", kind))
 		return
 	}
 
@@ -619,7 +619,7 @@ func (s Server) updateImages(w http.ResponseWriter, r *http.Request) {
 	for _, ex := range r.URL.Query()["exclude"] {
 		s, err := flux.ParseResourceID(ex)
 		if err != nil {
-			transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing excluded service %q", ex))
+			writeError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing excluded service %q", ex))
 			return
 		}
 		excludes = append(excludes, s)
@@ -650,7 +650,7 @@ func (s Server) updatePolicies(w http.ResponseWriter, r *http.Request) {
 
 	var updates policy.Updates
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
+		writeError(w, r, http.StatusBadRequest, err)
 		return
 	}
 	cause := update.Cause{
@@ -753,4 +753,32 @@ func mustUnescape(s string) string {
 		return unescaped
 	}
 	return s
+}
+
+// Use for constructing errors that will marshal to JSON. In general,
+// errors returned from the Server implementation will already marshal
+// to JSON; errors that are encountered in the course of decoding the
+// request, etc., will not.
+type jsonError struct {
+	err error
+}
+
+func (err jsonError) Error() string {
+	return err.err.Error()
+}
+
+func (err jsonError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"error": err.err.Error(),
+	})
+}
+
+// Convenience for making sure we supply appropriate values for
+// writing out; transport.WriteError expects something that can
+// marshal to JSON.
+func writeError(w http.ResponseWriter, r *http.Request, code int, err error) {
+	if _, ok := err.(json.Marshaler); !ok {
+		err = jsonError{err}
+	}
+	transport.WriteError(w, r, code, err)
 }
