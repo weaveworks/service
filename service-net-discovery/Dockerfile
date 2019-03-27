@@ -1,4 +1,5 @@
 FROM       alpine:3.6
+RUN        apk add --no-cache ca-certificates
 COPY       cmd/discovery/discovery /bin/discovery
 EXPOSE     80
 ENTRYPOINT [ "/bin/discovery" ]
