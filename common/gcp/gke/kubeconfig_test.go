@@ -85,7 +85,7 @@ func TestCreateManuallyAndMarshalKubeConfig(t *testing.T) {
 				Name: "dev",
 				Cluster: gke.ClusterCfg{
 					CertificateAuthorityData: "foo",
-					Server: "https://192.168.0.1",
+					Server:                   "https://192.168.0.1",
 				},
 			},
 		},

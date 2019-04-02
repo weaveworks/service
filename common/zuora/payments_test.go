@@ -85,7 +85,7 @@ func TestGetPaymentTransactionLog(t *testing.T) {
 			},
 		},
 		GatewayTransactionNumber: "",
-		Status: "Error",
+		Status:                   "Error",
 	}, payment)
 
 	txLog, err := client.GetPaymentTransactionLog(context.Background(), payment.ID)

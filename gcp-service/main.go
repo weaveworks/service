@@ -46,7 +46,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create gcp-service's server: %v", err)

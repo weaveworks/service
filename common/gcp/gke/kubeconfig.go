@@ -82,7 +82,7 @@ func NewKubeConfig(clusterName, endpoint, username, password, clusterCaCertifica
 				Name: clusterName,
 				Cluster: ClusterCfg{
 					CertificateAuthorityData: clusterCaCertificate,
-					Server: fmt.Sprintf("https://%v", endpoint),
+					Server:                   fmt.Sprintf("https://%v", endpoint),
 				},
 			},
 		},

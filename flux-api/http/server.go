@@ -126,9 +126,9 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.RegisterDaemonV11: s.registerV11,
 		transport.LogEvent:          s.logEvent,
 		// UI routes
-		Status:  s.status,
-		History: s.history,
-		Ping:    s.ping,
+		Status:                 s.status,
+		History:                s.history,
+		Ping:                   s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
 		GetGithubRepos:         s.getGithubRepos,
 		// Webhooks

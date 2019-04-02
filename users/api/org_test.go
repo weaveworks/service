@@ -453,7 +453,7 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	user, otherOrg := getOrg(t)
 
 	for id, errMsg := range map[string]string{
-		"": "ID cannot be blank",
+		"":                             "ID cannot be blank",
 		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
 		otherOrg.ExternalID:            "ID is already taken",
 	} {
