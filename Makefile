@@ -279,7 +279,7 @@ $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 %.pb.go: build/$(UPTODATE)
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
-lint: build/$(UPTODATE)
+lint: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	./tools/lint .
 
 test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
