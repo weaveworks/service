@@ -142,7 +142,7 @@ func PagerDutyFromSlack(text, etype, instanceName, link, linkText string) (json.
 
 	msgRaw, err := json.Marshal(pdMsg)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal to json PagerDuty message: %s", pdMsg)
+		return nil, errors.Wrapf(err, "cannot marshal to json PagerDuty message: %v", pdMsg)
 	}
 
 	return msgRaw, nil
