@@ -341,6 +341,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			Matchables([]Prefix{
 				{"/grafana", trimPrefix("/admin/grafana", c.grafanaHost)},
 				{"/dev-grafana", trimPrefix("/admin/dev-grafana", c.devGrafanaHost)},
+				{"/wkp-ui-grafana", trimPrefix("/admin/wkp-ui-grafana", c.wkpUIGrafana)},
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
 				{"/scope", trimPrefix("/admin/scope", c.scopeHost)},
 				{"/users", c.usersHost},

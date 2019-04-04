@@ -20,6 +20,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/dev-grafana/">Grafana (Cortex, Dev)</a></li>
 			<li><a href="/admin/prod-grafana/">Grafana (Cortex, Prod)</a></li>
 			<li><a style="color: grey;" href="/admin/grafana/">Grafana (local prometheus)</a> <small>If possible prefer a cortex-backed grafana, for dogfooding purposes</small></li>
+			<li><a href="/admin/wkp-ui-grafana/">WKP UI Grafana (Dev)</a></li>
 			<li><a href="/admin/alertmanager/">Alert Manager</a></li>
 			<li><a href="/admin/prometheus/">Prometheus</a></li>
 			<li><a href="/admin/kubediff/">Kubediff</a></li>
