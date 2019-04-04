@@ -88,6 +88,7 @@ type Config struct {
 	serviceUIKickerHost   proxyConfig
 	terradiffHost         proxyConfig
 	usersHost             proxyConfig
+	wkpUIGrafana          proxyConfig
 }
 
 func (c *Config) proxies() map[string]*proxyConfig {
@@ -128,6 +129,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"corp-atlantis":      &c.corpAtlantisHost,
 		"corp-terradiff":     &c.corpTerradiffHost,
 		"dev-grafana":        &c.devGrafanaHost,
+		"wkp-ui-grafana":     &c.wkpUIGrafana,
 		"elasticsearch":      &c.elasticsearchHost,
 		"esh":                &c.eshHost,
 		"grafana":            &c.grafanaHost,
