@@ -37,9 +37,55 @@ func NewPrometheusMock(dataDir string) *MockPrometheus {
 	}
 }
 
+type queryResponse struct {
+	Status string    `json:"status"`
+	Result queryData `json:"data"`
+}
+
+// based on prometheus/client_golang/api/prometheus/v1/api.go
+type queryData struct {
+	v model.Value
+}
+
+func (qr *queryData) UnmarshalJSON(b []byte) error {
+	v := struct {
+		Type   model.ValueType `json:"resultType"`
+		Result json.RawMessage `json:"result"`
+	}{}
+
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return err
+	}
+
+	switch v.Type {
+	case model.ValVector:
+		var vv model.Vector
+		err = json.Unmarshal(v.Result, &vv)
+		qr.v = vv
+	default:
+		err = fmt.Errorf("unexpected value type %q", v.Type)
+	}
+	return err
+}
+
 // Query performs a query at a given time instant.
 func (mock *MockPrometheus) Query(ctx context.Context, query string, ts time.Time) (model.Value, error) {
-	return &mockValueNone{}, errors.New("Not implemented")
+	response := queryResponse{}
+	// Minimal implementation to match what dashboard-api uses
+	// Parse the query to extract ns and service
+	ns := getLabelValue(query, "kubernetes_namespace")
+	service := getLabelValue(query, "_weave_service")
+
+	data, err := ioutil.ReadFile(filepath.Join(mock.dataDir, "testdata", filename("query", ns, service)))
+	if err != nil {
+		// Treat the absence of mock data as an absence of the data that has been asked for.
+		return model.Vector{}, nil
+	}
+	if err = json.Unmarshal(data, &response); err != nil {
+		return nil, err
+	}
+	return response.Result.v, nil
 }
 
 // QueryRange performs a query for the given range.
@@ -80,7 +126,7 @@ func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startT
 	ns := getLabelValue(matches[0], "kubernetes_namespace")
 	service := getLabelValue(matches[0], "_weave_service")
 
-	data, err := ioutil.ReadFile(filepath.Join(mock.dataDir, "testdata", filename(ns, service)))
+	data, err := ioutil.ReadFile(filepath.Join(mock.dataDir, "testdata", filename("series", ns, service)))
 	if err != nil {
 		// Treat the absence of mock data as an absence of the data that has been asked for.
 		return nil, nil
@@ -93,11 +139,11 @@ func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startT
 	return response.Data, nil
 }
 
-func filename(ns, service string) string {
+func filename(kind, ns, service string) string {
 	if service == "cloudwatch-exporter" {
-		return "series-aws-rds.json"
+		return kind + "-aws-rds.json"
 	}
-	return fmt.Sprintf("series-%s-%s", ns, service)
+	return fmt.Sprintf("%s-%s-%s", kind, ns, service)
 }
 
 // MockPrometheusClient is a specialization of the default prom.Client that does

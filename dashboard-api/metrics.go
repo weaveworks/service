@@ -72,16 +72,28 @@ func (api *API) getAWSMetrics(ctx context.Context, awsType aws.Type, startTime, 
 	return api.getMetrics(ctx, []string{query}, startTime, endTime)
 }
 
+// Given a list of match clauses like {kubernetes_namespace="x",_weave_service="y"},
+// return the metric names that match any of them
 func (api *API) getMetrics(ctx context.Context, queries []string, startTime time.Time, endTime time.Time) ([]string, error) {
 	log.WithFields(log.Fields{"queries": queries, "from": startTime, "to": endTime}).Debug("get series")
-	labelsets, err := api.prometheus.Series(ctx, queries, startTime, endTime)
-	if err != nil {
-		return nil, err
-	}
+	names := make(map[string]struct{})
 
-	names := make(map[string]bool)
-	for _, set := range labelsets {
-		names[string(set[model.LabelName("__name__")])] = true
+	for _, q := range queries {
+		// 'count' serves to reduce the result to unique names; as a future
+		// enhancement we could pass the count back to be shown in the UI.
+		countQuery := "count by(__name__)(" + q + ")"
+		value, err := api.prometheus.Query(ctx, countQuery, endTime)
+		if err != nil {
+			return nil, err
+		}
+		vector, ok := value.(model.Vector)
+		if !ok {
+			log.Error("unexpected result returned from Prometheus")
+			return nil, errors.ErrInvalidParameter
+		}
+		for _, sample := range vector {
+			names[string(sample.Metric[model.MetricNameLabel])] = struct{}{}
+		}
 	}
 
 	var metrics []string
