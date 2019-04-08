@@ -78,6 +78,8 @@ func (api *API) getMetrics(ctx context.Context, queries []string, startTime time
 	log.WithFields(log.Fields{"queries": queries, "from": startTime, "to": endTime}).Debug("get series")
 	names := make(map[string]struct{})
 
+	endTime = time.Now() // Cortex Query() (and Series()) don't support looking back in time
+
 	for _, q := range queries {
 		// 'count' serves to reduce the result to unique names; as a future
 		// enhancement we could pass the count back to be shown in the UI.
