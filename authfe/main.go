@@ -86,6 +86,11 @@ func main() {
 		if proxyCfg.hostAndPort == "" && proxyCfg.grpcHost == "" {
 			log.Warningf("Host for %s not given; will not be proxied", name)
 		}
+		for _, n := range strings.Split(cfg.httpKeepAlives, ",") {
+			if n == name {
+				proxyCfg.allowKeepAlive = true
+			}
+		}
 		handler, err := newProxy(*proxyCfg)
 		if err != nil {
 			log.Fatal(err)

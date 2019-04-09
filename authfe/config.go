@@ -24,6 +24,7 @@ type Config struct {
 	listen, privateListen string
 	logLevel              string
 	stopTimeout           time.Duration
+	httpKeepAlives        string // comma-separated list of services
 
 	// Security-related flags
 	hstsMaxAge            int
@@ -165,6 +166,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	f.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	f.DurationVar(&c.stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
+	f.StringVar(&c.httpKeepAlives, "http-keep-alives", "", "Services where http keep-alive is not disabled (comma-separated)")
 
 	// Security-related flags
 	f.IntVar(&c.hstsMaxAge, "hsts-max-age", 0, "Max Age in seconds for HSTS header - zero means no header.  Header will only be send if redirect-https is true.")
@@ -194,6 +196,9 @@ func (c *Config) ReadEnvVars() {
 type proxyConfig struct {
 	// Determines the names of the flags
 	name string
+
+	// Enable http keep-alives if true
+	allowKeepAlive bool
 
 	// Values set by flags.
 	hostAndPort string

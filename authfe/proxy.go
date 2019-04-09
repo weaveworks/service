@@ -29,6 +29,10 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	case "grpc":
 		return httpgrpc_server.NewClient(cfg.hostAndPort)
 	case "https", "http":
+		proxyTransport := proxyTransportNoKeepAlives
+		if cfg.allowKeepAlive {
+			proxyTransport = proxyTransportWithKeepAlives
+		}
 		// Make all transformations outside of the director since
 		// they are also required when proxying websockets
 		return &httpProxy{cfg, httputil.ReverseProxy{
@@ -52,7 +56,7 @@ var readOnlyMethods = map[string]struct{}{
 	http.MethodOptions: {},
 }
 
-var proxyTransport http.RoundTripper = &nethttp.Transport{
+var proxyTransportNoKeepAlives http.RoundTripper = &nethttp.Transport{
 	RoundTripper: &http.Transport{
 		// No connection pooling, increases latency, but ensures fair load-balancing.
 		DisableKeepAlives: true,
@@ -63,6 +67,21 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	},
+}
+
+var proxyTransportWithKeepAlives http.RoundTripper = &nethttp.Transport{
+	RoundTripper: &http.Transport{
+		// mostly the same as http.DefaultTransport
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   100, // Avoid Go bug https://github.com/golang/go/issues/13801
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	},
