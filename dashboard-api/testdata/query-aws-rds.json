@@ -1,0 +1,28 @@
+{
+  "status": "success",
+  "data": {
+      "resultType" : "vector",
+      "result" : [
+          {
+              "metric": {"__name__": "aws_rds_write_iops_average"},
+              "value": [ 1500000000, "5" ]
+          },
+          {
+              "metric": {"__name__": "aws_rds_freeable_memory_average"},
+              "value": [ 1500000000, "5" ]
+          },
+          {
+              "metric": {"__name__": "aws_rds_database_connections_average"},
+              "value": [ 1500000000, "5" ]
+          },
+          {
+              "metric": {"__name__": "aws_rds_read_iops_average"},
+              "value": [ 1500000000, "5" ]
+          },
+          {
+              "metric": {"__name__": "aws_rds_cpuutilization_average"},
+              "value": [ 1500000000, "5" ]
+          }
+      ]
+  }
+}
