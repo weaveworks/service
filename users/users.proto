@@ -86,6 +86,9 @@ service Users {
 
     // RequireOrgMemberPermissionTo requires instance member permission for a specific action (and returns an error if denied).
     rpc RequireOrgMemberPermissionTo(RequireOrgMemberPermissionToRequest) returns (Empty) {};
+
+    // Find out when we can delete data (e.g. everything before 3 months ago)
+    rpc GetDataExpiry(DataExpiryRequest) returns (DataExpiryResponse) {};
 }
 
 enum AuthorizedAction {
@@ -454,4 +457,19 @@ message RequireOrgMemberPermissionToRequest {
         string OrgInternalID = 4;
     }
     string PermissionID = 3;
+}
+
+message DataExpiryRequest {
+    // If org supplied, answer when it expires
+    string OrganizationID = 1 [(gogoproto.jsontag) = "organizationID,omitempty"];
+    // If timestamps supplied, answer which orgs should be deleted
+    google.protobuf.Timestamp From = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    google.protobuf.Timestamp To   = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message DataExpiryResponse {
+    // It's OK to delete all data before this date.
+    google.protobuf.Timestamp ExpireBefore = 1  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // All of these organizations should be deleted
+    repeated string OrganizationID = 2;
 }
