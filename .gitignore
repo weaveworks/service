@@ -21,6 +21,7 @@ kubectl-service/kubectl-service
 notebooks/cmd/notebooks/notebooks
 notification-eventmanager/cmd/eventmanager/eventmanager
 notification-sender/cmd/sender/sender
+service-net-discovery/cmd/discovery/discovery
 service-ui-kicker/service-ui-kicker
 users/cmd/users/users
 users-sync/cmd/users-sync
