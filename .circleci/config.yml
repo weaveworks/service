@@ -31,20 +31,21 @@ jobs:
             exit 1
           fi
       - run:
-          name: Upload docker images for use later in workflow
+          name: Save docker images
           command: |
-            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
             IMAGE_TAG="$(./tools/image-tag)"
             IMAGES=$(make images)
             for image in ${IMAGES}; do
               if [[ "$image" == *"build"* ]]; then
                 continue
               fi
-              tagged_image="${image}:${IMAGE_TAG}"
-              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-              docker tag ${tagged_image} ${repo_tmp_image}
-              docker push $repo_tmp_image
+              mkdir -p "build-images/$(dirname "$image")"
+              docker save "${image}:${IMAGE_TAG}" -o "build-images/$image"
             done
+      - persist_to_workspace:
+          root: .
+          paths:
+           - build-images
   test:
     <<: *defaults
     steps:
@@ -61,25 +62,12 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - &pull-tmp-images
         run:
-          name: Download docker images build earlier in workflow
-          command: |
-            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
-            # Pull our previously built image, retag it
-            IMAGE_TAG="$(./tools/image-tag)"
-            IMAGES=$(make images)
-            for image in ${IMAGES}; do
-              if [[ "$image" == *"build"* ]]; then
-                continue
-              fi
-              tagged_image="${image}:${IMAGE_TAG}"
-              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-              docker pull $repo_tmp_image
-              docker tag ${repo_tmp_image} ${tagged_image}
-              docker tag ${repo_tmp_image} ${image}:latest
-              docker image rm ${repo_tmp_image}
-            done
+          name: Load docker images
+          command: find build-images -type f -exec docker load -i {} \;
       - run: docker run -d -p 4222:4222 nats
       - run: |
           make RM= notebooks-integration-test
@@ -95,6 +83,8 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - <<: *pull-tmp-images
       - run:
           name: Publish docker images to final repository
@@ -105,13 +95,14 @@ jobs:
             mkdir ~/.aws
             echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
             $(aws ecr get-login --no-include-email --region us-east-1)
-            ./push-images --if-changed-since $LAST_BUILD_COMMIT
             IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --if-changed-since $LAST_BUILD_COMMIT
 
   dry-run-upload:
     <<: *defaults
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - <<: *pull-tmp-images
       - run:
           name: Dry-run of publishing docker images
@@ -122,7 +113,6 @@ jobs:
             mkdir ~/.aws
             echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
             $(aws ecr get-login --no-include-email --region us-east-1)
-            ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
             IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
 
 workflows:
