@@ -292,8 +292,11 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		// Verify the signature if we require it. This is only used for Github integrations at the moment.
-		if response.Webhook.IntegrationType == webhooks.GithubPushIntegrationType {
+		// Verify the signature if we require it. Only Github and
+		// Gitlab integrations use this, in different ways (Bitbucket
+		// Cloud does not support it).
+		switch response.Webhook.IntegrationType {
+		case webhooks.GithubPushIntegrationType:
 			if response.Webhook.SecretSigningKey == "" {
 				http.Error(w, "The GitHub signing key is missing.", 500)
 				return
@@ -312,6 +315,15 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 				return
 			}
 			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		case webhooks.GitlabPushIntegrationType:
+			if response.Webhook.SecretSigningKey == "" {
+				http.Error(w, "The Gitlab shared secret is missing", 500)
+				return
+			}
+			if r.Header.Get("X-Gitlab-Token") != response.Webhook.SecretSigningKey {
+				http.Error(w, "The Gitlab token does not match", 401)
+				return
+			}
 		}
 
 		// Set the FirstSeenAt time if it is not set

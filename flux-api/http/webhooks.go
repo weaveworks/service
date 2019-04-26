@@ -19,26 +19,27 @@ import (
 
 const fluxDaemonTimeout = 5 * time.Second
 
+type webhookHandler func(Server, http.ResponseWriter, *http.Request)
+
+var handlers = map[string]webhookHandler{
+	webhooks.GithubPushIntegrationType:       handleGithubPush,
+	webhooks.BitbucketOrgPushIntegrationType: handleBitbucketOrgPush,
+	webhooks.GitlabPushIntegrationType:       handleGitlabPush,
+	webhooks.DockerHubIntegrationType:        handleDockerHub,
+	webhooks.QuayIntegrationType:             handleQuay,
+}
+
 func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	integrationType := r.Header.Get(webhooks.WebhooksIntegrationTypeHeader)
 
-	switch integrationType {
-	case webhooks.GithubPushIntegrationType:
-		handleGithub(s, w, r)
-		return
-	case webhooks.DockerHubIntegrationType:
-		handleDockerHub(s, w, r)
-		return
-	case webhooks.QuayIntegrationType:
-		handleQuay(s, w, r)
-		return
-	default:
-		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Invalid integration type"))
+	if handle, ok := handlers[integrationType]; ok {
+		handle(s, w, r)
 		return
 	}
+	transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Invalid integration type"))
 }
 
-func handleGithub(s Server, w http.ResponseWriter, r *http.Request) {
+func handleGithubPush(s Server, w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	switch contentType := r.Header.Get("Content-Type"); contentType {
 	case "application/x-www-form-urlencoded":
@@ -91,6 +92,115 @@ func handleGithub(s Server, w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// Handily (not handily) Bitbucket's cloud and self-hosted
+// products have different names for all the events and fields. This is for the events sent by the "Cloud" product (bitbucket.org):
+// https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
+//
+// (For completeness, the docs for the self-hosted Bitbucket "Server"
+// are at
+// https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html. The
+// self-hosted version includes a signature in the header
+// "X-Hub-Signature", but this is not present for "Cloud").
+
+func handleBitbucketOrgPush(s Server, w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-Event-Key") != "repo:push" {
+		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Unexpected or missing header X-Event-Key"))
+		return
+	}
+
+	type bitbucketOrgPayload struct {
+		Repository bitbucketOrgRepository
+		Push       struct {
+			Changes []struct {
+				New struct {
+					Type, Name string
+				}
+			}
+		}
+	}
+
+	var payload bitbucketOrgPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+	}
+
+	// The bitbucket.org events potentially contain many ref updates;
+	// presumably, it bundles together e.g., the result of a `git
+	// push` into one event. We only notify about one things at a time
+	// though, so:
+	//  - collect all the changes
+	//  - send as many as we can before we reach our deadline.
+	// That may mean we miss some, but this is best effort.
+	//
+	// NB a change can be to a branch or a tag; here we'll send both
+	// through, since it's in principle possible to sync to a tag.
+
+	repo := payload.Repository.RepoURL()
+	ctx, cancel := context.WithTimeout(getRequestContext(r), fluxDaemonTimeout)
+	defer cancel()
+	for i := range payload.Push.Changes {
+		refChange := payload.Push.Changes[i].New
+		change := v9.Change{
+			Kind: v9.GitChange,
+			Source: v9.GitUpdate{
+				URL:    repo,
+				Branch: refChange.Name,
+			},
+		}
+		if err := s.daemonProxy.NotifyChange(ctx, change); err != nil {
+			transport.ErrorResponse(w, r, err)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// The fields of repository that we care about
+type bitbucketOrgRepository struct {
+	FullName string `json:"full_name"`
+}
+
+func (r bitbucketOrgRepository) RepoURL() string {
+	return fmt.Sprintf("git@bitbucket.org:%s.git", r.FullName)
+}
+
+func handleGitlabPush(s Server, w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-Gitlab-Event") != "Push Hook" {
+		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Unexpected or missing X-Gitlab-Event"))
+		return
+	}
+
+	type gitlabPayload struct {
+		Ref     string
+		Project struct {
+			SSHURL string `json:"git_ssh_url"`
+		}
+	}
+
+	var payload gitlabPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	change := v9.Change{
+		Kind: v9.GitChange,
+		Source: v9.GitUpdate{
+			URL:    payload.Project.SSHURL,
+			Branch: strings.TrimPrefix(payload.Ref, "refs/heads/"),
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(getRequestContext(r), fluxDaemonTimeout)
+	defer cancel()
+	if err := s.daemonProxy.NotifyChange(ctx, change); err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)

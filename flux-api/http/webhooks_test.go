@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,17 +10,39 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/remote"
 	"github.com/weaveworks/service/common/constants/webhooks"
 )
 
+type notifyingServer struct {
+	notified []v9.Change
+	*remote.MockServer
+}
+
+func (s *notifyingServer) NotifyChange(_ context.Context, c v9.Change) error {
+	s.notified = append(s.notified, c)
+	return nil
+}
+
+func (s *notifyingServer) take() []v9.Change {
+	wasNotified := s.notified
+	s.notified = nil
+	return wasNotified
+}
+
 func TestHandleWebhook(t *testing.T) {
-	mockDaemon := &remote.MockServer{
-		NotifyChangeError: nil,
+	mockDaemon := &notifyingServer{
+		MockServer: &remote.MockServer{},
 	}
 	s := Server{daemonProxy: mockDaemon}
 
-	{ // Invalid integration type
+	// Make sure this works the way it's supposed to
+	mockDaemon.NotifyChange(context.TODO(), v9.Change{})
+	assert.Len(t, mockDaemon.take(), 1)
+	assert.Len(t, mockDaemon.take(), 0)
+
+	t.Run("invalid integration type", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc/", nil)
 		assert.NoError(t, err)
 		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, "invalid")
@@ -28,9 +51,9 @@ func TestHandleWebhook(t *testing.T) {
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	}
+	})
 
-	{ // Github success
+	t.Run("github success case", func(t *testing.T) {
 		payload := []byte(`
 			{
 				"ref": "refs/tags/simple-tag",
@@ -177,6 +200,15 @@ func TestHandleWebhook(t *testing.T) {
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, []v9.Change{
+			{
+				Kind: v9.GitChange,
+				Source: v9.GitUpdate{
+					URL:    "git@github.com:Codertocat/Hello-World.git",
+					Branch: "refs/tags/simple-tag",
+				},
+			},
+		}, mockDaemon.take())
 
 		// Same thing but as application/x-www-form-urlencoded
 		form := url.Values{}
@@ -191,6 +223,7 @@ func TestHandleWebhook(t *testing.T) {
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Len(t, mockDaemon.take(), 1)
 
 		// TODO: Assert call to NotifyChange once flux has a method for this.
 		// assert.Equal(t, len(mockDaemon.NotifyChangeCalls), 1)
@@ -202,9 +235,9 @@ func TestHandleWebhook(t *testing.T) {
 		// 	},
 		// }
 		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
-	}
+	})
 
-	{ // DockerHub success
+	t.Run("DockerHub success case", func(t *testing.T) {
 		payload := []byte(`
 		{
 			"callback_url": "https://registry.hub.docker.com/u/svendowideit/testhook/hook/2141b5bi5i5b02bec211i4eeih0242eg11000a/",
@@ -247,6 +280,7 @@ func TestHandleWebhook(t *testing.T) {
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Len(t, mockDaemon.take(), 1)
 
 		// TODO: Assert call to NotifyChange once flux has a method for this.
 		// assert.Equal(t, len(mockDaemon.NotifyChangeCalls), 1)
@@ -258,9 +292,9 @@ func TestHandleWebhook(t *testing.T) {
 		// 	},
 		// }
 		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
-	}
+	})
 
-	{ // Quay success
+	t.Run("quay.io success case", func(t *testing.T) {
 		payload := []byte(`
 		{
 			"name": "repository",
@@ -283,6 +317,7 @@ func TestHandleWebhook(t *testing.T) {
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Len(t, mockDaemon.take(), 1)
 
 		// TODO: Assert call to NotifyChange once flux has a method for this.
 		// assert.Equal(t, len(mockDaemon.NotifyChangeCalls), 1)
@@ -294,5 +329,383 @@ func TestHandleWebhook(t *testing.T) {
 		// 	},
 		// }
 		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
-	}
+	})
+
+	t.Run("bitbucket.org success case", func(t *testing.T) { // Bitbucket.org success
+		payload := []byte(`
+        {
+          "push": {
+            "changes": [
+              {
+                "forced": false,
+                "old": {
+                  "target": {
+                    "hash": "2269f06c06bebc4f4da528a4144390fddd2cc190",
+                    "links": {
+                      "self": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                      },
+                      "html": {
+                        "href": "https://bitbucket.org/mbridgen/dummy/commits/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                      }
+                    },
+                    "author": {
+                      "raw": "Michael Bridgen <michael@weave.works>",
+                      "type": "author",
+                      "user": {
+                        "username": "mbridgen",
+                        "display_name": "Michael Bridgen",
+                        "account_id": "5bf2cda767e4d1175166c7f6",
+                        "links": {
+                          "self": {
+                            "href": "https://api.bitbucket.org/2.0/users/mbridgen"
+                          },
+                          "html": {
+                            "href": "https://bitbucket.org/mbridgen/"
+                          },
+                          "avatar": {
+                            "href": "https://bitbucket.org/account/mbridgen/avatar/"
+                          }
+                        },
+                        "type": "user",
+                        "nickname": "mbridgen",
+                        "uuid": "{3995cc2b-9848-486a-908a-8b77534761b5}"
+                      }
+                    },
+                    "summary": {
+                      "raw": "Initial commit",
+                      "markup": "markdown",
+                      "html": "<p>Initial commit</p>",
+                      "type": "rendered"
+                    },
+                    "parents": [],
+                    "date": "2018-11-19T14:51:37+00:00",
+                    "message": "Initial commit",
+                    "type": "commit"
+                  },
+                  "links": {
+                    "commits": {
+                      "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commits/master"
+                    },
+                    "self": {
+                      "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/refs/branches/master"
+                    },
+                    "html": {
+                      "href": "https://bitbucket.org/mbridgen/dummy/branch/master"
+                    }
+                  },
+                  "default_merge_strategy": "merge_commit",
+                  "merge_strategies": [
+                    "merge_commit",
+                    "squash",
+                    "fast_forward"
+                  ],
+                  "type": "branch",
+                  "name": "master"
+                },
+                "links": {
+                  "commits": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commits?include=6db247ef432063e73512b86edf7b4a72da927355&exclude=2269f06c06bebc4f4da528a4144390fddd2cc190"
+                  },
+                  "html": {
+                    "href": "https://bitbucket.org/mbridgen/dummy/branches/compare/6db247ef432063e73512b86edf7b4a72da927355..2269f06c06bebc4f4da528a4144390fddd2cc190"
+                  },
+                  "diff": {
+                    "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/diff/6db247ef432063e73512b86edf7b4a72da927355..2269f06c06bebc4f4da528a4144390fddd2cc190"
+                  }
+                },
+                "truncated": false,
+                "commits": [
+                  {
+                    "hash": "6db247ef432063e73512b86edf7b4a72da927355",
+                    "links": {
+                      "self": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/6db247ef432063e73512b86edf7b4a72da927355"
+                      },
+                      "comments": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/6db247ef432063e73512b86edf7b4a72da927355/comments"
+                      },
+                      "patch": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/patch/6db247ef432063e73512b86edf7b4a72da927355"
+                      },
+                      "html": {
+                        "href": "https://bitbucket.org/mbridgen/dummy/commits/6db247ef432063e73512b86edf7b4a72da927355"
+                      },
+                      "diff": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/diff/6db247ef432063e73512b86edf7b4a72da927355"
+                      },
+                      "approve": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/6db247ef432063e73512b86edf7b4a72da927355/approve"
+                      },
+                      "statuses": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/6db247ef432063e73512b86edf7b4a72da927355/statuses"
+                      }
+                    },
+                    "author": {
+                      "raw": "Michael Bridgen <mikeb@squaremobius.net>",
+                      "type": "author"
+                    },
+                    "summary": {
+                      "raw": "Hello world\n",
+                      "markup": "markdown",
+                      "html": "<p>Hello world</p>",
+                      "type": "rendered"
+                    },
+                    "parents": [
+                      {
+                        "type": "commit",
+                        "hash": "2269f06c06bebc4f4da528a4144390fddd2cc190",
+                        "links": {
+                          "self": {
+                            "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                          },
+                          "html": {
+                            "href": "https://bitbucket.org/mbridgen/dummy/commits/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                          }
+                        }
+                      }
+                    ],
+                    "date": "2018-11-19T17:13:36+00:00",
+                    "message": "Hello world\n",
+                    "type": "commit"
+                  }
+                ],
+                "created": false,
+                "closed": false,
+                "new": {
+                  "target": {
+                    "hash": "6db247ef432063e73512b86edf7b4a72da927355",
+                    "links": {
+                      "self": {
+                        "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/6db247ef432063e73512b86edf7b4a72da927355"
+                      },
+                      "html": {
+                        "href": "https://bitbucket.org/mbridgen/dummy/commits/6db247ef432063e73512b86edf7b4a72da927355"
+                      }
+                    },
+                    "author": {
+                      "raw": "Michael Bridgen <mikeb@squaremobius.net>",
+                      "type": "author"
+                    },
+                    "summary": {
+                      "raw": "Hello world\n",
+                      "markup": "markdown",
+                      "html": "<p>Hello world</p>",
+                      "type": "rendered"
+                    },
+                    "parents": [
+                      {
+                        "type": "commit",
+                        "hash": "2269f06c06bebc4f4da528a4144390fddd2cc190",
+                        "links": {
+                          "self": {
+                            "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commit/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                          },
+                          "html": {
+                            "href": "https://bitbucket.org/mbridgen/dummy/commits/2269f06c06bebc4f4da528a4144390fddd2cc190"
+                          }
+                        }
+                      }
+                    ],
+                    "date": "2018-11-19T17:13:36+00:00",
+                    "message": "Hello world\n",
+                    "type": "commit"
+                  },
+                  "links": {
+                    "commits": {
+                      "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/commits/master"
+                    },
+                    "self": {
+                      "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy/refs/branches/master"
+                    },
+                    "html": {
+                      "href": "https://bitbucket.org/mbridgen/dummy/branch/master"
+                    }
+                  },
+                  "default_merge_strategy": "merge_commit",
+                  "merge_strategies": [
+                    "merge_commit",
+                    "squash",
+                    "fast_forward"
+                  ],
+                  "type": "branch",
+                  "name": "master"
+                }
+              }
+            ]
+          },
+          "repository": {
+            "scm": "git",
+            "website": "",
+            "name": "dummy",
+            "links": {
+              "self": {
+                "href": "https://api.bitbucket.org/2.0/repositories/mbridgen/dummy"
+              },
+              "html": {
+                "href": "https://bitbucket.org/mbridgen/dummy"
+              },
+              "avatar": {
+                "href": "https://bytebucket.org/ravatar/%7B6cf7f1fc-003b-4e82-9a31-352d506530b0%7D?ts=go"
+              }
+            },
+            "full_name": "mbridgen/dummy",
+            "owner": {
+              "username": "mbridgen",
+              "display_name": "Michael Bridgen",
+              "account_id": "5bf2cda767e4d1175166c7f6",
+              "links": {
+                "self": {
+                  "href": "https://api.bitbucket.org/2.0/users/mbridgen"
+                },
+                "html": {
+                  "href": "https://bitbucket.org/mbridgen/"
+                },
+                "avatar": {
+                  "href": "https://bitbucket.org/account/mbridgen/avatar/"
+                }
+              },
+              "type": "user",
+              "nickname": "mbridgen",
+              "uuid": "{3995cc2b-9848-486a-908a-8b77534761b5}"
+            },
+            "type": "repository",
+            "is_private": false,
+            "uuid": "{6cf7f1fc-003b-4e82-9a31-352d506530b0}"
+          },
+          "actor": {
+            "username": "mbridgen",
+            "display_name": "Michael Bridgen",
+            "account_id": "5bf2cda767e4d1175166c7f6",
+            "links": {
+              "self": {
+                "href": "https://api.bitbucket.org/2.0/users/mbridgen"
+              },
+              "html": {
+                "href": "https://bitbucket.org/mbridgen/"
+              },
+              "avatar": {
+                "href": "https://bitbucket.org/account/mbridgen/avatar/"
+              }
+            },
+            "type": "user",
+            "nickname": "mbridgen",
+            "uuid": "{3995cc2b-9848-486a-908a-8b77534761b5}"
+          }
+        }`)
+
+		req, err := http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Event-Key", "repo:push")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.BitbucketOrgPushIntegrationType)
+
+		rr := httptest.NewRecorder()
+		s.handleWebhook(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, []v9.Change{
+			{
+				Kind: v9.GitChange,
+				Source: v9.GitUpdate{
+					URL:    "git@bitbucket.org:mbridgen/dummy.git",
+					Branch: "master",
+				},
+			},
+		}, mockDaemon.take())
+	})
+
+	t.Run("gitlab success", func(t *testing.T) {
+		payload := []byte(`
+        {
+          "object_kind": "push",
+          "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
+          "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+          "ref": "refs/heads/master",
+          "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+          "user_id": 4,
+          "user_name": "John Smith",
+          "user_username": "jsmith",
+          "user_email": "john@example.com",
+          "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
+          "project_id": 15,
+          "project":{
+            "id": 15,
+            "name":"Diaspora",
+            "description":"",
+            "web_url":"http://example.com/mike/diaspora",
+            "avatar_url":null,
+            "git_ssh_url":"git@example.com:mike/diaspora.git",
+            "git_http_url":"http://example.com/mike/diaspora.git",
+            "namespace":"Mike",
+            "visibility_level":0,
+            "path_with_namespace":"mike/diaspora",
+            "default_branch":"master",
+            "homepage":"http://example.com/mike/diaspora",
+            "url":"git@example.com:mike/diaspora.git",
+            "ssh_url":"git@example.com:mike/diaspora.git",
+            "http_url":"http://example.com/mike/diaspora.git"
+          },
+          "repository":{
+            "name": "Diaspora",
+            "url": "git@example.com:mike/diaspora.git",
+            "description": "",
+            "homepage": "http://example.com/mike/diaspora",
+            "git_http_url":"http://example.com/mike/diaspora.git",
+            "git_ssh_url":"git@example.com:mike/diaspora.git",
+            "visibility_level":0
+          },
+          "commits": [
+            {
+              "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+              "message": "Update Catalan translation to e38cb41.",
+              "timestamp": "2011-12-12T14:27:31+02:00",
+              "url": "http://example.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+              "author": {
+                "name": "Jordi Mallach",
+                "email": "jordi@softcatala.org"
+              },
+              "added": ["CHANGELOG"],
+              "modified": ["app/controller/application.rb"],
+              "removed": []
+            },
+            {
+              "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+              "message": "fixed readme",
+              "timestamp": "2012-01-03T23:36:29+02:00",
+              "url": "http://example.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+              "author": {
+                "name": "GitLab dev user",
+                "email": "gitlabdev@dv6700.(none)"
+              },
+              "added": ["CHANGELOG"],
+              "modified": ["app/controller/application.rb"],
+              "removed": []
+            }
+          ],
+          "total_commits_count": 4
+        }`)
+
+		req, err := http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Gitlab-Event", "Push Hook")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GitlabPushIntegrationType)
+
+		rr := httptest.NewRecorder()
+		s.handleWebhook(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, []v9.Change{
+			{
+				Kind: v9.GitChange,
+				Source: v9.GitUpdate{
+					URL:    "git@example.com:mike/diaspora.git",
+					Branch: "master",
+				},
+			},
+		}, mockDaemon.take())
+
+	})
+
 }
