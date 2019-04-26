@@ -46,14 +46,14 @@ func (pds *PagerDutySender) Send(ctx context.Context, addr json.RawMessage, noti
 
 	var m types.PagerDutyMessage
 	if err := json.Unmarshal(notif.Data, &m); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal PagerDuty data %s", notif.Data)
+		return errors.Wrapf(err, "cannot unmarshal PagerDuty data %v", notif.Data)
 	}
 
 	m.RoutingKey = key
 
 	b, err := json.Marshal(m)
 	if err != nil {
-		return errors.Wrapf(err, "cannot marshal PagerDuty message %s", m)
+		return errors.Wrapf(err, "cannot marshal PagerDuty message %v", m)
 	}
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(b))

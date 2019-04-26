@@ -9,6 +9,7 @@ IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
 GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
+GO_TEST_IMAGE := golang:1.12.1
 
 # Building Docker images is now automated. The convention is every directory
 # with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
@@ -188,7 +189,7 @@ notification-eventmanager/$(UPTODATE): $(wildcard notification-eventmanager/migr
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
 BUILD_IN_CONTAINER := true
 RM := --rm
-GO_FLAGS := -ldflags "-extldflags \"-static\" -linkmode=external -s -w" -tags netgo -i
+GO_FLAGS := -ldflags "-extldflags \"-static\" -s -w" -tags netgo -i
 NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	rm $@; \
 	echo "\nYour go standard library was built without the 'netgo' build tag."; \
@@ -272,13 +273,13 @@ $(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/
 	cd $(@D) && $(WITH_GO_HOST_ENV) $(shell pwd)/$(CODECGEN_EXE) -d $(CODECGEN_UID) -rt $(GO_BUILD_TAGS) -u -o $(@F) $(notdir $(call GET_CODECGEN_DEPS,$(@D)))
 
 $(EXES): build/$(UPTODATE) $(PROTO_GOS)
-	go build $(GO_FLAGS) -o $@ ./$(@D)
+	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 %.pb.go: build/$(UPTODATE)
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
-lint: build/$(UPTODATE)
+lint: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	./tools/lint .
 
 test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
@@ -320,7 +321,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.9.2-stretch \
+		$(GO_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -333,7 +334,7 @@ users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.9.2-stretch \
+		$(GO_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -345,7 +346,7 @@ pubsub-integration-test:
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--net=host -p 127.0.0.1:1337:1337 \
 		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
-		golang:1.9.2-stretch \
+		$(GO_TEST_IMAGE) \
 		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
@@ -357,7 +358,7 @@ kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/gr
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
 		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
-		golang:1.9.2-stretch \
+		$(GO_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
@@ -369,7 +370,7 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/gcp-service \
 		--link "$$SVC_CONTAINER":gcp-service.weave.local \
-		golang:1.9.2-stretch \
+		$(GO_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \

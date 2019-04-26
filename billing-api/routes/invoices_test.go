@@ -65,18 +65,18 @@ func (z *zuoraStubInvoices) CreateInvoice(ctx context.Context, zuoraAccountNumbe
 
 func createInvoice(status, fileURL string) zuora.Invoice {
 	return zuora.Invoice{
-		ID:                "2c92c0955e0d9cb9015e0f8492c00ef5",
-		AccountName:       "feisty-resonance-96",
-		AccountNumber:     "Wbee8866756aee4702b5e4f9021a44a2",
-		InvoiceDate:       "2017-08-23",
-		InvoiceNumber:     "INV00000030",
-		DueDate:           "2017-08-23",
-		InvoiceTargetDate: "2017-09-08",
-		Amount:            19.86,
-		Balance:           19.86,
+		ID:                            "2c92c0955e0d9cb9015e0f8492c00ef5",
+		AccountName:                   "feisty-resonance-96",
+		AccountNumber:                 "Wbee8866756aee4702b5e4f9021a44a2",
+		InvoiceDate:                   "2017-08-23",
+		InvoiceNumber:                 "INV00000030",
+		DueDate:                       "2017-08-23",
+		InvoiceTargetDate:             "2017-09-08",
+		Amount:                        19.86,
+		Balance:                       19.86,
 		CreditBalanceAdjustmentAmount: 0,
-		Status: status,
-		Body:   fileURL,
+		Status:                        status,
+		Body:                          fileURL,
 		InvoiceItems: []zuora.InvoiceItem{
 			{
 				ID:                "2c92c0955e0d9cb9015e0f8492c40ef7",

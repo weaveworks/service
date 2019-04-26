@@ -378,7 +378,7 @@ func (a UserPermissionsMiddleware) Wrap(next http.Handler) http.Handler {
 
 			if MethodMatched && URIMatched {
 				if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
-					OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{mux.Vars(r)["orgExternalID"]},
+					OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{OrgExternalID: mux.Vars(r)["orgExternalID"]},
 					UserID:       r.Header.Get(a.UserIDHeader),
 					PermissionID: p.PermissionID,
 				}); err != nil {
@@ -403,7 +403,7 @@ func (a ScopeCensorMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If the user has no permission to view the token, we tell Scope to hide all the sensitive data for the request.
 		if _, err := a.UsersClient.RequireOrgMemberPermissionTo(r.Context(), &users.RequireOrgMemberPermissionToRequest{
-			OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{mux.Vars(r)["orgExternalID"]},
+			OrgID:        &users.RequireOrgMemberPermissionToRequest_OrgExternalID{OrgExternalID: mux.Vars(r)["orgExternalID"]},
 			UserID:       r.Header.Get(a.UserIDHeader),
 			PermissionID: permission.ViewToken,
 		}); err != nil {

@@ -92,7 +92,7 @@ func main() {
 		HTTPListenPort:          cfg.port,
 		MetricsNamespace:        common.PrometheusNamespace,
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	}
 	server, err := server.New(serverCfg)
 	if err != nil {

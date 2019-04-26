@@ -1,4 +1,4 @@
-FROM golang:1.10.8
+FROM golang:1.12.1
 RUN apt-get update && apt-get install -y \
 		python-pip \
 		python-requests \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 		libprotobuf-dev=3.0.0-9 && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN go clean -i net && \
-	go install -tags netgo std && \
+	CGO_ENABLED=0 go install -tags netgo std && \
 	go install -race -tags netgo std sync/atomic
 RUN go get -tags netgo \
 		github.com/fzipp/gocyclo \

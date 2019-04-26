@@ -97,7 +97,7 @@ func (em *EventManager) notificationBatchToSendInput(batch []types.Notification)
 	for i, notif := range batch {
 		notifStr, err := notificationToString(notif)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot marshal notification %s to string", notif)
+			return nil, errors.Wrapf(err, "cannot marshal notification %v to string", notif)
 		}
 		entry := &sqs.SendMessageBatchRequestEntry{
 			Id:          aws.String(strconv.Itoa(i)),
@@ -114,7 +114,7 @@ func (em *EventManager) notificationBatchToSendInput(batch []types.Notification)
 func notificationToString(n types.Notification) (string, error) {
 	raw, err := json.Marshal(n)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot marshal notification %s", n)
+		return "", errors.Wrapf(err, "cannot marshal notification %v", n)
 	}
 
 	return string(raw), nil
