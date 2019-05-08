@@ -94,9 +94,9 @@
         <td>{{.FormatLastLoginAt}}</td>
         <td>
           <form action="users/{{.ID}}/admin" method="POST">
-            <input type="hidden" name="admin" value="{{if .Admin}}false{{else}}true{{end}}" />
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__" />
-            <input type="hidden" name="redirect_to" value="../../users" />
+            <input type="hidden" name="redirect_to" value="{{$.URL}}">
+            <input type="hidden" name="admin" value="{{if .Admin}}false{{else}}true{{end}}" />
             {{if .Admin}}
               <input class="mdl-button mdl-js-button mdl-button--raised"
                      type="submit" value="Clear Admin" />
@@ -109,6 +109,7 @@
         <td>
           <form action="users/{{.ID}}/become" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input type="hidden" name="redirect_to" value="{{$.URL}}">
             <input class="mdl-button mdl-js-button mdl-button--raised"
                    type="submit" value="Become User" />
           </form>
@@ -117,6 +118,7 @@
         <td>
           <form action="organizations/{{$.OrgExternalID}}/users/{{.ID}}/remove" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input type="hidden" name="redirect_to" value="{{$.URL}}">
             <input class="mdl-button mdl-js-button mdl-button--accent"
                    type="submit" value="Remove from Org" />
           </form>
@@ -125,6 +127,7 @@
             <td>
                 <form action="users/{{.ID}}/remove" method="POST">
                     <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                    <input type="hidden" name="redirect_to" value="{{$.URL}}">
                     <input class="mdl-button mdl-js-button mdl-button--accent"
                            type="submit" value="Delete" onclick="return confirm('Are you sure to delete this user?')"/>
                 </form>

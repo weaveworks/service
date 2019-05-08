@@ -101,6 +101,7 @@ func (a *API) adminListUsers(w http.ResponseWriter, r *http.Request) {
 			"Page":     page,
 			"NextPage": page + 1,
 			"Message":  r.FormValue("msg"),
+			"URL":      r.URL.String(),
 		})
 		if err != nil {
 			renderError(w, r, err)
@@ -144,6 +145,7 @@ func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Reque
 		"Roles":         roles,
 		"OrgExternalID": orgID,
 		"Message":       r.FormValue("msg"),
+		"URL":           r.URL.String(),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -377,6 +379,7 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		"BillingFeatureFlag": featureflag.Billing,
 		"Headers":            getTableHeaders(*r.URL, sortBy, sortAscending),
 		"NextPageLink":       getNextPageLink(*r.URL),
+		"URL":                r.URL.String(),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -419,6 +422,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		"UserEmail":          user.Email,
 		"BillingFeatureFlag": featureflag.Billing,
 		"Headers":            getTableHeaders(*r.URL, sortBy, sortAscending),
+		"URL":                r.URL.String(),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -452,6 +456,7 @@ func (a *API) adminListTeams(w http.ResponseWriter, r *http.Request) {
 		"Page":         page,
 		"Message":      r.FormValue("msg"),
 		"NextPageLink": getNextPageLink(*r.URL),
+		"URL":          r.URL.String(),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -741,11 +746,23 @@ func parseTokenFromSession(session json.RawMessage) (string, error) {
 }
 
 func redirectWithMessage(w http.ResponseWriter, r *http.Request, msg string) {
-	u := r.URL
-	query := u.Query()
+	var u *url.URL
+	query := url.Values{}
+	var p string
+	if redirect := r.FormValue("redirect_to"); redirect != "" {
+		u, _ = url.Parse(redirect)
+		if u != nil {
+			p = u.Path
+			query = u.Query()
+		}
+	}
+	if u == nil {
+		query = r.URL.Query()
+		p = strings.Join(strings.Split(r.URL.Path, "/")[:4], "/")
+	}
+
 	query.Set("msg", msg)
-	path := strings.Join(strings.Split(u.Path, "/")[:4], "/")
-	http.Redirect(w, r, fmt.Sprintf("%s?%s", path, query.Encode()), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("%s?%s", p, query.Encode()), http.StatusFound)
 }
 
 // MakeUserAdmin makes a user an admin

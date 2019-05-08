@@ -90,6 +90,7 @@
         <td class="mdl-data-table__cell--non-numeric">
           <form action="teams/{{.ID}}/billing" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__" />
+            <input type="hidden" name="redirect_to" value="{{$.URL}}">
             {{if .BillingAccount.BilledExternally}}
               <input type="hidden" name="provider" value="" />
               <input class="mdl-button mdl-js-button mdl-color--green mdl-button--raised mdl-button--colored"
