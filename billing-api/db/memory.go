@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/billing/provider"
 )
 
 // DB is an in-memory database for testing, and local development
@@ -258,6 +259,16 @@ func (db *memory) DeletePostTrialInvoice(ctx context.Context, usageImportID stri
 func (db *memory) FindBillingAccountByTeamID(ctx context.Context, teamID string) (*grpc.BillingAccount, error) {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
+	return db.billingAccountsByTeamID[teamID], nil
+}
+
+func (db *memory) SetTeamBillingAccountProvider(ctx context.Context, teamID, providerName string) (*grpc.BillingAccount, error) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
+	if providerName != provider.External {
+		providerName = ""
+	}
+	db.billingAccountsByTeamID[teamID].Provider = providerName
 	return db.billingAccountsByTeamID[teamID], nil
 }
 

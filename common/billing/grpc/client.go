@@ -69,6 +69,11 @@ func (c Client) FindBillingAccountByTeamID(ctx context.Context, in *BillingAccou
 	return c.client.FindBillingAccountByTeamID(ctx, in, opts...)
 }
 
+// SetTeamBillingAccountProvider sets the provider for the team.
+func (c Client) SetTeamBillingAccountProvider(ctx context.Context, in *BillingAccountProviderRequest, opts ...googlegrpc.CallOption) (*BillingAccount, error) {
+	return c.client.SetTeamBillingAccountProvider(ctx, in, opts...)
+}
+
 // GetInstanceBillingStatus returns the billing status for an instance
 func (c Client) GetInstanceBillingStatus(ctx context.Context, in *InstanceBillingStatusRequest, opts ...googlegrpc.CallOption) (*InstanceBillingStatusResponse, error) {
 	return c.client.GetInstanceBillingStatus(ctx, in, opts...)

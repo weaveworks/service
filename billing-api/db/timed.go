@@ -127,6 +127,14 @@ func (t timed) FindBillingAccountByTeamID(ctx context.Context, teamID string) (a
 	return
 }
 
+func (t timed) SetTeamBillingAccountProvider(ctx context.Context, teamID, providerName string) (account *grpc.BillingAccount, err error) {
+	t.timeRequest(ctx, "SetTeamBillingAccountProvider", func(ctx context.Context) error {
+		account, err = t.d.SetTeamBillingAccountProvider(ctx, teamID, providerName)
+		return err
+	})
+	return
+}
+
 func (t timed) Transaction(f func(DB) error) error {
 	// We don't time transactions as they are only used in tests
 	return t.d.Transaction(f)

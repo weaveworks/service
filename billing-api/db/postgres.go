@@ -395,6 +395,39 @@ func (d postgres) FindBillingAccountByTeamID(ctx context.Context, teamID string)
 	return accounts[0], nil
 }
 
+func (d postgres) SetTeamBillingAccountProvider(ctx context.Context, teamID, providerName string) (*grpc.BillingAccount, error) {
+	ba, err := d.FindBillingAccountByTeamID(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+	if ba.ID != 0 {
+		return d.updateBillingAccount(ctx, ba.ID, providerName)
+	}
+	return d.createTeamBillingAccount(ctx, teamID, providerName)
+}
+
+func (d postgres) updateBillingAccount(ctx context.Context, accountID uint32, providerName string) (*grpc.BillingAccount, error) {
+	billedExternally := providerName == provider.External
+	row := d.QueryRow(`update billing_accounts set billed_externally = $1 where id = $2
+returning id, created_at, deleted_at, billed_externally`, billedExternally, accountID)
+	return d.scanBillingAccount(row)
+}
+
+func (d postgres) createTeamBillingAccount(ctx context.Context, teamID, providerName string) (*grpc.BillingAccount, error) {
+	billedExternally := providerName == provider.External
+	row := d.QueryRow(`insert into billing_accounts(billed_externally) values($1)
+returning id, created_at, deleted_at, billed_externally`, billedExternally)
+	ba, err := d.scanBillingAccount(row)
+	if err != nil {
+		return nil, err
+	}
+	_, err = d.Exec(`insert into billing_accounts_teams(billing_account_id, team_id) values($1, $2)`, ba.ID, teamID)
+	if err != nil {
+		return nil, err
+	}
+	return ba, nil
+}
+
 func (d postgres) billingAccounts() squirrel.SelectBuilder {
 	return d.Select(
 		"billing_accounts.id",
