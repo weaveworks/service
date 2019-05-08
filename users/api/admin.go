@@ -16,6 +16,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	commonuser "github.com/weaveworks/common/user"
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
@@ -26,6 +27,12 @@ import (
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/weeklyreports"
 )
+
+// AdminTeamView represents a team to display in the admin listing.
+type AdminTeamView struct {
+	*users.Team
+	BillingAccount billing_grpc.BillingAccount
+}
 
 func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
@@ -423,17 +430,24 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 }
 
 func (a *API) adminListTeams(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
 
-	teams, err := a.db.ListAllTeams(r.Context(), filter.ParseTeamQuery(query), "", page)
+	teams, err := a.db.ListAllTeams(ctx, filter.ParseTeamQuery(query), "", page)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	teamViews, err := a.adminTeamViews(ctx, teams)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
 	b, err := a.templates.Bytes("list_teams.html", map[string]interface{}{
-		"Teams":        teams,
+		"Teams":        teamViews,
 		"Query":        r.FormValue("query"),
 		"Page":         page,
 		"Message":      r.FormValue("msg"),
@@ -446,6 +460,36 @@ func (a *API) adminListTeams(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(b); err != nil {
 		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list teams: %v", err)
 	}
+}
+
+func (a *API) adminTeamViews(ctx context.Context, teams []*users.Team) ([]AdminTeamView, error) {
+	var views []AdminTeamView
+	for _, t := range teams {
+		ba, err := a.billingClient.FindBillingAccountByTeamID(ctx, &billing_grpc.BillingAccountByTeamIDRequest{TeamID: t.ID})
+		if err != nil {
+			return nil, err
+		}
+		views = append(views, AdminTeamView{Team: t, BillingAccount: *ba})
+	}
+	return views, nil
+}
+
+func (a *API) adminChangeTeamBilling(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	teamID, ok := vars["teamID"]
+	if !ok {
+		renderError(w, r, users.ErrNotFound)
+		return
+	}
+
+	provider := r.FormValue("provider")
+	_, err := a.billingClient.SetTeamBillingAccountProvider(r.Context(),
+		&billing_grpc.BillingAccountProviderRequest{TeamID: teamID, Provider: provider})
+	if err != nil {
+		renderError(w, r, users.ErrNotFound)
+		return
+	}
+	redirectWithMessage(w, r, fmt.Sprintf("Updated billing provider to %q for team %s", provider, teamID))
 }
 
 func (a *API) adminChangeOrgFields(w http.ResponseWriter, r *http.Request) {
