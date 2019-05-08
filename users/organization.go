@@ -1,5 +1,7 @@
 package users
 
+// This file amends the generated struct by protobuf in users.pb.go
+
 import (
 	"fmt"
 	"regexp"
@@ -77,6 +79,11 @@ type TeamMembershipWriteView struct {
 	RoleID string `json:"roleId"`
 }
 
+// Deleted returns true if this organization has been deleted.
+func (o *Organization) Deleted() bool {
+	return !o.DeletedAt.IsZero()
+}
+
 // RegenerateProbeToken regenerates the organizations probe token
 func (o *Organization) RegenerateProbeToken() error {
 	t, err := tokens.Generate()
@@ -130,6 +137,11 @@ func (o *Organization) Valid() error {
 // FormatCreatedAt formats the org's created at timestamp
 func (o *Organization) FormatCreatedAt() string {
 	return formatTimestamp(o.CreatedAt)
+}
+
+// FormatDeletedAt formats the org's deleted at timestamp.
+func (o *Organization) FormatDeletedAt() string {
+	return formatTimestamp(o.DeletedAt)
 }
 
 // HasFeatureFlag returns true if the organization has the given feature flag.

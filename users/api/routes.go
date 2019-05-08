@@ -103,6 +103,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_users_userID_delete", "POST", "/admin/users/users/{userID}/remove", a.adminDeleteUser},
 		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.adminGetUserToken},
 		{"admin_users_users_userID_organizations", "GET", "/admin/users/users/{userID}/organizations", a.adminListOrganizationsForUser},
+		{"admin_users_teams", "GET", "/admin/users/teams", a.adminListTeams},
 
 		// HealthCheck
 		{"healthcheck", "GET", "/api/users/healthcheck", a.healthcheck},

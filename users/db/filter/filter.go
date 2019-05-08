@@ -19,6 +19,7 @@ var (
 
 // Filter filters things.
 type Filter interface {
+	// Where returns the query for this filter.
 	Where() squirrel.Sqlizer
 }
 
@@ -55,6 +56,17 @@ func (a AndFilter) MatchesUser(u users.User) bool {
 	for _, f := range a {
 		userMatcher := f.(User)
 		if !userMatcher.MatchesUser(u) {
+			return false
+		}
+	}
+	return true
+}
+
+// MatchesTeam matches all the filters in this AndFilter.
+func (a AndFilter) MatchesTeam(t users.Team) bool {
+	for _, f := range a {
+		matcher := f.(Team)
+		if !matcher.MatchesTeam(t) {
 			return false
 		}
 	}
@@ -100,6 +112,17 @@ func (o OrFilter) MatchesUser(u users.User) bool {
 	return false
 }
 
+// MatchesTeam matches at least one of the filters in this OrFilter.
+func (o OrFilter) MatchesTeam(t users.Team) bool {
+	for _, f := range o {
+		matcher := f.(Team)
+		if matcher.MatchesTeam(t) {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseOrgQuery extracts filters and search from the `query` form
 // value. It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
@@ -128,7 +151,7 @@ func ParseOrgQuery(qs string) Organization {
 				}
 			case "id":
 				filters = append(filters, ID(kv[1]))
-			case "instance":
+			case "instance", "external":
 				filters = append(filters, ExternalID(kv[1]))
 			case "token":
 				filters = append(filters, ProbeToken(kv[1]))
@@ -171,6 +194,31 @@ func ParseUserQuery(qs string) User {
 	}
 	if len(search) > 0 {
 		filters = append(filters, SearchEmail(strings.Join(search, " ")))
+	}
+	return And(filters...)
+}
+
+// ParseTeamQuery extracts filters and search from the 'query' form value.
+func ParseTeamQuery(qs string) Team {
+	filters := []Filter{}
+	search := []string{}
+	for _, p := range strings.Fields(qs) {
+		if strings.Contains(p, queryFilterDelim) {
+			kv := strings.SplitN(p, queryFilterDelim, 2)
+			switch kv[0] {
+			case "id":
+				filters = append(filters, TeamID(kv[1]))
+			case "team", "external":
+				filters = append(filters, TeamExternalID(kv[1]))
+			default:
+				search = append(search, p)
+			}
+		} else {
+			search = append(search, p)
+		}
+	}
+	if len(search) > 0 {
+		filters = append(filters, TeamName(strings.Join(search, " ")))
 	}
 	return And(filters...)
 }

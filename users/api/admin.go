@@ -38,6 +38,7 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 		<ul>
 			<li><a href="/admin/users/users">Users</a></li>
 			<li><a href="/admin/users/organizations">Organizations</a></li>
+			<li><a href="/admin/users/teams">Teams</a></li>
 			<li><a href="/admin/users/weeklyreports">Weekly Reports</a></li>
 		</ul>
 	</body>
@@ -309,13 +310,11 @@ func getSortableColumns() map[string]string {
 }
 
 func getNextPageLink(requestURL url.URL) template.URL {
-	// have to make a copy?
-	url := requestURL
-	q := url.Query()
+	q := requestURL.Query()
 	nextPage := filter.ParsePageValue(q.Get("page")) + 1
 	q.Set("page", fmt.Sprintf("%v", nextPage))
-	url.RawQuery = q.Encode()
-	return template.URL(url.String())
+	requestURL.RawQuery = q.Encode()
+	return template.URL(requestURL.String())
 }
 
 func parseSortParams(r http.Request) (string, bool) {
@@ -420,6 +419,32 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 	}
 	if _, err := w.Write(b); err != nil {
 		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list organizations: %v", err)
+	}
+}
+
+func (a *API) adminListTeams(w http.ResponseWriter, r *http.Request) {
+	page := filter.ParsePageValue(r.FormValue("page"))
+	query := r.FormValue("query")
+
+	teams, err := a.db.ListAllTeams(r.Context(), filter.ParseTeamQuery(query), "", page)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	b, err := a.templates.Bytes("list_teams.html", map[string]interface{}{
+		"Teams":        teams,
+		"Query":        r.FormValue("query"),
+		"Page":         page,
+		"Message":      r.FormValue("msg"),
+		"NextPageLink": getNextPageLink(*r.URL),
+	})
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list teams: %v", err)
 	}
 }
 

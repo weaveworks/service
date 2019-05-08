@@ -318,6 +318,11 @@ func (t traced) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, e
 	return t.d.ListTeams(ctx, page)
 }
 
+func (t traced) ListAllTeams(ctx context.Context, f filter.Team, orderBy string, page uint64) (ts []*users.Team, err error) {
+	defer t.trace("ListAllTeams", orderBy, page, ts, err)
+	return t.d.ListAllTeams(ctx, f, orderBy, page)
+}
+
 func (t traced) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
 	defer t.trace("ListTeamMemberships", ms, err)
 	return t.d.ListTeamMemberships(ctx)

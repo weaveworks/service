@@ -85,12 +85,12 @@
       <tr>
         <td>{{.ID}}</td>
         <td class="mdl-data-table__cell--non-numeric">
-            <span style="font-size:larger">{{if not .DeletedAt.IsZero}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
+            <span style="font-size:larger">{{if .Deleted}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
             <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
              <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
         </td>
         <td class="mdl-data-table__cell--non-numeric">
-          Team: {{.TeamExternalID}}<br />
+            Team: <a href="teams?query=external%3A{{.TeamExternalID}}">{{.TeamExternalID}}</a><br />
           <a href="organizations/{{.ExternalID}}/users">
             {{$users := index $organizationUsers .ExternalID}}
             {{$moreUsers := index $moreUsersCount .ExternalID}}
@@ -115,7 +115,7 @@
             {{if .LastSentWeeklyReportAt}}{{.LastSentWeeklyReportAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
-            {{if not .DeletedAt.IsZero}}{{.DeletedAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
+            {{.FormatDeletedAt}}
             {{if .DeletedBy}}<br /><a href="users?query=id:{{.DeletedBy}}">Deleted by</a>{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
@@ -154,7 +154,7 @@
           {{end}}
         </td>
         <td>
-          {{if .DeletedAt.IsZero}}
+          {{if not .Deleted}}
           <form action="organizations/{{.ExternalID}}/remove" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input class="mdl-button mdl-js-button mdl-button--accent"

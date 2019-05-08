@@ -1,5 +1,7 @@
 package users
 
+// This file amends the generated struct by protobuf in users.pb.go
+
 import (
 	"context"
 	"time"

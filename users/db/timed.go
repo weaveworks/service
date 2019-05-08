@@ -444,6 +444,14 @@ func (t timed) ListTeams(ctx context.Context, page uint64) (ts []*users.Team, er
 	return
 }
 
+func (t timed) ListAllTeams(ctx context.Context, f filter.Team, orderBy string, page uint64) (ts []*users.Team, err error) {
+	t.timeRequest(ctx, "ListAllTeams", func(ctx context.Context) error {
+		ts, err = t.d.ListAllTeams(ctx, f, orderBy, page)
+		return err
+	})
+	return
+}
+
 func (t timed) ListTeamMemberships(ctx context.Context) (ms []*users.TeamMembership, err error) {
 	t.timeRequest(ctx, "ListTeamMemberships", func(ctx context.Context) error {
 		ms, err = t.d.ListTeamMemberships(ctx)

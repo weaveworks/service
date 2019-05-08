@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalids"
 )
 
@@ -41,6 +42,22 @@ func (d *DB) ListTeams(_ context.Context, page uint64) ([]*users.Team, error) {
 	var teams []*users.Team
 	for _, team := range d.teams {
 		teams = append(teams, team)
+	}
+	sort.Sort(teamsByCreatedAt(teams))
+	return teams, nil
+}
+
+// ListAllTeams lists all teams including deleted ones.
+// FIXME: orderBy is NOT implemented!
+func (d *DB) ListAllTeams(_ context.Context, f filter.Team, orderBy string, page uint64) ([]*users.Team, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	var teams []*users.Team
+
+	for _, team := range d.teams {
+		if f.MatchesTeam(*team) {
+			teams = append(teams, team)
+		}
 	}
 	sort.Sort(teamsByCreatedAt(teams))
 	return teams, nil
