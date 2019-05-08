@@ -62,6 +62,8 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 				</ul>
 			</li>
 			<li><a href="/admin/esh/?base_uri=/admin/elasticsearch/">Elasticsearch Head</a></li>
+			<li><a href="/admin/corp-atlantis">Corp Atlantis (Dev only)</a></li>
+
 		</ul>
 	</body>
 </html>
