@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 
 	"github.com/weaveworks/common/logging"
 	commonuser "github.com/weaveworks/common/user"
@@ -472,7 +472,10 @@ func (a *API) adminTeamViews(ctx context.Context, teams []*users.Team) ([]AdminT
 	for _, t := range teams {
 		ba, err := a.billingClient.FindBillingAccountByTeamID(ctx, &billing_grpc.BillingAccountByTeamIDRequest{TeamID: t.ID})
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "finding billing account info")
+		}
+		if ba == nil {
+			ba = &billing_grpc.BillingAccount{}
 		}
 		views = append(views, AdminTeamView{Team: t, BillingAccount: *ba})
 	}
