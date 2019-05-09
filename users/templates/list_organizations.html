@@ -90,7 +90,7 @@
              <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
         </td>
         <td class="mdl-data-table__cell--non-numeric">
-            Team: <a href="teams?query=external%3A{{.TeamExternalID}}">{{.TeamExternalID}}</a><br />
+          Team: <a href="teams?query=external%3A{{.TeamExternalID}}">{{.TeamExternalID}}</a><br />
           <a href="organizations/{{.ExternalID}}/users">
             {{$users := index $organizationUsers .ExternalID}}
             {{$moreUsers := index $moreUsersCount .ExternalID}}

@@ -18,8 +18,7 @@
     <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
         <div class="mdl-layout__header-row">
             <span class="mdl-layout-title">
-				<div class="material-icons">people_outline</div>
-                Teams
+	          <div class="material-icons">people_outline</div> Teams
             </span>
             <div class="mdl-layout-spacer"></div>
             <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
@@ -68,16 +67,9 @@
           <span style="font-size:larger">{{if .Deleted}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
           <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
         </td>
-        {{/*
-                For now, there are two scenarios:
-                - no billing account or empty provider: non-external payment (GCP or Zuora)
-                - provider == 'external': external payment
-                */}}
         <td class="mdl-data-table__cell--non-numeric">
             {{if .BillingAccount.BilledExternally}}
-            <div style="vertical-align: middle">
             <div class="material-icons mdl-color-text--blue" title="All instances in team are externally billed">local_atm</div>
-            </div>
             {{else}}
             <div
                 class="material-icons mdl-color-text--green"

@@ -389,7 +389,7 @@ func (d postgres) FindBillingAccountByTeamID(ctx context.Context, teamID string)
 		return nil, fmt.Errorf("more than one billing account for team with ID %s", teamID)
 	}
 	if len(accounts) == 0 {
-		// Return a "null object" rather than nil and a "not found" error to avoid panics in the client.
+		// Return an empty object (rather than nil and a "not found" error to avoid panics in the client)
 		return &grpc.BillingAccount{}, nil
 	}
 	return accounts[0], nil
@@ -400,7 +400,7 @@ func (d postgres) SetTeamBillingAccountProvider(ctx context.Context, teamID, pro
 	if err != nil {
 		return nil, err
 	}
-	if ba.ID != 0 {
+	if ba != nil && ba.ID != 0 {
 		return d.updateBillingAccount(ctx, ba.ID, providerName)
 	}
 	return d.createTeamBillingAccount(ctx, teamID, providerName)

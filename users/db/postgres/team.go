@@ -409,9 +409,7 @@ func (d DB) FindTeamByInternalID(ctx context.Context, internalID string) (*users
 }
 
 func (d DB) teamsQuery() squirrel.SelectBuilder {
-	return d.teamsQueryHelper().
-		Where("teams.deleted_at is null").
-		OrderBy("teams.created_at DESC")
+	return d.teamsQueryWithDeletedAndOrder(false, "")
 }
 
 func (d DB) teamsQueryWithDeletedAndOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
