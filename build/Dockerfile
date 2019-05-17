@@ -39,6 +39,8 @@ RUN mkdir protoc && \
 	cd .. && \
 	rm -rf protoc
 RUN go get github.com/golang/mock/mockgen
+# Version must match go.mod
+RUN GO111MODULE=on go get github.com/ugorji/go/codec/codecgen@54210f4e076c57f351166f0ed60e67d3fca57a36
 COPY build.sh /
 ENTRYPOINT ["/build.sh"]
 

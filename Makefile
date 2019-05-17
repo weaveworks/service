@@ -98,12 +98,10 @@ GO_BUILD_TAGS='netgo unsafe'
 GO_BUILD_FLAGS=$(GO_BUILD_INSTALL_DEPS) -ldflags "-extldflags \"-static\" -X main.version=$(GIT_REVISION) -s -w" -tags $(GO_BUILD_TAGS)
 
 CODECGEN_TARGETS=vendor/github.com/weaveworks/scope/report/report.codecgen.go
-CODECGEN_DIR=vendor/github.com/ugorji/go/codec/codecgen
-CODECGEN_BIN_DIR=$(CODECGEN_DIR)/bin
-CODECGEN_EXE=$(CODECGEN_BIN_DIR)/codecgen
-
+CODECGEN_EXE=codecgen
 CODECGEN_UID=0
 GET_CODECGEN_DEPS=$(shell find $(1) -maxdepth 1 -type f -name '*.go' -not -name '*_test.go' -not -name '*.codecgen.go' -not -name '*.generated.go')
+
 ### END: Msgpack code generation for billing-synthetic-usage-injector
 
 flux-api/migrations.tar:
@@ -201,15 +199,7 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(CODECGEN_EXE): build/$(UPTODATE)
-	mkdir -p $(@D)
-	$(SUDO) docker run $(RM) -ti \
-		-v $(shell pwd)/.pkg:/go/pkg \
-		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(IMAGE_PREFIX)/build $@
-
-$(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
+$(CODECGEN_TARGETS): $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -265,12 +255,9 @@ flux-integration-test: build/$(UPTODATE)
 	exit $$status
 
 else
-$(CODECGEN_EXE): build/$(UPTODATE) $(CODECGEN_DIR)/*.go
-	go build $(GO_FLAGS) -o $@ ./$(CODECGEN_DIR)
-
-$(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
+$(CODECGEN_TARGETS): $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
 	rm -f $@; go build $(GO_FLAGS) ./$(@D) # workaround for https://github.com/ugorji/go/issues/145
-	cd $(@D) && $(WITH_GO_HOST_ENV) $(shell pwd)/$(CODECGEN_EXE) -d $(CODECGEN_UID) -rt $(GO_BUILD_TAGS) -u -o $(@F) $(notdir $(call GET_CODECGEN_DEPS,$(@D)))
+	cd $(@D) && $(WITH_GO_HOST_ENV) $(CODECGEN_EXE) -d $(CODECGEN_UID) -rt $(GO_BUILD_TAGS) -u -o $(@F) $(notdir $(call GET_CODECGEN_DEPS,$(@D)))
 
 $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
@@ -383,7 +370,7 @@ notification-integration-test: notification-eventmanager/$(UPTODATE) notificatio
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
-	rm -fr $(CODECGEN_TARGETS) $(CODECGEN_BIN_DIR)
+	rm -fr $(CODECGEN_TARGETS)
 	rm -rf billing-aggregator/migrations billing-uploader/migrations
 	rm -f $(call common-templates-deps,users) $(call common-templates-deps,notification-eventmanager)
 	go clean ./...
