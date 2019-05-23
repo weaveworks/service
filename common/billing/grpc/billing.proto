@@ -9,11 +9,17 @@ option (gogoproto.populate_all) = true;
 
 service Billing {
   rpc FindBillingAccountByTeamID (BillingAccountByTeamIDRequest) returns (BillingAccount) {}
+  rpc SetTeamBillingAccountProvider(BillingAccountProviderRequest) returns (BillingAccount) {}
   rpc GetInstanceBillingStatus(InstanceBillingStatusRequest) returns (InstanceBillingStatusResponse) {}
 }
 
 message BillingAccountByTeamIDRequest {
   string TeamID = 1;
+}
+
+message BillingAccountProviderRequest {
+  string TeamID = 1;
+  string Provider = 2;
 }
 
 message BillingAccount {

@@ -135,7 +135,7 @@ func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string, in
 	}
 
 	var us []*users.User
-	if !o.DeletedAt.IsZero() && !includeDeletedOrgs {
+	if o.Deleted() && !includeDeletedOrgs {
 		return us, nil
 	}
 
@@ -257,7 +257,7 @@ func (d *DB) FindUncleanedOrgIDs(_ context.Context) ([]string, error) {
 	defer d.mtx.Unlock()
 	var ids []string
 	for _, org := range d.organizations {
-		if !org.Cleanup && (!org.DeletedAt.IsZero() || org.RefuseDataUpload) {
+		if !org.Cleanup && (org.Deleted() || org.RefuseDataUpload) {
 			ids = append(ids, org.ID)
 		}
 	}

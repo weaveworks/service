@@ -204,6 +204,30 @@ func (d DB) ListTeams(ctx context.Context, page uint64) ([]*users.Team, error) {
 	return d.scanTeams(rows)
 }
 
+// ListAllTeams lists all teams including deleted ones
+func (d DB) ListAllTeams(ctx context.Context, f filter.Team, orderBy string, page uint64) ([]*users.Team, error) {
+	// check that query is not empty, otherwise q might be like "... where order by ..."
+	queryStr, _, err := f.Where().ToSql()
+	if err != nil {
+		return nil, err
+	}
+	q := d.teamsQueryWithDeletedAndOrder(true, orderBy)
+	if queryStr != "" {
+		q = q.Where(f.Where())
+	}
+
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
+
+	rows, err := q.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanTeams(rows)
+}
+
 // UserIsMemberOfTeam returns true if the user has a membership.
 func (d DB) UserIsMemberOfTeam(ctx context.Context, userID, teamID string) (bool, error) {
 	var exists bool
@@ -385,6 +409,21 @@ func (d DB) FindTeamByInternalID(ctx context.Context, internalID string) (*users
 }
 
 func (d DB) teamsQuery() squirrel.SelectBuilder {
+	return d.teamsQueryWithDeletedAndOrder(false, "")
+}
+
+func (d DB) teamsQueryWithDeletedAndOrder(includeDeleted bool, orderBy string) squirrel.SelectBuilder {
+	if orderBy == "" {
+		orderBy = "teams.created_at DESC"
+	}
+	query := d.teamsQueryHelper().OrderBy(orderBy)
+	if !includeDeleted {
+		query = query.Where("teams.deleted_at is null")
+	}
+	return query
+}
+
+func (d DB) teamsQueryHelper() squirrel.SelectBuilder {
 	return d.Select(`
 		teams.id,
 		teams.external_id,
@@ -397,8 +436,7 @@ func (d DB) teamsQuery() squirrel.SelectBuilder {
 		teams.created_at
 	`).
 		From("teams").
-		Where("teams.deleted_at is null").
-		OrderBy("teams.created_at")
+		Where("teams.deleted_at is null")
 }
 
 func (d DB) scanTeams(rows *sql.Rows) ([]*users.Team, error) {

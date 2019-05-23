@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <base href="/admin/users/"/>
+    <title>Teams – Weave Cloud</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+  </head>
+  <body>
+  {{if .Message}}
+  <div class="mdl-snackbar mdl-snackbar--active">
+      <div class="mdl-snackbar__text">{{.Message}}</div>
+  </div>
+  {{end}}
+  <form action="teams" method="GET">
+    <input type="hidden" name="page" value="1" />
+    <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
+        <div class="mdl-layout__header-row">
+            <span class="mdl-layout-title">
+	          <div class="material-icons">people_outline</div> Teams
+            </span>
+            <div class="mdl-layout-spacer"></div>
+            <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
+                <i class="material-icons">search</i>
+            </label>
+            <div class="mdl-textfield mdl-js-textfield">
+                <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
+                <label class="mdl-textfield__label" for="query">id:3 external:foo-bar-99 name</label>
+            </div>
+        </div>
+    </header>
+    </form>
+    {{if .Page}}
+    <div class="mdl-grid">
+        <p>
+            Page {{.Page}}
+            {{if .Query}}
+            – Displaying results for
+            <span class="mdl-chip mdl-chip--deletable">
+                <span class="mdl-chip__text">{{.Query}}</span>
+                <a href="teams" class="mdl-chip__action"><i class="material-icons">cancel</i></a>
+            </span>
+            {{end}}
+        </p>
+    </div>
+    {{end}}
+    {{with .}}
+    <div class="mdl-grid">
+    <table class="mdl-data-table mdl-js-data-table">
+        <thead>
+        <tr>
+            <th class="mdl-data-table__cell--non-numeric">ID</th>
+            <th class="mdl-data-table__cell--non-numeric">Name<br />ExternalID</th>
+            <th class="mdl-data-table__cell--non-numeric">BillingAccount</th>
+            <th class="mdl-data-table__cell--non-numeric">Members</th>
+            <th class="mdl-data-table__cell--non-numeric">Instances</th>
+            <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
+            <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">Weave Cloud Admin</th>
+        </tr>
+        </thead>
+      {{range $i, $t := .Teams}}
+      <tr>
+        <td>{{.ID}}</td>
+        <td class="mdl-data-table__cell--non-numeric">
+          <span style="font-size:larger">{{if .Deleted}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
+          <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
+            {{if .BillingAccount.BilledExternally}}
+            <div class="material-icons mdl-color-text--blue" title="All instances in team are externally billed">local_atm</div>
+            {{else}}
+            <div
+                class="material-icons mdl-color-text--green"
+                title="Payment is set up per instance (GCP or Zuora)">domain</div>
+            {{end}}</td>
+        <td>?</td>
+        <td>?</td>
+        <td>{{.FormatCreatedAt}}</td>
+        <td>{{.FormatDeletedAt}}</td>
+        <td class="mdl-data-table__cell--non-numeric">
+          <form action="teams/{{.ID}}/billing" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__" />
+            <input type="hidden" name="redirect_to" value="{{$.URL}}">
+            {{if .BillingAccount.BilledExternally}}
+              <input type="hidden" name="provider" value="" />
+              <input class="mdl-button mdl-js-button mdl-color--green mdl-button--raised mdl-button--colored"
+                     type="submit" value="Bill per instance" />
+            {{else}}
+              <input type="hidden" name="provider" value="external" />
+              <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                     type="submit" value="Bill externally" />
+            {{end}}
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </table>
+    </div>
+      <div class="mdl-grid">
+          <div class="mdl-layout-spacer"></div>
+          Displaying {{len .Teams}} teams on this page<br/>
+      </div>
+      {{if .Page}}
+      <div class="mdl-grid">
+          <div class="mdl-layout-spacer"></div>
+          <a href="teams?query={{.Query}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
+              Next page
+          </a>
+      </div>
+      {{end}}
+    {{end}}
+  </body>
+</html>

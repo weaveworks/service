@@ -40,6 +40,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 				<ul>
 					<li><a href="/admin/users/users">Users</a></li>
 					<li><a href="/admin/users/organizations">Organizations</a></li>
+					<li><a href="/admin/users/teams">Teams</a></li>
 					<li><a href="/admin/users/weeklyreports">Weekly Reports</a></li>
 				</ul>
 			</li>

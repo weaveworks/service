@@ -122,6 +122,7 @@ type DB interface {
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
 	ListTeams(ctx context.Context, page uint64) ([]*users.Team, error)
+	ListAllTeams(ctx context.Context, f filter.Team, orderBy string, page uint64) ([]*users.Team, error)
 	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
 	ListTeamUsersWithRoles(ctx context.Context, teamID string) ([]*users.UserWithRole, error)
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)

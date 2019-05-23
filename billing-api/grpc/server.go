@@ -30,6 +30,17 @@ func (s Server) FindBillingAccountByTeamID(ctx context.Context, req *commongrpc.
 	return account, nil
 }
 
+// SetTeamBillingAccountProvider makes sure the given team has
+// the provided billing account provider.
+func (s Server) SetTeamBillingAccountProvider(ctx context.Context, req *commongrpc.BillingAccountProviderRequest) (*commongrpc.BillingAccount, error) {
+	log.WithFields(log.Fields{"teamID": req.TeamID, "provider": req.Provider}).Infof("setting billing account provider")
+	account, err := s.DB.SetTeamBillingAccountProvider(ctx, req.TeamID, req.Provider)
+	if err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
 // GetInstanceBillingStatus returns the billing status for an instance
 func (s Server) GetInstanceBillingStatus(ctx context.Context, req *commongrpc.InstanceBillingStatusRequest) (*commongrpc.InstanceBillingStatusResponse, error) {
 	resp, err := s.Users.GetOrganization(ctx, &users.GetOrganizationRequest{

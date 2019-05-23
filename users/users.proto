@@ -355,6 +355,7 @@ message Team {
     google.protobuf.Timestamp TrialPendingExpiryNotifiedAt = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp TrialExpiredNotifiedAt = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp CreatedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp DeletedAt = 10  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
 }
 
 // Empty message, i.e. equivalent to "void"/"Unit"/etc.

@@ -59,7 +59,12 @@ type DB interface {
 	GetPostTrialInvoices(ctx context.Context) ([]PostTrialInvoice, error)
 	DeletePostTrialInvoice(ctx context.Context, usageImportID string) error
 
+	// FindBillingAccountByTeamID looks for the billing account of
+	// a team. If it cannot find one, will return an empty struct and no error.
 	FindBillingAccountByTeamID(ctx context.Context, teamID string) (*grpc.BillingAccount, error)
+	// SetTeamBillingAccountProvider makes sure a team has a billing
+	// account reflecting the given provider name.
+	SetTeamBillingAccountProvider(ctx context.Context, teamID, providerName string) (*grpc.BillingAccount, error)
 
 	// Transaction runs the given function in a transaction. If fn returns
 	// an error the txn will be rolled back.

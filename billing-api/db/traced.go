@@ -85,6 +85,11 @@ func (t traced) FindBillingAccountByTeamID(ctx context.Context, teamID string) (
 	return t.d.FindBillingAccountByTeamID(ctx, teamID)
 }
 
+func (t traced) SetTeamBillingAccountProvider(ctx context.Context, teamID, providerName string) (account *grpc.BillingAccount, err error) {
+	defer func() { t.trace("SetTeamBillingAccountProvider", teamID, providerName, account, err) }()
+	return t.d.SetTeamBillingAccountProvider(ctx, teamID, providerName)
+}
+
 func (t traced) Transaction(f func(DB) error) error {
 	// We don't time transactions as they are only used in tests
 	return t.d.Transaction(f)
