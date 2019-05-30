@@ -46,7 +46,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_login", "GET", "/api/users/login", a.login},
 
 		// Logs the current user out (just deletes the session cookie)
-		{"api_users_logout", "GET", "/api/users/logout", a.logout},
+		{"api_users_logout", "POST", "/api/users/logout", a.logout},
 
 		// This is the first endpoint the UI hits to see if the user is logged in.
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
