@@ -186,8 +186,9 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	page := extractOrDefaultPage(r.URL.Query().Get("page"))
 
 	resp, err := a.Users.GetOrganizations(r.Context(), &users.GetOrganizationsRequest{
-		Query:      query,
-		PageNumber: int32(page),
+		Query:          query,
+		PageNumber:     int32(page),
+		IncludeDeleted: true,
 	})
 	if err != nil {
 		renderError(w, r, err)
