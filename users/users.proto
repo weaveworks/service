@@ -146,6 +146,7 @@ message GetOrganizationsRequest {
     // If 0 or less, return everything. Otherwise, return a single page of
     // implementation-dependent results (currently 30).
     int32 PageNumber = 2;
+    bool IncludeDeleted = 3;
 }
 
 message GetOrganizationsResponse {

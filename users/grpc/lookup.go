@@ -143,7 +143,13 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 	if req.Query != "" {
 		fs = append(fs, filter.ExternalID(req.Query))
 	}
-	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...), uint64(req.PageNumber))
+	var organizations []*users.Organization
+	var err error
+	if req.IncludeDeleted {
+		organizations, err = a.db.ListAllOrganizations(ctx, filter.And(fs...), "", uint64(req.PageNumber))
+	} else {
+		organizations, err = a.db.ListOrganizations(ctx, filter.And(fs...), uint64(req.PageNumber))
+	}
 	if err != nil {
 		return nil, err
 	}
