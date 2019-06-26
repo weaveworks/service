@@ -104,6 +104,7 @@
         </td>
         <td class="mdl-data-table__cell--non-numeric">{{.FormatCreatedAt}}<br />
         {{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt.Format "2006-01-02T15:04:05Z07:00"}}{{ else }}
+            {{if not .Deleted}}
             <form action="organizations/{{.ExternalID}}" method="POST">
                 <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                 <input type="hidden" name="redirect_to" value="{{$.URL}}">
@@ -111,6 +112,7 @@
                 <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
                 type="submit" value="Onboard" />
             </form>
+            {{end}}
         {{ end }}</td>
         <td class="mdl-data-table__cell--non-numeric">
             {{if .LastSentWeeklyReportAt}}{{.LastSentWeeklyReportAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
@@ -124,6 +126,7 @@
         </td>
         <td>{{.PlatformVersion}}</td>
         <td class="mdl-data-table__cell--non-numeric">
+          {{if not .Deleted}}
           <form action="organizations/{{.ExternalID}}" method="POST">
               <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
               <input type="hidden" name="redirect_to" value="{{$.URL}}">
@@ -133,8 +136,10 @@
               <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
               <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" />
           </form>
+          {{end}}
         </td>
           <td class="mdl-data-table__cell--non-numeric">
+            {{if not .Deleted}}
               {{if .HasFeatureFlag $billing }}
               <form action="organizations/{{.ExternalID}}/trial" method="POST">
                   <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
@@ -144,6 +149,7 @@
                   <label title="Notify all members of this organization of the trial extension"><input type="checkbox" name="email" checked="checked"/> Send email</label>
               </form>
               {{end}}
+            {{end}}
           </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{if .GCP}}
