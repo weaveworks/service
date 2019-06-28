@@ -69,6 +69,7 @@ type Config struct {
 	compareImagesHost     proxyConfig
 	compareRevisionsHost  proxyConfig
 	corpAtlantisHost      proxyConfig
+	corpDiffHost          proxyConfig
 	corpTerradiffHost     proxyConfig
 	devGrafanaHost        proxyConfig
 	elasticsearchHost     proxyConfig
@@ -128,6 +129,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"compare-images":     &c.compareImagesHost,
 		"compare-revisions":  &c.compareRevisionsHost,
 		"corp-atlantis":      &c.corpAtlantisHost,
+		"corpdiff":           &c.corpDiffHost,
 		"corp-terradiff":     &c.corpTerradiffHost,
 		"dev-grafana":        &c.devGrafanaHost,
 		"wkp-ui-grafana":     &c.wkpUIGrafana,
