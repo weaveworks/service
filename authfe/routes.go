@@ -369,6 +369,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/esh", trimPrefix("/admin/esh", c.eshHost)},
 				{"/corp-atlantis", trimPrefix("/admin/corp-atlantis", c.corpAtlantisHost)},
 				{"/corp-terradiff", trimPrefix("/admin/corp-terradiff", c.corpTerradiffHost)},
+				{"/corpdiff", trimPrefix("/admin/corpdiff", c.corpDiffHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			}),
 			middleware.Merge(
