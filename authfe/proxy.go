@@ -29,16 +29,7 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	case "grpc":
 		return httpgrpc_server.NewClient(cfg.hostAndPort)
 	case "https", "http":
-		proxyTransport := proxyTransportNoKeepAlives
-		if cfg.allowKeepAlive {
-			proxyTransport = proxyTransportWithKeepAlives
-		}
-		// Make all transformations outside of the director since
-		// they are also required when proxying websockets
-		return &httpProxy{cfg, httputil.ReverseProxy{
-			Director:  func(*http.Request) {},
-			Transport: proxyTransport,
-		}}, nil
+		return newHTTPProxy(cfg)
 	case "mock":
 		return &mockProxy{cfg}, nil
 	}
@@ -48,6 +39,23 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 type httpProxy struct {
 	proxyConfig
 	reverseProxy httputil.ReverseProxy
+}
+
+func newHTTPProxy(cfg proxyConfig) (*httpProxy, error) {
+	proxyTransport := proxyTransportNoKeepAlives
+	if cfg.allowKeepAlive {
+		proxyTransport = proxyTransportWithKeepAlives
+	}
+
+	// Make all transformations outside of the director since
+	// they are also required when proxying websockets
+	return &httpProxy{
+		proxyConfig: cfg,
+		reverseProxy: httputil.ReverseProxy{
+			Director:  func(*http.Request) {},
+			Transport: proxyTransport,
+		},
+	}, nil
 }
 
 var readOnlyMethods = map[string]struct{}{
