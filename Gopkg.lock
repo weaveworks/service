@@ -255,14 +255,19 @@
   version = "v1.32.0"
 
 [[projects]]
-  digest = "1:56ecad5cdc73d200e560495bf22c681b7c7a9f9dc2894bcf5412269708ef3f68"
+  digest = "1:fa72414bf3708440e622e4d94f4f88819bb038fb0989c172d3ffa83d0b9e81f8"
   name = "github.com/go-kit/kit"
   packages = [
+    "endpoint",
     "log",
     "log/level",
     "metrics",
     "metrics/internal/lv",
     "metrics/prometheus",
+    "sd",
+    "sd/dnssrv",
+    "sd/internal/instance",
+    "sd/lb",
   ]
   pruneopts = "NUT"
   revision = "4dc7be5d2d12881735283bcab7352178e190fc71"
@@ -1426,8 +1431,12 @@
     "github.com/dgrijalva/jwt-go",
     "github.com/dukex/mixpanel",
     "github.com/fluent/fluent-logger-golang/fluent",
+    "github.com/go-kit/kit/endpoint",
     "github.com/go-kit/kit/log",
     "github.com/go-kit/kit/metrics/prometheus",
+    "github.com/go-kit/kit/sd",
+    "github.com/go-kit/kit/sd/dnssrv",
+    "github.com/go-kit/kit/sd/lb",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/types",
