@@ -41,10 +41,10 @@ func (c *PrometheusClient) URL(ep string, args map[string]string) *url.URL {
 }
 
 // Do override.
-func (c *PrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+func (c *PrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, prom.Error) {
 	err := user.InjectOrgIDIntoHTTPRequest(ctx, r)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "inject OrgID")
+		return nil, nil, prom.NewErrorAPI(errors.Wrap(err, "inject OrgID"), nil)
 	}
 
 	if span := opentracing.SpanFromContext(ctx); span != nil {
