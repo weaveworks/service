@@ -50,12 +50,11 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   name = "cloud.google.com/go"
   revision = "eb1cc5f3c0a93e56aa3c13e3ad4f336d327c0c86"
 
-# Pin to master branch until there is a more recent stable release:
-#   https://github.com/prometheus/client_golang/issues/375
-# Has to be an override rather than a constraint otherwise jaeger-lib wins
+# Newest release before breaking changes in 1.0
+# Has to be an override rather than a constraint to overcome jaeger-lib constraint
 [[override]]
   name = "github.com/prometheus/client_golang"
-  branch = "master"
+  version = "0.9.4"
 
 [[constraint]]
   branch = "master"
