@@ -30,6 +30,7 @@ var (
 	platforms = map[string]map[string]struct{}{
 		"kubernetes": {
 			"minikube": struct{}{},
+			"eks":      struct{}{},
 			"gke":      struct{}{},
 			"generic":  struct{}{},
 		},
@@ -37,6 +38,7 @@ var (
 			"mac":     struct{}{},
 			"linux":   struct{}{},
 			"windows": struct{}{},
+			"cloud":   struct{}{},
 			"ee":      struct{}{},
 			"swarm":   struct{}{},
 		},
