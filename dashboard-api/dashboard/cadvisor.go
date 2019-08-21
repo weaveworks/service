@@ -48,12 +48,12 @@ var cadvisorDashboard = Dashboard{
 				Title: "Incoming",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_network_receive_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (rate(container_network_receive_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}, {
 				Title: "Outgoing",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_network_transmit_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (rate(container_network_transmit_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}},
 		}},
 	}, {
