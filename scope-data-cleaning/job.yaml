@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
       - args:
-        - --app.collector=dynamodb://us-east-1/prod_reports
-        - --app.collector.s3=s3://us-east-1/weaveworks_prod_reports
+        - -app.collector=dynamodb://us-east-1/prod_reports
+        - -app.collector.s3=s3://us-east-1/weaveworks_prod_reports
         - -segments=8
         - -query-rate-limit=10
         - -write-rate-limit=2

@@ -171,6 +171,9 @@ func main() {
 		checkFatal(fmt.Errorf("must set one of -delete-records-file or -big-scan"))
 	}
 
+	if deleteOrgsFile == "" && keepOrgsStr == "" {
+		checkFatal(fmt.Errorf("must set one of -delete-orgs-file or -keep-orgs"))
+	}
 	scanner.deleteOrgs, scanner.keepOrgs = setupOrgs(deleteOrgsFile, keepOrgsStr)
 
 	if scanner.startHour <= 0 {
@@ -184,8 +187,6 @@ func main() {
 	dynamoDBConfig = dynamoDBConfig.WithMaxRetries(0) // We do our own retries, with a rate-limiter
 	session := session.New(dynamoDBConfig)
 	scanner.dynamoDB = dynamodb.New(session)
-
-	totals := newSummary()
 
 	var recordsReader io.Reader
 	var gzipReader *gzip.Reader
@@ -238,9 +239,6 @@ func main() {
 	checkFatal(records.Err())
 	close(queue)
 	wait.Wait()
-
-	fmt.Printf("\n")
-	totals.print()
 }
 
 func setupOrgs(deleteOrgsFile, keepOrgsStr string) (deleteOrgs, keepOrgs map[int]struct{}) {
@@ -310,14 +308,6 @@ func (sc *scanner) HandleRecord(ctx context.Context, record string) {
 	reportsInspected.Add(float64(count))
 }
 
-func (sc *scanner) processOrg(ctx context.Context, org string) {
-	deleted := 0
-	for hour := sc.startHour; hour <= sc.stopHour; hour++ {
-		deleted += sc.deleteOneOrgHour(ctx, org, hour)
-	}
-	log.Infof("done %s: %d", org, deleted)
-}
-
 func (sc *scanner) deleteOneOrgHour(ctx context.Context, org string, hour int) int {
 	var keys []map[string]*dynamodb.AttributeValue
 	for {
@@ -330,7 +320,6 @@ func (sc *scanner) deleteOneOrgHour(ctx context.Context, org string, hour int) i
 		checkFatal(err)
 		break
 	}
-	var wait sync.WaitGroup
 	if len(keys) > 0 {
 		log.Debugf("deleting org: %s hour: %d num: %d", org, hour, len(keys))
 	}
@@ -339,18 +328,14 @@ func (sc *scanner) deleteOneOrgHour(ctx context.Context, org string, hour int) i
 		if end > len(keys) {
 			end = len(keys)
 		}
-		wait.Add(1)
-		func(batchKeys []map[string]*dynamodb.AttributeValue) {
-			sc.deleteFromS3(ctx, batchKeys)
-			for _, key := range batchKeys {
-				delete(key, reportField) // not part of key in dynamoDB
-			}
-			sc.deleteFromDynamoDB(batchKeys)
-			reportsDeleted.Add(float64(len(batchKeys)))
-			wait.Done()
-		}(keys[start:end])
+		batchKeys := keys[start:end]
+		sc.deleteFromS3(ctx, batchKeys)
+		for _, key := range batchKeys {
+			delete(key, reportField) // not part of key in dynamoDB
+		}
+		sc.deleteFromDynamoDB(batchKeys)
+		reportsDeleted.Add(float64(len(batchKeys)))
 	}
-	wait.Wait()
 	return len(keys)
 }
 

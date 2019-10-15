@@ -66,7 +66,6 @@ func (sc bigScanner) segmentScan(segment int, handler handler) error {
 		ExpressionAttributeNames: map[string]*string{"#h": aws.String(hourField)},
 		Segment:                  aws.Int64(int64(segment)),
 		TotalSegments:            aws.Int64(int64(sc.segments)),
-		//ReturnConsumedCapacity: aws.String(dynamodb.ReturnConsumedCapacityTotal),
 	}
 
 	return sc.dynamoDB.ScanPages(input, handler.handlePage)
