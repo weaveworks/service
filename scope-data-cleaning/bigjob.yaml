@@ -1,4 +1,4 @@
-# Example config to run the delete step, given the big-scan step has been run.
+# Example config to run the "big-scan" step.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,16 +21,10 @@ spec:
     spec:
       containers:
       - args:
-        - -app.collector=dynamodb://us-east-1/prod_reports
-        - -app.collector.s3=s3://us-east-1/weaveworks_prod_reports
+        - -app.collector=dynamodb://us-east-1/dev_reports
+        - -app.collector.s3=s3://us-east-1/weaveworks_dev_reports
         - -segments=8
-        - -query-rate-limit=10
-        - -write-rate-limit=2
-        - -start-hour=-2496 # three months two weeks ago
-        - -stop-hour=-2160  # three months ago
-        # - "-keep-orgs=2 383 910"
-        - -delete-orgs-file=/var/prod-orgs-to-delete
-        - -delete-records-file=/var/prod-records.gz
+        - -big-scan
         # - -log-level=debug
         image: weaveworks/scope-deleter:latest
         imagePullPolicy: Always

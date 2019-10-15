@@ -1,5 +1,17 @@
 package main
 
+/*
+
+bigScan reads the entire DynamoDB table and writes out a summary text
+file, where each line shows the number of records for one hour stored
+by one instance
+
+The partition key for the table is named 'hour' and formatted as
+instance-hour - instance is a number mapping back to the Weave Cloud
+user and hour is since the epoch, e.g. 431200 is 2019-03-11 16:00:00 UTC.
+
+*/
+
 import (
 	"fmt"
 	"sync"
@@ -42,11 +54,15 @@ func bigScan(config *aws.Config, tableName string, segments int) {
 	totals := newBigSummary()
 	var totalsMutex sync.Mutex
 
+	// Run multiple goroutines in parallel to increase throughput from DynamoDB
 	for segment := 0; segment < scanner.segments; segment++ {
 		go func(segment int) {
+			// Each goroutine gets a separate data structure so we can
+			// accumulate counts without locking.
 			handler := newHandler()
 			err := scanner.segmentScan(segment, handler)
 			checkFatal(err)
+			// Once the segment is finished we add those totals into the overall total.
 			totalsMutex.Lock()
 			totals.accumulate(handler.summary)
 			totalsMutex.Unlock()
@@ -72,7 +88,7 @@ func (sc bigScanner) segmentScan(segment int, handler handler) error {
 }
 
 type bigSummary struct {
-	counts map[string]int
+	counts map[string]int // map instance-hour key to number of records
 }
 
 func newBigSummary() bigSummary {
@@ -107,6 +123,7 @@ func (h *handler) reset() {
 	h.summary.counts = map[string]int{}
 }
 
+// this is where the real work of bigScan happens
 func (h *handler) handlePage(page *dynamodb.ScanOutput, lastPage bool) bool {
 	pagesScanned.Inc()
 	for _, m := range page.Items {

@@ -1,5 +1,26 @@
 package main
 
+/* Scanning and deletion of Scope data in DynamoDB and S3
+
+Overall, the aim is to delete data belonging to instances that have
+either been deleted or gone past their retention date. This program
+does not try to work out which those instances are: it gets told.
+
+Deletion is a two-step process:
+
+ * bigScan, which reads the entire DynamoDB table and writes out a
+   summary text file.
+
+ * the main program reads the above summary line by line and, for each
+   hour and instance in scope, deletes all the records from DynamoDB
+   and Scope.
+
+It is possible for this program to use up so much DynamoDB capacity
+that Scope slows down; there are rate-limiters to minimise this effect
+but do be careful when running for the first time.
+
+*/
+
 import (
 	"bufio"
 	"compress/gzip"
@@ -174,6 +195,8 @@ func main() {
 	if deleteOrgsFile == "" && keepOrgsStr == "" {
 		checkFatal(fmt.Errorf("must set one of -delete-orgs-file or -keep-orgs"))
 	}
+
+	// Read the details of which instances to delete
 	scanner.deleteOrgs, scanner.keepOrgs = setupOrgs(deleteOrgsFile, keepOrgsStr)
 
 	if scanner.startHour <= 0 {
@@ -188,6 +211,9 @@ func main() {
 	session := session.New(dynamoDBConfig)
 	scanner.dynamoDB = dynamodb.New(session)
 
+	// The "records" file is generated from bigScan - it tells us
+	// which orgs had records in which hour, so we can quickly go to
+	// the appropriate DynamoDB query.
 	var recordsReader io.Reader
 	var gzipReader *gzip.Reader
 	fileReader, err := os.Open(recordsFile)
@@ -232,6 +258,7 @@ func main() {
 		}()
 	}
 
+	// Now start feeding the queue
 	records = bufio.NewScanner(recordsReader)
 	for records.Scan() {
 		queue <- records.Text()
@@ -241,6 +268,7 @@ func main() {
 	wait.Wait()
 }
 
+// Read the details of which instances to delete
 func setupOrgs(deleteOrgsFile, keepOrgsStr string) (deleteOrgs, keepOrgs map[int]struct{}) {
 	if deleteOrgsFile != "" {
 		deleteOrgs = map[int]struct{}{}
