@@ -3,9 +3,11 @@ package login
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -97,11 +99,11 @@ func (g *google) person(token *oauth2.Token) (*plus.Person, error) {
 
 func (g *google) personEmail(p *plus.Person) (string, error) {
 	for _, e := range p.Emails {
-		if e.Type == "account" {
+		if strings.ToLower(e.Type) == "account" {
 			return e.Value, nil
 		}
 	}
-	return "", fmt.Errorf("Invalid authentication data")
+	return "", errors.New("cannot find account email")
 }
 
 // Logout handles a user logout request with this provider. It should revoke
