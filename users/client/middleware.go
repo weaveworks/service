@@ -2,11 +2,13 @@ package client
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
@@ -113,6 +115,13 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
 			logger.WithField("host", httpUtil.HostFromRequest(r)).Errorf("Unauthorised probe request, no token")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		ok = utf8.Valid([]byte(token))
+		if !ok {
+			logger.Errorf("Unauthorised probe request, invalid token encoding: %v", base64.StdEncoding.EncodeToString([]byte(token)))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
