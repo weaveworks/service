@@ -121,7 +121,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		ok = utf8.Valid([]byte(token))
 		if !ok {
-			logger.Errorf("Unauthorised probe request, invalid token encoding: %v", base64.StdEncoding.EncodeToString([]byte(token)))
+			logger.Errorf("Invalid token. Not valid utf8: %v", base64.StdEncoding.EncodeToString([]byte(token)))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
