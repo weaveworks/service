@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weeklyreports"
 )
 
 func createEmailer(sendDirectly func(*email.Email) error) emailer.SMTPEmailer {
@@ -83,6 +84,82 @@ func TestSMTPEmailer_TrialExtendedEmail(t *testing.T) {
 
 	receivers := []*users.User{{Email: "user@weave.test"}}
 	err := em.TrialExtendedEmail(receivers, "foo-boo-12", "Test Org", expires)
+	assert.NoError(t, err)
+	assert.True(t, sent, "email has not been sent")
+}
+
+func TestSMTPEmailer_WeeklyReportEmail(t *testing.T) {
+	createdAt, _ := time.Parse(time.RFC3339, "2019-09-30T16:47:17Z")
+	startAt, _ := time.Parse(time.RFC3339, "2019-09-30T00:00:00Z")
+	endAt, _ := time.Parse(time.RFC3339, "2019-10-07T00:00:00Z")
+
+	report := &weeklyreports.Report{
+		GeneratedAt: time.Now(),
+		StartAt:     startAt,
+		EndAt:       endAt,
+		Organization: &users.Organization{
+			Name:       "Sample Org 99",
+			ExternalID: "sample-org-99",
+			CreatedAt:  createdAt,
+		},
+		DeploymentsPerDay: []int{12, 43, 18, 23, 4, 0, 1},
+		CPUIntensiveWorkloads: []weeklyreports.WorkloadResourceConsumptionRaw{
+			{
+				WorkloadName:       "cortex:deployment/ingester",
+				ClusterConsumption: 0.134,
+			},
+			{
+				WorkloadName:       "cortex:deployment/distributor",
+				ClusterConsumption: 0.0312,
+			},
+			{
+				WorkloadName:       "monitoring:daemonset/fluentd-loggly",
+				ClusterConsumption: 0.0103,
+			},
+		},
+		MemoryIntensiveWorkloads: []weeklyreports.WorkloadResourceConsumptionRaw{
+			{
+				WorkloadName:       "monitoring:deployment/prometheus",
+				ClusterConsumption: 0.2095,
+			},
+			{
+				WorkloadName:       "cortex:deployment/ingester",
+				ClusterConsumption: 0.1310,
+			},
+			{
+				WorkloadName:       "monitoring:daemonset/fluentd-loggly",
+				ClusterConsumption: 0.0345,
+			},
+		},
+	}
+
+	var sent bool
+	em := createEmailer(func(e *email.Email) error {
+		assert.Equal(t, "Sep 30 – Oct 6 · Sample Org 99 Report", e.Subject)
+		assert.Equal(t, "from@weave.test", e.From)
+		assert.Len(t, e.To, 1)
+		assert.Contains(t, e.To, "user@weave.test")
+		text := string(e.Text)
+		assert.Contains(t, text, "You created `Sample Org 99` on September 30nd, 2019.")
+		assert.Contains(t, text, "Mon: 12")
+		assert.Contains(t, text, "Tue: 43")
+		assert.Contains(t, text, "Wed: 18")
+		assert.Contains(t, text, "Thu: 23")
+		assert.Contains(t, text, "Fri: 4")
+		assert.Contains(t, text, "Sat: 0")
+		assert.Contains(t, text, "Sun: 1")
+		assert.Contains(t, text, "cortex:deployment/ingester - 13.40%")
+		assert.Contains(t, text, "cortex:deployment/distributor - 3.12%")
+		assert.Contains(t, text, "monitoring:daemonset/fluentd-loggly - 1.03%")
+		assert.Contains(t, text, "monitoring:deployment/prometheus - 20.95%")
+		assert.Contains(t, text, "cortex:deployment/ingester - 13.10%")
+		assert.Contains(t, text, "monitoring:daemonset/fluentd-loggly - 3.45%")
+		sent = true
+		return nil
+	})
+
+	receivers := []*users.User{{Email: "user@weave.test"}}
+	err := em.WeeklyReportEmail(receivers, report)
 	assert.NoError(t, err)
 	assert.True(t, sent, "email has not been sent")
 }

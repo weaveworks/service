@@ -11,7 +11,7 @@ const (
 	dayOfWeekFormat = "Mon"
 	dateDayFormat   = "2"
 	dateShortFormat = "Jan 2"
-	dateLongFormat  = "October 2nd, 2006"
+	dateLongFormat  = "January 2nd, 2006"
 )
 
 // EmailSummary contains all the data for rendering the weekly summary report in the email.
