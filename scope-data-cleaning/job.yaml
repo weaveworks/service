@@ -1,0 +1,64 @@
+# Example config to run the delete step, given the big-scan step has been run.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    job-name: bryan-scope-scanner
+    name: bryan-scope-scanner
+  name: bryan-scope-scanner
+  namespace: scope
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        job-name: bryan-scope-scanner
+        name: bryan-scope-scanner
+      annotations:
+        iam.amazonaws.com/role: scope-report-deleter
+    spec:
+      containers:
+      - args:
+        - -app.collector=dynamodb://us-east-1/prod_reports
+        - -app.collector.s3=s3://us-east-1/weaveworks_prod_reports
+        - -segments=8
+        - -query-rate-limit=10
+        - -write-rate-limit=2
+        - -start-hour=-2496 # three months two weeks ago
+        - -stop-hour=-2160  # three months ago
+        # - "-keep-orgs=2 383 910"
+        - -delete-orgs-file=/var/prod-orgs-to-delete
+        - -delete-records-file=/var/prod-records.gz
+        # - -log-level=debug
+        image: weaveworks/scope-deleter:latest
+        imagePullPolicy: Always
+        name: scanner
+        env:
+        - name: GOMAXPROCS
+          value: "2"
+        ports:
+        - containerPort: 6060
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "600m"
+            memory: 2000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /config
+          name: config-volume
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: quay-secret
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: prune-config
+        name: config-volume

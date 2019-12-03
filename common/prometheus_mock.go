@@ -70,7 +70,7 @@ func (qr *queryData) UnmarshalJSON(b []byte) error {
 }
 
 // Query performs a query at a given time instant.
-func (mock *MockPrometheus) Query(ctx context.Context, query string, ts time.Time) (model.Value, error) {
+func (mock *MockPrometheus) Query(ctx context.Context, query string, ts time.Time) (model.Value, prom.Error) {
 	response := queryResponse{}
 	// Minimal implementation to match what dashboard-api uses
 	// Parse the query to extract ns and service
@@ -83,19 +83,19 @@ func (mock *MockPrometheus) Query(ctx context.Context, query string, ts time.Tim
 		return model.Vector{}, nil
 	}
 	if err = json.Unmarshal(data, &response); err != nil {
-		return nil, err
+		return nil, prom.NewErrorAPI(err, nil)
 	}
 	return response.Result.v, nil
 }
 
 // QueryRange performs a query for the given range.
-func (mock *MockPrometheus) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, error) {
-	return &mockValueNone{}, errors.New("Not implemented")
+func (mock *MockPrometheus) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, prom.Error) {
+	return &mockValueNone{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
 }
 
 // LabelValues performs a query for the values of the given label.
-func (mock *MockPrometheus) LabelValues(ctx context.Context, label string) (model.LabelValues, error) {
-	return nil, errors.New("Not implemented")
+func (mock *MockPrometheus) LabelValues(ctx context.Context, label string) (model.LabelValues, prom.Error) {
+	return nil, prom.NewErrorAPI(errors.New("Not implemented"), nil)
 }
 
 type seriesResponse struct {
@@ -119,7 +119,7 @@ func getLabelValue(expression, label string) string {
 }
 
 // Series finds series by label matchers.
-func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error) {
+func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, prom.Error) {
 	response := seriesResponse{}
 
 	// Parse the first match to extract ns and service
@@ -133,7 +133,7 @@ func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startT
 	}
 
 	if err = json.Unmarshal(data, &response); err != nil {
-		return nil, err
+		return nil, prom.NewErrorAPI(err, nil)
 	}
 
 	return response.Data, nil
@@ -144,6 +144,56 @@ func filename(kind, ns, service string) string {
 		return kind + "-aws-rds.json"
 	}
 	return fmt.Sprintf("%s-%s-%s", kind, ns, service)
+}
+
+// Alerts implements v1.API
+func (mock *MockPrometheus) Alerts(ctx context.Context) (v1.AlertsResult, prom.Error) {
+	return v1.AlertsResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// AlertManagers implements v1.API
+func (mock *MockPrometheus) AlertManagers(ctx context.Context) (v1.AlertManagersResult, prom.Error) {
+	return v1.AlertManagersResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// CleanTombstones implements v1.API
+func (mock *MockPrometheus) CleanTombstones(ctx context.Context) prom.Error {
+	return prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// Config implements v1.API
+func (mock *MockPrometheus) Config(ctx context.Context) (v1.ConfigResult, prom.Error) {
+	return v1.ConfigResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// DeleteSeries implements v1.API
+func (mock *MockPrometheus) DeleteSeries(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) prom.Error {
+	return prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// Flags implements v1.API
+func (mock *MockPrometheus) Flags(ctx context.Context) (v1.FlagsResult, prom.Error) {
+	return v1.FlagsResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// Snapshot implements v1.API
+func (mock *MockPrometheus) Snapshot(ctx context.Context, skipHead bool) (v1.SnapshotResult, prom.Error) {
+	return v1.SnapshotResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// Rules implements v1.API
+func (mock *MockPrometheus) Rules(ctx context.Context) (v1.RulesResult, prom.Error) {
+	return v1.RulesResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// Targets implements v1.API
+func (mock *MockPrometheus) Targets(ctx context.Context) (v1.TargetsResult, prom.Error) {
+	return v1.TargetsResult{}, prom.NewErrorAPI(errors.New("Not implemented"), nil)
+}
+
+// TargetsMetadata implements v1.API
+func (mock *MockPrometheus) TargetsMetadata(ctx context.Context, matchTarget string, metric string, limit string) ([]v1.MetricMetadata, prom.Error) {
+	return nil, prom.NewErrorAPI(errors.New("Not implemented"), nil)
 }
 
 // MockPrometheusClient is a specialization of the default prom.Client that does
@@ -161,7 +211,7 @@ func (c *MockPrometheusClient) URL(ep string, args map[string]string) *url.URL {
 }
 
 // Do override.
-func (c *MockPrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+func (c *MockPrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, prom.Error) {
 	c.LastRequest = r
 
 	resp := &http.Response{

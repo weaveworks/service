@@ -81,7 +81,7 @@
   revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
 
 [[projects]]
-  digest = "1:5f5931a436e1f6eff66de647cf0b828586964ad8becbaca28f8ac1fe62b9aad7"
+  digest = "1:da47dafcaebaed218915762d71c5f46c0c3803d889d0f4ca4f64757a4c32c041"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -107,9 +107,11 @@
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/dynamodb",
     "service/ecr",
+    "service/s3",
     "service/sqs",
     "service/sqs/sqsiface",
     "service/sts",
@@ -498,6 +500,14 @@
   version = "v2.2"
 
 [[projects]]
+  digest = "1:4e903242fe176238aaa469f59d7035f5abf2aa9acfefb8964ddd203651b574e9"
+  name = "github.com/json-iterator/go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "0ff49de124c6f76f8494e194af75bde0f1a49a29"
+  version = "v1.1.6"
+
+[[projects]]
   digest = "1:47550cc951a0d64e7670d5f4e3b29e6c32c13e680b017ca570b8998e73b5cb61"
   name = "github.com/justinas/nosurf"
   packages = ["."]
@@ -626,6 +636,22 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
+
+[[projects]]
+  digest = "1:2f42fa12d6911c7b7659738758631bec870b7e9b4c6be5444f963cdcfccc191f"
+  name = "github.com/modern-go/concurrent"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
+  version = "1.0.3"
+
+[[projects]]
+  digest = "1:c6aca19413b13dc59c220ad7430329e2ec454cc310bc6d8de2c7e2b93c18a0f6"
+  name = "github.com/modern-go/reflect2"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
 
 [[projects]]
   branch = "master"
@@ -762,17 +788,19 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:932fb04e112cef9c7ed2417d89d7adc72e0cab768c40ae563ab9a68246192232"
+  digest = "1:abf702d7344f26107bb9436fd49010bf0216db32c756726348aad605dfe9b457"
   name = "github.com/prometheus/client_golang"
   packages = [
     "api",
     "api/prometheus/v1",
     "prometheus",
+    "prometheus/internal",
+    "prometheus/promauto",
     "prometheus/promhttp",
   ]
   pruneopts = "NUT"
-  revision = "9bb6ab929dcbe1c8393cd9ef70387cb69811bd1c"
+  revision = "2641b987480bca71fb39738eb8c8b0d577cb1d76"
+  version = "v0.9.4"
 
 [[projects]]
   branch = "master"
@@ -795,15 +823,15 @@
   revision = "2f17f4a9d485bf34b4bfaccc273805040e4f86c8"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d908a3cbeba7c482cd7f2dc6464be5aeb616e622fe4c245f9122b8f8e6a224bf"
+  digest = "1:19305fc369377c111c865a7a01e11c675c57c52a932353bbd4ea360bd5b72d99"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
-    "xfs",
+    "internal/fs",
   ]
   pruneopts = "NUT"
-  revision = "e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2"
+  revision = "3f98efb27840a48a7a2898ec80be07674d19f9c8"
+  version = "v0.0.3"
 
 [[projects]]
   digest = "1:96179de966369f97793c0b90702af56da42528be9ff46b2299fe520a96a06340"
@@ -1421,8 +1449,10 @@
     "github.com/armon/go-socks5",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/awserr",
+    "github.com/aws/aws-sdk-go/aws/request",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/dynamodb",
+    "github.com/aws/aws-sdk-go/service/s3",
     "github.com/aws/aws-sdk-go/service/sqs",
     "github.com/aws/aws-sdk-go/service/sqs/sqsiface",
     "github.com/badoux/checkmail",
@@ -1469,6 +1499,7 @@
     "github.com/prometheus/client_golang/api",
     "github.com/prometheus/client_golang/api/prometheus/v1",
     "github.com/prometheus/client_golang/prometheus",
+    "github.com/prometheus/client_golang/prometheus/promauto",
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "github.com/prometheus/common/model",
     "github.com/prometheus/prometheus/promql",
