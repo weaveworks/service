@@ -123,6 +123,8 @@ var (
 	})
 )
 
+var dynamoOnly bool
+
 func main() {
 	var (
 		collectorURL string
@@ -155,6 +157,7 @@ func main() {
 	flag.StringVar(&loglevel, "log-level", "info", "Debug level: debug, info, warning, error")
 
 	flag.BoolVar(&justBigScan, "big-scan", false, "If true, just scan the whole index and print summaries")
+	flag.BoolVar(&dynamoOnly, "dynamo-only", false, "If true, delete from DynamoDB only, not S3")
 
 	flag.Parse()
 
@@ -337,11 +340,24 @@ func (sc *scanner) HandleRecord(ctx context.Context, record string) {
 }
 
 func (sc *scanner) deleteOneOrgHour(ctx context.Context, org string, hour int) int {
+	total := 0
+	start := time.Unix(int64(hour*3600), 0)
+	endHour := start.Add(time.Hour)
+	division := time.Minute
+	for start.Before(endHour) {
+		end := start.Add(division)
+		total += sc.deleteOneOrgSubHour(ctx, org, hour, start, end)
+		start = end
+	}
+	return total
+}
+
+func (sc *scanner) deleteOneOrgSubHour(ctx context.Context, org string, hour int, start, end time.Time) int {
 	var keys []map[string]*dynamodb.AttributeValue
 	for {
 		sc.queryLimiter.Wait(ctx)
 		var err error
-		keys, err = queryDynamo(ctx, sc.dynamoDB, sc.tableName, org, int64(hour))
+		keys, err = queryDynamo(ctx, sc.dynamoDB, sc.tableName, org, int64(hour), start, end)
 		if throttled(err) {
 			continue
 		}
@@ -357,9 +373,11 @@ func (sc *scanner) deleteOneOrgHour(ctx context.Context, org string, hour int) i
 			end = len(keys)
 		}
 		batchKeys := keys[start:end]
-		sc.deleteFromS3(ctx, batchKeys)
-		for _, key := range batchKeys {
-			delete(key, reportField) // not part of key in dynamoDB
+		if !dynamoOnly {
+			sc.deleteFromS3(ctx, batchKeys)
+			for _, key := range batchKeys {
+				delete(key, reportField) // not part of key in dynamoDB
+			}
 		}
 		sc.deleteFromDynamoDB(batchKeys)
 		reportsDeleted.Add(float64(len(batchKeys)))
@@ -394,18 +412,31 @@ func (sc *scanner) deleteFromS3(ctx context.Context, keys []map[string]*dynamodb
 	}
 }
 
-func queryDynamo(ctx context.Context, db *dynamodb.DynamoDB, tableName, userid string, row int64) ([]map[string]*dynamodb.AttributeValue, error) {
+func queryDynamo(ctx context.Context, db *dynamodb.DynamoDB, tableName, userid string, row int64, start, end time.Time) ([]map[string]*dynamodb.AttributeValue, error) {
 	rowKey := fmt.Sprintf("%s-%s", userid, strconv.FormatInt(row, 10))
 	var result []map[string]*dynamodb.AttributeValue
 
+	attributes := []*string{aws.String(hourField), aws.String(tsField), aws.String(reportField)}
+	if dynamoOnly {
+		attributes = []*string{aws.String(hourField), aws.String(tsField)}
+	}
+	log.Debug("query DynamoDB ", rowKey, start, end)
 	queryInput := &dynamodb.QueryInput{
-		TableName: aws.String(tableName),
+		TableName:       aws.String(tableName),
+		AttributesToGet: attributes,
 		KeyConditions: map[string]*dynamodb.Condition{
 			hourField: {
 				AttributeValueList: []*dynamodb.AttributeValue{
 					{S: aws.String(rowKey)},
 				},
 				ComparisonOperator: aws.String("EQ"),
+			},
+			tsField: {
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{N: aws.String(strconv.FormatInt(start.UnixNano(), 10))},
+					{N: aws.String(strconv.FormatInt(end.UnixNano(), 10))},
+				},
+				ComparisonOperator: aws.String("BETWEEN"),
 			},
 		},
 		ReturnConsumedCapacity: aws.String(dynamodb.ReturnConsumedCapacityTotal),
@@ -438,6 +469,7 @@ func queryDynamo(ctx context.Context, db *dynamodb.DynamoDB, tableName, userid s
 		}
 		result = append(result, resp.Items...)
 	}
+	log.Debug("query returned ", len(result))
 	return result, nil
 }
 
@@ -538,6 +570,7 @@ func (sc *scanner) deleteFromDynamoDB(batch []map[string]*dynamodb.AttributeValu
 }
 
 func recordDynamoError(tableName string, err error, operation string) {
+	log.Debug("query error ", err)
 	if awsErr, ok := err.(awserr.Error); ok {
 		dynamoFailures.WithLabelValues(tableName, awsErr.Code(), operation).Add(float64(1))
 	} else {

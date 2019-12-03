@@ -2,6 +2,7 @@ FROM       alpine:3.8
 RUN        apk add --no-cache ca-certificates
 COPY       scanner /bin/scanner
 COPY       prod-records.gz /var/prod-records.gz
+COPY       dev-records.gz /var/dev-records.gz
 COPY       prod-orgs-to-delete /var/prod-orgs-to-delete
 EXPOSE     6060
 ENTRYPOINT [ "/bin/scanner" ]
