@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/jordan-wright/email"
-	sendgrid "github.com/sendgrid/sendgrid-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
@@ -36,7 +34,6 @@ type Emailer interface {
 // Supports scheme smtp:// and log:// in `emailURI`.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
 	var sendDirectly func(*email.Email) error
-	var sendGridClient *sendgrid.Client
 	u, err := url.Parse(emailURI)
 	if err != nil {
 		log.Fatalf("Error parsing -email-uri: %s", err)
@@ -52,17 +49,7 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 	if err != nil {
 		log.Fatal(err)
 	}
-	sendGridAPIKey, ok := os.LookupEnv("SENDGRID_API_KEY")
-	if ok {
-		sendGridClient = sendgrid.NewSendClient(sendGridAPIKey)
-	}
-	return SMTPEmailer{
-		Templates:      templates,
-		SendDirectly:   sendDirectly,
-		SendGridClient: sendGridClient,
-		Domain:         domain,
-		FromAddress:    fromAddress,
-	}
+	return newSMTPEmailer(fromAddress, templates, domain, sendDirectly)
 }
 
 func loginURL(email, rawToken, domain string, queryParams map[string]string) string {

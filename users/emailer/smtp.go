@@ -6,6 +6,7 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,13 +19,27 @@ import (
 )
 
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
-// Implements Emailer, see MustNew() for instantiation.
 type SMTPEmailer struct {
 	Templates      templates.Engine
 	SendDirectly   func(*email.Email) error
 	SendGridClient *sendgrid.Client
 	Domain         string
 	FromAddress    string
+}
+
+func newSMTPEmailer(fromAddress string, templates templates.Engine, domain string, sendDirectly func(*email.Email) error) Emailer {
+	var sendGridClient *sendgrid.Client
+	sendGridAPIKey, ok := os.LookupEnv("SENDGRID_API_KEY")
+	if ok {
+		sendGridClient = sendgrid.NewSendClient(sendGridAPIKey)
+	}
+	return SMTPEmailer{
+		Templates:      templates,
+		SendDirectly:   sendDirectly,
+		SendGridClient: sendGridClient,
+		Domain:         domain,
+		FromAddress:    fromAddress,
+	}
 }
 
 // Date format to use in email templates
