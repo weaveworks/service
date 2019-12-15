@@ -1,6 +1,7 @@
 package emailer
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/smtp"
@@ -12,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jordan-wright/email"
 	sendgrid "github.com/sendgrid/sendgrid-go"
+	"golang.org/x/time/rate"
+
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
@@ -61,12 +64,15 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 		password, _ := u.User.Password()
 		auth = smtp.PlainAuth("", u.User.Username(), password, host)
 	}
+	// Allow up to 2 emails through without pause, then limit to one every 30 seconds.
+	limiter := rate.NewLimiter(rate.Every(30*time.Second), 2)
 
 	return func(e *email.Email) error {
 		id := make(textproto.MIMEHeader)
 		uid := uuid.New().String()
 		id.Add("X-Entity-Ref-ID", uid)
 		e.Headers = id
+		limiter.Wait(context.Background())
 
 		return e.Send(addr, auth)
 	}, nil
