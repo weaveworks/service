@@ -5,6 +5,7 @@ import (
 	netmail "net/mail"
 
 	"github.com/jordan-wright/email"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
@@ -43,6 +44,8 @@ func ToSendGridMessage(e *email.Email, groupID int) *mail.SGMailV3 {
 // SendThroughSendGrid sends an email through SendGrid if possible, otherwise sends directly.
 func (s SMTPEmailer) SendThroughSendGrid(ctx context.Context, e *email.Email, groupID int) error {
 	if s.SendGridClient != nil {
+		span, _ := opentracing.StartSpanFromContext(ctx, "SendThroughSendGrid")
+		defer span.Finish()
 		message := ToSendGridMessage(e, groupID)
 		_, err := s.SendGridClient.Send(message)
 		return err

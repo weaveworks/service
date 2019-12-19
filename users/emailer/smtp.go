@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jordan-wright/email"
+	opentracing "github.com/opentracing/opentracing-go"
+	otlog "github.com/opentracing/opentracing-go/log"
 	sendgrid "github.com/sendgrid/sendgrid-go"
 	"golang.org/x/time/rate"
 
@@ -68,12 +70,15 @@ func smtpEmailSender(u *url.URL) (func(ctx context.Context, e *email.Email) erro
 	limiter := rate.NewLimiter(rate.Every(30*time.Second), 2)
 
 	return func(ctx context.Context, e *email.Email) error {
+		span, ctx := opentracing.StartSpanFromContext(ctx, "smtpSend")
+		defer span.Finish()
 		id := make(textproto.MIMEHeader)
 		uid := uuid.New().String()
 		id.Add("X-Entity-Ref-ID", uid)
 		e.Headers = id
 		limiter.Wait(context.Background())
 
+		span.LogFields(otlog.String("sending now", e.Subject))
 		return e.Send(addr, auth)
 	}, nil
 }
