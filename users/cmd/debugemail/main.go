@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"strings"
@@ -88,28 +89,29 @@ func main() {
 	orgName := "Sample Org 99"
 	teamExternalID := "sample-team-88"
 	teamName := "Sample Team 88"
+	ctx := context.Background()
 
 	actions := map[string]func() error{
 		"login": func() error {
-			return em.LoginEmail(dst, "secret-login-token", nil)
+			return em.LoginEmail(ctx, dst, "secret-login-token", nil)
 		},
 		"invite": func() error {
-			return em.InviteToTeamEmail(inviter, dst, teamExternalID, teamName, "secret-invite-token")
+			return em.InviteToTeamEmail(ctx, inviter, dst, teamExternalID, teamName, "secret-invite-token")
 		},
 		"grant_access": func() error {
-			return em.GrantAccessToTeamEmail(inviter, dst, teamExternalID, teamName)
+			return em.GrantAccessToTeamEmail(ctx, inviter, dst, teamExternalID, teamName)
 		},
 		"trial_extended": func() error {
-			return em.TrialExtendedEmail([]*users.User{dst}, orgExternalID, orgName, time.Now().Add(15*24*time.Hour))
+			return em.TrialExtendedEmail(ctx, []*users.User{dst}, orgExternalID, orgName, time.Now().Add(15*24*time.Hour))
 		},
 		"trial_pending_expiry": func() error {
-			return em.TrialPendingExpiryEmail([]*users.User{dst}, orgExternalID, orgName, time.Now().Add(3*24*time.Hour))
+			return em.TrialPendingExpiryEmail(ctx, []*users.User{dst}, orgExternalID, orgName, time.Now().Add(3*24*time.Hour))
 		},
 		"trial_expired": func() error {
-			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
+			return em.TrialExpiredEmail(ctx, []*users.User{dst}, orgExternalID, orgName)
 		},
 		"weekly": func() error {
-			return em.WeeklyReportEmail([]*users.User{dst}, weeklyReport)
+			return em.WeeklyReportEmail(ctx, []*users.User{dst}, weeklyReport)
 		},
 	}
 

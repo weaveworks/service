@@ -24,13 +24,13 @@ import (
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
 type SMTPEmailer struct {
 	Templates      templates.Engine
-	SendDirectly   func(*email.Email) error
+	SendDirectly   func(context.Context, *email.Email) error
 	SendGridClient *sendgrid.Client
 	Domain         string
 	FromAddress    string
 }
 
-func newSMTPEmailer(fromAddress string, templates templates.Engine, domain string, sendDirectly func(*email.Email) error) Emailer {
+func newSMTPEmailer(fromAddress string, templates templates.Engine, domain string, sendDirectly func(context.Context, *email.Email) error) Emailer {
 	var sendGridClient *sendgrid.Client
 	sendGridAPIKey, ok := os.LookupEnv("SENDGRID_API_KEY")
 	if ok {
@@ -50,7 +50,7 @@ const dateFormat = "January 2 2006"
 const emailWrapperFilename = "wrapper.html"
 
 // Takes a uri of the form smtp://username:password@hostname:port
-func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
+func smtpEmailSender(u *url.URL) (func(ctx context.Context, e *email.Email) error, error) {
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
@@ -67,7 +67,7 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	// Allow up to 2 emails through without pause, then limit to one every 30 seconds.
 	limiter := rate.NewLimiter(rate.Every(30*time.Second), 2)
 
-	return func(e *email.Email) error {
+	return func(ctx context.Context, e *email.Email) error {
 		id := make(textproto.MIMEHeader)
 		uid := uuid.New().String()
 		id.Add("X-Entity-Ref-ID", uid)
@@ -79,7 +79,7 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 }
 
 // WeeklyReportEmail sends the weekly report email
-func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyreports.Report) error {
+func (s SMTPEmailer) WeeklyReportEmail(ctx context.Context, members []*users.User, report *weeklyreports.Report) error {
 	organizationURL := organizationURL(s.Domain, report.Organization.ExternalID)
 	summary := weeklyreports.EmailSummaryFromReport(report, organizationURL)
 
@@ -93,11 +93,11 @@ func (s SMTPEmailer) WeeklyReportEmail(members []*users.User, report *weeklyrepo
 	}
 	e.Text = s.Templates.QuietBytes("weekly_report_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("weekly_report_email.html", emailWrapperFilename, "", data)
-	return s.SendThroughSendGrid(e, weeklyReportGroupID)
+	return s.SendThroughSendGrid(ctx, e, weeklyReportGroupID)
 }
 
 // LoginEmail sends the login email
-func (s SMTPEmailer) LoginEmail(u *users.User, token string, queryParams map[string]string) error {
+func (s SMTPEmailer) LoginEmail(ctx context.Context, u *users.User, token string, queryParams map[string]string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
@@ -108,11 +108,11 @@ func (s SMTPEmailer) LoginEmail(u *users.User, token string, queryParams map[str
 	}
 	e.Text = s.Templates.QuietBytes("login_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("login_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 // InviteToTeamEmail sends the invite email
-func (s SMTPEmailer) InviteToTeamEmail(inviter, invited *users.User, teamExternalID, teamName, token string) error {
+func (s SMTPEmailer) InviteToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName, token string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{invited.Email}
@@ -125,11 +125,11 @@ func (s SMTPEmailer) InviteToTeamEmail(inviter, invited *users.User, teamExterna
 	}
 	e.Text = s.Templates.QuietBytes("invite_to_team_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("invite_to_team_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 // GrantAccessToTeamEmail sends the grant access email
-func (s SMTPEmailer) GrantAccessToTeamEmail(inviter, invited *users.User, teamExternalID, teamName string) error {
+func (s SMTPEmailer) GrantAccessToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{invited.Email}
@@ -141,12 +141,12 @@ func (s SMTPEmailer) GrantAccessToTeamEmail(inviter, invited *users.User, teamEx
 	}
 	e.Text = s.Templates.QuietBytes("grant_access_to_team_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("grant_access_to_team_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 // TrialPendingExpiryEmail notifies all members of the organization that
 // their trial is about to expire.
-func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
+func (s SMTPEmailer) TrialPendingExpiryEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = collectEmails(members)
@@ -159,12 +159,12 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_pending_expiry_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 // TrialExpiredEmail notifies all members of the organization that
 // their trial has expired.
-func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error {
+func (s SMTPEmailer) TrialExpiredEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = collectEmails(members)
@@ -175,12 +175,12 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 	}
 	e.Text = s.Templates.QuietBytes("trial_expired_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_expired_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 // TrialExtendedEmail notifies all members of the organization that the trial
 // period has been extended.
-func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
+func (s SMTPEmailer) TrialExtendedEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
 	left := trialLeft(trialExpiresAt)
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
@@ -194,7 +194,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 	e.Subject = fmt.Sprintf("%s left of your free trial", left)
 	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("trial_extended_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }
 
 func trialLeft(expires time.Time) string {
@@ -207,7 +207,7 @@ func trialLeft(expires time.Time) string {
 
 // RefuseDataUploadEmail notifies all members of the organization that the trial
 // period has been expired for a while and we now block their data upload.
-func (s SMTPEmailer) RefuseDataUploadEmail(members []*users.User, orgExternalID, orgName string) error {
+func (s SMTPEmailer) RefuseDataUploadEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string) error {
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
@@ -218,5 +218,5 @@ func (s SMTPEmailer) RefuseDataUploadEmail(members []*users.User, orgExternalID,
 	e.Subject = "Sorry to see you leave Weave Cloud!"
 	e.Text = s.Templates.QuietBytes("refuse_data_upload_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("refuse_data_upload_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }

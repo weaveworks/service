@@ -1,6 +1,7 @@
 package emailer
 
 import (
+	"context"
 	netmail "net/mail"
 
 	"github.com/jordan-wright/email"
@@ -40,11 +41,11 @@ func ToSendGridMessage(e *email.Email, groupID int) *mail.SGMailV3 {
 }
 
 // SendThroughSendGrid sends an email through SendGrid if possible, otherwise sends directly.
-func (s SMTPEmailer) SendThroughSendGrid(e *email.Email, groupID int) error {
+func (s SMTPEmailer) SendThroughSendGrid(ctx context.Context, e *email.Email, groupID int) error {
 	if s.SendGridClient != nil {
 		message := ToSendGridMessage(e, groupID)
 		_, err := s.SendGridClient.Send(message)
 		return err
 	}
-	return s.SendDirectly(e)
+	return s.SendDirectly(ctx, e)
 }

@@ -1,6 +1,7 @@
 package emailer_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/weaveworks/service/users/weeklyreports"
 )
 
-func createEmailer(sendDirectly func(*email.Email) error) emailer.SMTPEmailer {
+func createEmailer(sendDirectly func(context.Context, *email.Email) error) emailer.SMTPEmailer {
 	templates := templates.MustNewEngine("../templates")
 	return emailer.SMTPEmailer{
 		Templates:    templates,
@@ -26,7 +27,7 @@ func createEmailer(sendDirectly func(*email.Email) error) emailer.SMTPEmailer {
 func TestTrialPendingExpiryEmail(t *testing.T) {
 	var sent bool
 	expires := time.Now().Add(10 * 24 * time.Hour)
-	em := createEmailer(func(e *email.Email) error {
+	em := createEmailer(func(ctx context.Context, e *email.Email) error {
 		assert.Equal(t, "Your Weave Cloud trial expires soon!", e.Subject)
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Len(t, e.To, 2)
@@ -41,14 +42,14 @@ func TestTrialPendingExpiryEmail(t *testing.T) {
 	})
 
 	receivers := []*users.User{{Email: "user1@weave.test"}, {Email: "user2@weave.test"}}
-	err := em.TrialPendingExpiryEmail(receivers, "foo-boo-12", "Test Org", expires)
+	err := em.TrialPendingExpiryEmail(context.Background(), receivers, "foo-boo-12", "Test Org", expires)
 	assert.NoError(t, err)
 	assert.True(t, sent, "email has not been sent")
 }
 
 func TestSMTPEmailer_TrialExpiredEmail(t *testing.T) {
 	var sent bool
-	em := createEmailer(func(e *email.Email) error {
+	em := createEmailer(func(ctx context.Context, e *email.Email) error {
 		assert.Equal(t, "Your Weave Cloud trial expired", e.Subject)
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Len(t, e.To, 1)
@@ -60,7 +61,7 @@ func TestSMTPEmailer_TrialExpiredEmail(t *testing.T) {
 	})
 
 	receivers := []*users.User{{Email: "user@weave.test"}}
-	err := em.TrialExpiredEmail(receivers, "foo-boo-12", "Test Org")
+	err := em.TrialExpiredEmail(context.Background(), receivers, "foo-boo-12", "Test Org")
 	assert.NoError(t, err)
 	assert.True(t, sent, "email has not been sent")
 }
@@ -68,7 +69,7 @@ func TestSMTPEmailer_TrialExpiredEmail(t *testing.T) {
 func TestSMTPEmailer_TrialExtendedEmail(t *testing.T) {
 	var sent bool
 	expires := time.Now().Add(15 * 24 * time.Hour)
-	em := createEmailer(func(e *email.Email) error {
+	em := createEmailer(func(ctx context.Context, e *email.Email) error {
 		assert.Equal(t, "15 days left of your free trial", e.Subject)
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Len(t, e.To, 1)
@@ -83,7 +84,7 @@ func TestSMTPEmailer_TrialExtendedEmail(t *testing.T) {
 	})
 
 	receivers := []*users.User{{Email: "user@weave.test"}}
-	err := em.TrialExtendedEmail(receivers, "foo-boo-12", "Test Org", expires)
+	err := em.TrialExtendedEmail(context.Background(), receivers, "foo-boo-12", "Test Org", expires)
 	assert.NoError(t, err)
 	assert.True(t, sent, "email has not been sent")
 }
@@ -134,7 +135,7 @@ func TestSMTPEmailer_WeeklyReportEmail(t *testing.T) {
 	}
 
 	var sent bool
-	em := createEmailer(func(e *email.Email) error {
+	em := createEmailer(func(ctx context.Context, e *email.Email) error {
 		assert.Equal(t, "Sep 30 – Oct 6 · Sample Org 99 Report", e.Subject)
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Len(t, e.To, 1)
@@ -159,7 +160,7 @@ func TestSMTPEmailer_WeeklyReportEmail(t *testing.T) {
 	})
 
 	receivers := []*users.User{{Email: "user@weave.test"}}
-	err := em.WeeklyReportEmail(receivers, report)
+	err := em.WeeklyReportEmail(context.Background(), receivers, report)
 	assert.NoError(t, err)
 	assert.True(t, sent, "email has not been sent")
 }
