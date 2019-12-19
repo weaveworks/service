@@ -12,6 +12,11 @@ var goRuntimeDashboard = Dashboard{
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(go_goroutines{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (kubernetes_pod_name)`,
+			}, {
+				Title: "Number of threads",
+				Type:  PanelLine,
+				Unit:  Unit{Format: UnitNumeric},
+				Query: `sum(go_threads{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (kubernetes_pod_name)`,
 			}},
 		}},
 	}, {
@@ -30,29 +35,22 @@ var goRuntimeDashboard = Dashboard{
 			}},
 		}, {
 			Panels: []Panel{{
-				Title: "Number of heap objects allocated per second",
+				Title: "Heap bytes allocated per second",
+				Type:  PanelLine,
+				Unit:  Unit{Format: UnitNumeric},
+				Query: `sum(rate(go_memstats_alloc_bytes_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
+			}, {
+				Title: "Heap objects allocated per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(go_memstats_mallocs_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
-			}, {
-				Title: "Number of heap objects freed per second",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum(rate(go_memstats_frees_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
 			}},
 		}},
 	}, {
 		Name: "Garbage collector",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Time spent in GC each second",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitSeconds},
-				Query: `sum(rate(go_gc_duration_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
-			}},
-		}, {
-			Panels: []Panel{{
-				Title: "Number of GC cycles per second",
+				Title: "GC cycles per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(go_gc_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
