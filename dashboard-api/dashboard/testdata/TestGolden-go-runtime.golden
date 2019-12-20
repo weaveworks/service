@@ -14,6 +14,14 @@
                 "format": "numeric"
               },
               "query": "sum(go_goroutines{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "Number of threads",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(go_threads{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
             }
           ]
         }
@@ -45,20 +53,20 @@
         {
           "panels": [
             {
-              "title": "Number of heap objects allocated per second",
+              "title": "Heap bytes allocated per second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(go_memstats_alloc_bytes_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "Heap objects allocated per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
               },
               "query": "sum(rate(go_memstats_mallocs_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
-            },
-            {
-              "title": "Number of heap objects freed per second",
-              "type": "line",
-              "unit": {
-                "format": "numeric"
-              },
-              "query": "sum(rate(go_memstats_frees_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             }
           ]
         }
@@ -70,19 +78,7 @@
         {
           "panels": [
             {
-              "title": "Time spent in GC each second",
-              "type": "line",
-              "unit": {
-                "format": "seconds"
-              },
-              "query": "sum(rate(go_gc_duration_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
-            }
-          ]
-        },
-        {
-          "panels": [
-            {
-              "title": "Number of GC cycles per second",
+              "title": "GC cycles per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
