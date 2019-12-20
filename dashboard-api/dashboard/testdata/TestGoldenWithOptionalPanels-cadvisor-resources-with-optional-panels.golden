@@ -38,6 +38,35 @@
       ]
     },
     {
+      "name": "Constraints",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "CPU Throttling",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "percent",
+                "explanation": "Percentage of scheduling periods throttled"
+              },
+              "query": "sum(increase(container_cpu_cfs_throttled_periods_total{image!='',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod)/sum(increase(container_cpu_cfs_periods_total{image!='',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod)"
+            },
+            {
+              "title": "Memory Paging",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric",
+                "explanation": "Page faults / second"
+              },
+              "query": "sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod_name) \u003e0"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "GPU",
       "rows": [
         {
