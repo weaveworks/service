@@ -38,7 +38,7 @@ var cadvisorDashboard = Dashboard{
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitNumeric, Explanation: "Page faults / second"},
-				Query:    `sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod_name) >0`,
+				Query:    `sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod_name)`,
 			}},
 		}},
 	}, {
