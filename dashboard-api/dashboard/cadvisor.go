@@ -23,6 +23,25 @@ var cadvisorDashboard = Dashboard{
 			}},
 		}},
 	}, {
+		Name: "Constraints",
+		Rows: []Row{{
+			Panels: []Panel{{
+				Title:    "CPU Throttling",
+				Type:     PanelLine,
+				Optional: true,
+				Unit:     Unit{Format: UnitPercent, Explanation: "Percentage of scheduling periods throttled"},
+				Query: `sum(increase(container_cpu_cfs_throttled_periods_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod)` +
+					`/` +
+					`sum(increase(container_cpu_cfs_periods_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod)`,
+			}, {
+				Title:    "Memory Paging",
+				Type:     PanelLine,
+				Optional: true,
+				Unit:     Unit{Format: UnitNumeric, Explanation: "Page faults / second"},
+				Query:    `sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod_name) >0`,
+			}},
+		}},
+	}, {
 		Name: "GPU",
 		Rows: []Row{{
 			Panels: []Panel{{
