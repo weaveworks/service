@@ -68,8 +68,9 @@ func newHTTPProxy(cfg proxyConfig) (*httpProxy, error) {
 	return &httpProxy{
 		proxyConfig: cfg,
 		reverseProxy: httputil.ReverseProxy{
-			Director:  func(*http.Request) {},
-			Transport: proxyTransport,
+			Director:     func(*http.Request) {},
+			Transport:    proxyTransport,
+			ErrorHandler: handleError,
 		},
 		balancer: balancer,
 	}, nil
@@ -231,6 +232,18 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	go copyStream(targetConn, clientConn, &wg, "proxy: websocket: \"client2server\"")
 	wg.Wait()
 	logger.Debugf("proxy: websocket: connection closed")
+}
+
+func handleError(rw http.ResponseWriter, outReq *http.Request, err error) {
+	ctx := outReq.Context()
+	var header int
+	if ctx.Err() == context.Canceled {
+		header = 499 // Client Closed Request (nginx convention)
+	} else {
+		user.LogWith(ctx, logging.Global()).WithField("err", err).Errorln("http proxy error")
+		header = http.StatusBadGateway
+	}
+	rw.WriteHeader(header)
 }
 
 type closeWriter interface {
