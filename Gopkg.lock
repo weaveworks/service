@@ -418,6 +418,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:432e8b04365b52add2d6256a42de45cebebf6b7a132d4eacb052602fe199a80a"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "dd15ed025b6054e5253963e355991f3070d4e593"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:7b760aa6dbe426378f54934270dde1b176fda379111da2154748f030fffe4d3f"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
@@ -706,6 +714,14 @@
   version = "v1.0.0-rc1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:0bcd915637e4e45588abe12954e15a024366e0d5fc3b1c7c7bdf9c7be8c3a6a5"
+  name = "github.com/opentracing-contrib/go-grpc"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "db30781987df913dc5a2345439c43e1598e33434"
+
+[[projects]]
   branch = "hijack"
   digest = "1:aa4ea1ade473b9c22e702939c444dcbdce7987f3a4d1338a9abf8ba7544721a6"
   name = "github.com/opentracing-contrib/go-stdlib"
@@ -927,12 +943,12 @@
   version = "v3.4.1"
 
 [[projects]]
-  digest = "1:1ac7b34d4aeee8a7cfc1383bce35622e94ad4976cb4d26549faec6212e6394ce"
+  digest = "1:7eb5383e9d606072e749b9ccc05a6122bb16b00af1e6eba76bf12258fc48ec38"
   name = "github.com/sercand/kuberesolver"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "aa801ca262949d887bbe0bae3f6f731ac82c26f6"
-  version = "v1.0.0"
+  revision = "f0a61d5e8ca1bcc7a607d6de3dfd51467791db88"
+  version = "v2.1.0"
 
 [[projects]]
   branch = "master"
@@ -1048,7 +1064,8 @@
   version = "v1.4"
 
 [[projects]]
-  digest = "1:44bd6afa61a24594cfb64dbcd265f350ea2029fca6ae7ff9ee7362c3660ba4ae"
+  branch = "master"
+  digest = "1:68e11bd1045e6d8cf7deb5c8bd528086bc5e017fbcffd4abccefd7464840bb29"
   name = "github.com/weaveworks/common"
   packages = [
     "aws",
@@ -1068,7 +1085,7 @@
     "user",
   ]
   pruneopts = "NUT"
-  revision = "2a0cb6145a2f541de5ca19437fee675baf6a1985"
+  revision = "b8615eb3d5f48ee0c66c34ed1822e531b8d81e0f"
 
 [[projects]]
   branch = "master"
@@ -1176,7 +1193,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f2acaae745546dde483a2eff34253f8597cc0d7377bac40bcfdd4483ed957f45"
+  digest = "1:ee57aa817b5a77aab981bc17683b66e65db4894f45cc6ec687d9b3a28e1d8f11"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1193,6 +1210,7 @@
     "ipv4",
     "ipv6",
     "lex/httplex",
+    "netutil",
     "trace",
     "websocket",
   ]
