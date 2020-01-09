@@ -5,6 +5,7 @@ import (
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/balancer/roundrobin"
 
 	"github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/instrument"
@@ -34,11 +35,11 @@ func dial(urlOrHostPort string, loadBalance bool, opts ...grpc.DialOption) (*grp
 	// Passing this flag is a bit ugly, but we might re-do the load balancing soon
 	if loadBalance {
 		var err error
-		address, dialOptions, err = server.ParseURL(urlOrHostPort)
+		address, err = server.ParseURL(urlOrHostPort)
 		if err != nil {
 			return nil, err
 		}
-		dialOptions = append(dialOptions, opts...)
+		dialOptions = append([]grpc.DialOption{grpc.WithBalancerName(roundrobin.Name)}, opts...)
 	} else {
 		dialOptions = opts
 		address = urlOrHostPort
