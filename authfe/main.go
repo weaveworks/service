@@ -83,7 +83,7 @@ func main() {
 
 	// Initialize all the proxies
 	for name, proxyCfg := range cfg.proxies() {
-		if proxyCfg.hostAndPort == "" && proxyCfg.grpcHost == "" {
+		if proxyCfg.hostAndPort == "" {
 			log.Warningf("Host for %s not given; will not be proxied", name)
 		}
 		for _, n := range strings.Split(cfg.httpKeepAlives, ",") {
