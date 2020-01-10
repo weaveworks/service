@@ -60,7 +60,7 @@
                 "format": "numeric",
                 "explanation": "Page faults / second"
               },
-              "query": "sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod_name) \u003e0"
+              "query": "sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod_name)"
             }
           ]
         }

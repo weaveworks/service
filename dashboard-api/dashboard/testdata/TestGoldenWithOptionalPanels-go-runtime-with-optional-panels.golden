@@ -14,6 +14,15 @@
                 "format": "numeric"
               },
               "query": "sum(go_goroutines{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "Number of threads",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(go_threads{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
             }
           ]
         }

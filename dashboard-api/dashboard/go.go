@@ -13,10 +13,11 @@ var goRuntimeDashboard = Dashboard{
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(go_goroutines{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (kubernetes_pod_name)`,
 			}, {
-				Title: "Number of threads",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum(go_threads{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (kubernetes_pod_name)`,
+				Title:    "Number of threads",
+				Optional: true,
+				Type:     PanelLine,
+				Unit:     Unit{Format: UnitNumeric},
+				Query:    `sum(go_threads{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (kubernetes_pod_name)`,
 			}},
 		}},
 	}, {
