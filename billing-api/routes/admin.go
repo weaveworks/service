@@ -186,8 +186,9 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	page := extractOrDefaultPage(r.URL.Query().Get("page"))
 
 	resp, err := a.Users.GetOrganizations(r.Context(), &users.GetOrganizationsRequest{
-		Query:      query,
-		PageNumber: int32(page),
+		Query:          query,
+		PageNumber:     int32(page),
+		IncludeDeleted: true,
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -417,7 +418,9 @@ var adminTemplate = `
 						</tr>
 						*/}}
 						<tr>
-							<th class="mdl-data-table__cell--non-numeric">InstanceID</th>
+							<th class="mdl-data-table__cell--non-numeric">ID</th>
+							<th class="mdl-data-table__cell--non-numeric">Instance</th>
+							<th class="mdl-data-table__cell--non-numeric">Name</th>
 							<th class="mdl-data-table__cell--non-numeric">BillingEnabled</th>
 							<th class="mdl-data-table__cell--non-numeric">TrialRemaining</th>
 							{{/* #### DATA HEADER WRITER ####
@@ -432,8 +435,12 @@ var adminTemplate = `
 					{{range .Organizations }}
 						{{ $org := . }}
 						<tr>
+							<td class="mdl-data-table__cell--non-numeric">{{.ID}}</td>
 							<td class="mdl-data-table__cell--non-numeric">
 								<a href="{{ $admurl }}/users/organizations?query=instance%3A{{ $org.ExternalID }}">{{ $org.ExternalID }}</a>
+							</td>
+							<td class="mdl-data-table__cell--non-numeric">
+								{{if .Deleted}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}
 							</td>
 							<td class="mdl-data-table__cell--non-numeric">{{$org.HasFeatureFlag $billing}}</td>
 							<td class="mdl-data-table__cell--non-numeric">{{with (index $trialInfo $org.ID)}}{{.Remaining}}/{{.Length}} days{{else}}err{{end}}</td>
@@ -441,7 +448,7 @@ var adminTemplate = `
 
 						{{/* NEW CODE BY CRAIG */}}
 						<tr>
-							<td colspan=3>
+							<td colspan=5>
 								<table class="mdl-data-table mdl-js-data-table">
 									<thead>
 										<th>Month</th>
