@@ -43,10 +43,14 @@ func main() {
 	traceCloser := tracing.NewFromEnv("users")
 	defer traceCloser.Close()
 
+	serverConfig := server.Config{
+		MetricsNamespace: common.PrometheusNamespace,
+		GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+	}
+	serverConfig.RegisterFlags(flag.CommandLine)
+	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
+	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 	var (
-		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port          = flag.Int("port", 80, "port to listen on")
-		grpcPort      = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		domain        = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
 		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
@@ -107,10 +111,11 @@ func main() {
 
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	var billingEnabler featureflag.Enabler
 	billingEnabler = featureflag.NewRandomEnabler(*billingFeatureFlagProbability)
@@ -203,15 +208,8 @@ func main() {
 			strings.Split(*localTestUserInstanceFeatureFlags, ","))
 	}
 
-	log.Infof("Listening on port %d", *port)
-	s, err := server.New(server.Config{
-		MetricsNamespace:        common.PrometheusNamespace,
-		HTTPListenPort:          *port,
-		GRPCListenPort:          *grpcPort,
-		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
-		RegisterInstrumentation: true,
-		Log:                     logging.Logrus(log.StandardLogger()),
-	})
+	log.Infof("Listening on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)
+	s, err := server.New(serverConfig)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 		return

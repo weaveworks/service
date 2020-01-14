@@ -14,21 +14,20 @@ import (
 )
 
 func main() {
+	serverConfig := commonserver.Config{
+		MetricsNamespace: common.PrometheusNamespace,
+		GRPCMiddleware:   []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+	}
+	serverConfig.RegisterFlags(flag.CommandLine)
+	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
+	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 	var (
-		httpPort = flag.Int("port", 80, "HTTP port to listen on")
-		grpcPort = flag.Int("grpc-port", 4772, "gRPC port to listen on")
-		dryRun   = flag.Bool("dry-run", false, "Do NOT actually run kubectl, but simply log the command.")
+		dryRun = flag.Bool("dry-run", false, "Do NOT actually run kubectl, but simply log the command.")
 	)
 	flag.Parse()
 
-	log.Infof("kubectl-service configured to listen on ports %d (HTTP) and %d (gRPC)", *httpPort, *grpcPort)
-	serv, err := commonserver.New(commonserver.Config{
-		MetricsNamespace:        common.PrometheusNamespace,
-		HTTPListenPort:          *httpPort,
-		GRPCListenPort:          *grpcPort,
-		GRPCMiddleware:          []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
-		RegisterInstrumentation: true,
-	})
+	log.Infof("kubectl-service configured to listen on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)
+	serv, err := commonserver.New(serverConfig)
 	if err != nil {
 		log.Fatalf("Failed to create kubectl-service: %v", err)
 	}

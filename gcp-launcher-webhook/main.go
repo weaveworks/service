@@ -25,7 +25,6 @@ import (
 )
 
 type config struct {
-	port               int
 	endpoint           string
 	logLevel           string
 	secret             string // Secret used to authenticate incoming GCP webhook requests.
@@ -37,11 +36,12 @@ type config struct {
 
 	users       users.Config
 	procurement procurement.Config
+	server      server.Config
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
-	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
+	flag.IntVar(&c.server.HTTPListenPort, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook?secret=FILLMEIN", "Endpoint this webhook is accessible from the outside")
 	flag.BoolVar(&c.createSubscription, "pubsub-api.create-subscription", false, "Enable/Disable programmatic creation of the Pub/Sub subscription.")
 	flag.BoolVar(&c.pull, "pubsub-api.pull", false, "(dev only!) Whether to use pull rather than push")
@@ -50,6 +50,7 @@ func (c *config) RegisterFlags(f *flag.FlagSet) {
 	c.publisher.RegisterFlags(f)
 	c.procurement.RegisterFlags(f)
 	c.users.RegisterFlags(f)
+	c.server.RegisterFlags(f)
 }
 
 func (c *config) ReadEnvVars() {
@@ -73,6 +74,7 @@ func main() {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
+	cfg.server.Log = logging.Logrus(log.StandardLogger())
 
 	users, err := users.NewClient(cfg.users)
 	if err != nil {
@@ -88,13 +90,8 @@ func main() {
 		Users:       users,
 	}
 
-	serverCfg := server.Config{
-		HTTPListenPort:          cfg.port,
-		MetricsNamespace:        common.PrometheusNamespace,
-		RegisterInstrumentation: true,
-		Log:                     logging.Logrus(log.StandardLogger()),
-	}
-	server, err := server.New(serverCfg)
+	cfg.server.MetricsNamespace = common.PrometheusNamespace
+	server, err := server.New(cfg.server)
 	if err != nil {
 		log.Fatalf("Failed to start GCP Cloud Launcher webhook: %v", err)
 	}
@@ -102,7 +99,7 @@ func main() {
 	server.HTTP.Handle("/", webhook.New(handler)).Methods("POST").Name("webhook")
 
 	if cfg.pull {
-		receiveSubscription(&cfg, forwardMessage(cfg.secret, cfg.port))
+		receiveSubscription(&cfg, forwardMessage(cfg.secret, cfg.server.HTTPListenPort))
 	} else if cfg.createSubscription {
 		createSubscription(&cfg)
 	}

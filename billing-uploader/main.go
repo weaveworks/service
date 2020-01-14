@@ -78,6 +78,7 @@ func main() {
 	zuoraConfig.RegisterFlags(flag.CommandLine)
 	gcpConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
+	serverConfig.MetricsNamespace = "billing"
 
 	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error initialising logging: %v", err)

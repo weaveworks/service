@@ -57,6 +57,7 @@ func main() {
 	bigQueryConfig.RegisterFlags(flag.CommandLine)
 	dbConfig.RegisterFlags(flag.CommandLine, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	flag.Parse()
+	serverConfig.MetricsNamespace = "billing"
 
 	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error initialising logging: %v", err)

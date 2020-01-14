@@ -22,10 +22,14 @@ import (
 )
 
 func main() {
+	serverConfig := commonserver.Config{
+		MetricsNamespace: common.PrometheusNamespace,
+		GRPCMiddleware:   []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+	}
+	serverConfig.RegisterFlags(flag.CommandLine)
+	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
+	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 	var (
-		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		httpPort      = flag.Int("port", 80, "HTTP port to listen on")
-		grpcPort      = flag.Int("grpc-port", 4772, "gRpc port to listen on")
 		dryRun        = flag.Bool("dry-run", false, "Do NOT actually run DAO calls, but mock them and return arbitrary values.")
 		usersConfig   users.Config
 		kubectlConfig kubectl.Config
@@ -34,20 +38,14 @@ func main() {
 	kubectlConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
-	log.Infof("gcp-service configured to listen on ports %d (HTTP) and %d (gRPC)", *httpPort, *grpcPort)
-	serv, err := commonserver.New(commonserver.Config{
-		MetricsNamespace:        common.PrometheusNamespace,
-		HTTPListenPort:          *httpPort,
-		GRPCListenPort:          *grpcPort,
-		GRPCMiddleware:          []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
-		RegisterInstrumentation: true,
-		Log:                     logging.Logrus(log.StandardLogger()),
-	})
+	log.Infof("gcp-service configured to listen on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)
+	serv, err := commonserver.New(serverConfig)
 	if err != nil {
 		log.Fatalf("Failed to create gcp-service's server: %v", err)
 	}
