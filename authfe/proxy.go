@@ -18,7 +18,6 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
-	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
@@ -27,12 +26,7 @@ import (
 const defaultPort = "80"
 
 func newProxy(cfg proxyConfig) (http.Handler, error) {
-	if cfg.grpcHost != "" {
-		return httpgrpc_server.NewClient(cfg.grpcHost)
-	}
 	switch cfg.protocol {
-	case "grpc":
-		return httpgrpc_server.NewClient(cfg.hostAndPort)
 	case "https", "http":
 		return newHTTPProxy(cfg)
 	case "mock":
