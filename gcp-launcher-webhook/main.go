@@ -40,7 +40,6 @@ type config struct {
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
-	flag.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.IntVar(&c.server.HTTPListenPort, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook?secret=FILLMEIN", "Endpoint this webhook is accessible from the outside")
 	flag.BoolVar(&c.createSubscription, "pubsub-api.create-subscription", false, "Enable/Disable programmatic creation of the Pub/Sub subscription.")
@@ -70,7 +69,7 @@ func main() {
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	if err := logging.Setup(cfg.logLevel); err != nil {
+	if err := logging.Setup(cfg.server.LogLevel.String()); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
