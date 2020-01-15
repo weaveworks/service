@@ -4,6 +4,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
+	"github.com/sercand/kuberesolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer/roundrobin"
 
@@ -34,6 +35,7 @@ func dial(urlOrHostPort string, loadBalance bool, opts ...grpc.DialOption) (*grp
 	var address string
 	// Passing this flag is a bit ugly, but we might re-do the load balancing soon
 	if loadBalance {
+		kuberesolver.RegisterInCluster()
 		var err error
 		address, err = server.ParseURL(urlOrHostPort)
 		if err != nil {
