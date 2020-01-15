@@ -35,15 +35,17 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
-		logLevel             = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port                 = flag.Int("port", 80, "port to listen on")
-		grpcPort             = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		segementWriteKeyFile = flag.String("segment-write-key-file", "", "File containing segment write key")
 
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
 		marketoCfg marketing.MarketoConfig
 		usersCfg   users.Config
+
+		serverConfig = commonServer.Config{
+			MetricsNamespace: common.PrometheusNamespace,
+			GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+		}
 
 		cleanupURLs common.ArrayFlags
 	)
@@ -53,10 +55,13 @@ func main() {
 	billingCfg.RegisterFlags(flag.CommandLine)
 	marketoCfg.RegisterFlags(flag.CommandLine)
 	usersCfg.RegisterFlags(flag.CommandLine)
+	serverConfig.RegisterFlags(flag.CommandLine)
+	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
+	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		logrus.Fatalf("Error configuring logging: %v", err)
 		return
 	}
@@ -94,15 +99,8 @@ func main() {
 		logger, db, billingClient, segmentClient, marketoClient)
 	logger.Debugln("Debug logging enabled")
 
-	logger.Infof("Listening on port %d\n", *port)
-	cServer, err := commonServer.New(commonServer.Config{
-		MetricsNamespace:        common.PrometheusNamespace,
-		HTTPListenPort:          *port,
-		GRPCListenPort:          *grpcPort,
-		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
-		RegisterInstrumentation: true,
-		Log:                     logger,
-	})
+	logger.Infof("users-sync listening on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)
+	cServer, err := commonServer.New(serverConfig)
 	if err != nil {
 		logrus.Fatalf("Failed to create server: %v", err)
 		return

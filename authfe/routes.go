@@ -16,8 +16,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/justinas/nosurf"
-	"github.com/opentracing-contrib/go-stdlib/nethttp"
-	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -464,9 +462,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/kibana",
 	}
 
-	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
-		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-	})
 	originChecker := originCheckerMiddleware{
 		allowedOrigin:         c.targetOrigin,
 		allowedOriginSuffixes: c.allowedOriginSuffixes,
@@ -476,9 +471,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		originChecker,
 		stripSetCookieHeader{prefixes: stripSetCookieHeaderPrefixes},
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie, domain: c.cookieDomain},
-		middleware.Func(func(handler http.Handler) http.Handler {
-			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
-		}),
+		middleware.Tracer{RouteMatcher: r},
 		c.commonMiddleWare(r),
 	).Wrap(r), nil
 }
