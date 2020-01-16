@@ -232,7 +232,7 @@ func (a *API) adminWeeklyReportsPreview(w http.ResponseWriter, r *http.Request) 
 		renderError(w, r, err)
 		return
 	}
-	err = a.emailer.WeeklyReportEmail([]*users.User{user}, weeklyReport)
+	err = a.emailer.WeeklyReportEmail(r.Context(), []*users.User{user}, weeklyReport)
 	if err != nil {
 		renderError(w, r, err)
 		return

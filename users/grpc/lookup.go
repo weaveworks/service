@@ -316,7 +316,7 @@ func (a *usersServer) NotifyTrialPendingExpiry(ctx context.Context, req *users.N
 	if err != nil {
 		return nil, err
 	}
-	err = a.emailer.TrialPendingExpiryEmail(members, req.ExternalID, org.Name, org.TrialExpiresAt)
+	err = a.emailer.TrialPendingExpiryEmail(ctx, members, req.ExternalID, org.Name, org.TrialExpiresAt)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +340,7 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	if err != nil {
 		return nil, err
 	}
-	err = a.emailer.TrialExpiredEmail(members, req.ExternalID, org.Name)
+	err = a.emailer.TrialExpiredEmail(ctx, members, req.ExternalID, org.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +408,7 @@ func (a *usersServer) SendOutWeeklyReport(ctx context.Context, req *users.SendOu
 		return nil, err
 	}
 
-	if err := a.emailer.WeeklyReportEmail(members, weeklyReport); err != nil {
+	if err := a.emailer.WeeklyReportEmail(ctx, members, weeklyReport); err != nil {
 		return nil, err
 	}
 
@@ -434,7 +434,7 @@ func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.Not
 	if err != nil {
 		return nil, err
 	}
-	err = a.emailer.RefuseDataUploadEmail(members, req.ExternalID, org.Name)
+	err = a.emailer.RefuseDataUploadEmail(ctx, members, req.ExternalID, org.Name)
 	if err != nil {
 		return nil, err
 	}

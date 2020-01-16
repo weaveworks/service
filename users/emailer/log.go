@@ -1,13 +1,15 @@
 package emailer
 
 import (
+	"context"
+
 	"github.com/jordan-wright/email"
 	log "github.com/sirupsen/logrus"
 )
 
 // logEmailSender just logs all emails, instead of sending them.
-func logEmailSender() func(e *email.Email) error {
-	return func(e *email.Email) error {
+func logEmailSender() func(ctx context.Context, e *email.Email) error {
+	return func(ctx context.Context, e *email.Email) error {
 		body := string(e.Text)
 		if body == "" {
 			body = string(e.HTML)

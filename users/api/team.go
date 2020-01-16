@@ -339,9 +339,9 @@ func (a *API) inviteUserToTeam(currentUser *users.User, w http.ResponseWriter, r
 	}
 
 	if created {
-		err = a.emailer.InviteToTeamEmail(currentUser, invitee, teamExternalID, team.Name, token)
+		err = a.emailer.InviteToTeamEmail(ctx, currentUser, invitee, teamExternalID, team.Name, token)
 	} else {
-		err = a.emailer.GrantAccessToTeamEmail(currentUser, invitee, teamExternalID, team.Name)
+		err = a.emailer.GrantAccessToTeamEmail(ctx, currentUser, invitee, teamExternalID, team.Name)
 	}
 
 	if err != nil {

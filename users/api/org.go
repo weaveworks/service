@@ -630,7 +630,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 	if err != nil {
 		return err
 	}
-	err = a.emailer.TrialExtendedEmail(members, org.ExternalID, org.Name, t)
+	err = a.emailer.TrialExtendedEmail(ctx, members, org.ExternalID, org.Name, t)
 	if err != nil {
 		return err
 	}

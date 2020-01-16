@@ -351,7 +351,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		resp.QueryParams = req.QueryParams
 	}
 
-	err = a.emailer.LoginEmail(user, token, req.QueryParams)
+	err = a.emailer.LoginEmail(ctx, user, token, req.QueryParams)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
 	}

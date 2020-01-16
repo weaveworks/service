@@ -1,14 +1,13 @@
 package emailer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/jordan-wright/email"
-	sendgrid "github.com/sendgrid/sendgrid-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
@@ -22,21 +21,20 @@ var ErrUnsupportedEmailProtocol = errors.New("unsupported email protocol")
 // Emailer is the interface which emailers implement. There should be a method
 // for each type of email we send.
 type Emailer interface {
-	LoginEmail(u *users.User, token string, queryParams map[string]string) error
-	InviteToTeamEmail(inviter, invited *users.User, teamExternalID, teamName, token string) error
-	GrantAccessToTeamEmail(inviter, invited *users.User, teamExternalID, teamName string) error
-	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
-	TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
-	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
-	RefuseDataUploadEmail(members []*users.User, orgExternalID, orgName string) error
-	WeeklyReportEmail(members []*users.User, report *weeklyreports.Report) error
+	LoginEmail(ctx context.Context, u *users.User, token string, queryParams map[string]string) error
+	InviteToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName, token string) error
+	GrantAccessToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName string) error
+	TrialExtendedEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
+	TrialPendingExpiryEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
+	TrialExpiredEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string) error
+	RefuseDataUploadEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string) error
+	WeeklyReportEmail(ctx context.Context, members []*users.User, report *weeklyreports.Report) error
 }
 
 // MustNew creates a new Emailer, from the URI, or panics.
 // Supports scheme smtp:// and log:// in `emailURI`.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
-	var sendDirectly func(*email.Email) error
-	var sendGridClient *sendgrid.Client
+	var sendDirectly func(context.Context, *email.Email) error
 	u, err := url.Parse(emailURI)
 	if err != nil {
 		log.Fatalf("Error parsing -email-uri: %s", err)
@@ -52,17 +50,7 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 	if err != nil {
 		log.Fatal(err)
 	}
-	sendGridAPIKey, ok := os.LookupEnv("SENDGRID_API_KEY")
-	if ok {
-		sendGridClient = sendgrid.NewSendClient(sendGridAPIKey)
-	}
-	return SMTPEmailer{
-		Templates:      templates,
-		SendDirectly:   sendDirectly,
-		SendGridClient: sendGridClient,
-		Domain:         domain,
-		FromAddress:    fromAddress,
-	}
+	return newSMTPEmailer(fromAddress, templates, domain, sendDirectly)
 }
 
 func loginURL(email, rawToken, domain string, queryParams map[string]string) string {

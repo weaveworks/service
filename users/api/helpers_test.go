@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -105,7 +106,7 @@ func cleanup(t *testing.T) {
 	dbtest.Cleanup(t, database)
 }
 
-func testEmailSendDirectly(e *email.Email) error {
+func testEmailSendDirectly(_ context.Context, e *email.Email) error {
 	sentEmails = append(sentEmails, e)
 	return nil
 }
