@@ -50,6 +50,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/compare-images/">Compare Images</a></li>
 			<li><a href="/admin/compare-revisions/">Compare Revisions</a></li>
 			<li><a href="/admin/cortex/ring">Cortex Ring</a></li>
+			<li><a href="/admin/cortex/ruler_ring">Cortex Ruler Ring</a></li>
 			<li><a href="/admin/cortex/alertmanager/status">Cortex Alertmanager Status</a></li>
 			<li><a href="/admin/cortex/all_user_stats">Cortex user stats</a></li>
 			<li>Billing

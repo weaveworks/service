@@ -84,6 +84,7 @@ type Config struct {
 	prodGrafanaHost       proxyConfig
 	promAlertmanagerHost  proxyConfig
 	promDistributorHost   proxyConfig
+	promRulerHost         proxyConfig
 	promQuerierHost       proxyConfig
 	prometheusHost        proxyConfig
 	scopeHost             proxyConfig
@@ -115,6 +116,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"prom-alertmanager":    &c.promAlertmanagerHost,
 		"prom-configs":         &c.promConfigsHost,
 		"prom-distributor":     &c.promDistributorHost,
+		"prom-ruler":           &c.promRulerHost,
 		"prom-querier":         &c.promQuerierHost,
 		"query":                &c.queryHost,
 		"ui-metrics":           &c.uiMetricsHost,
