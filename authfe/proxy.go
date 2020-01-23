@@ -17,6 +17,7 @@ import (
 	"github.com/go-kit/kit/sd/lb"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -118,9 +119,14 @@ var proxyTransportWithKeepAlives http.RoundTripper = &nethttp.Transport{
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !middleware.IsWSHandshakeRequest(r) {
 		var ht *nethttp.Tracer
-		cmo := nethttp.OperationName(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		cmo := nethttp.OperationName(fmt.Sprintf("Proxy %s", p.name))
 		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r, cmo)
-		defer ht.Finish()
+		defer func() {
+			if ht.Span() != nil {
+				ext.Component.Set(ht.Span(), "authfe/proxy")
+			}
+			ht.Finish()
+		}()
 	}
 
 	if p.hostAndPort == "" {

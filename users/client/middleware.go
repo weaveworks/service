@@ -114,7 +114,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		logger := user.LogWith(ctx, logging.Global())
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			logger.WithField("host", httpUtil.HostFromRequest(r)).Errorf("Unauthorised probe request, no token")
+			logger.WithField("host", httpUtil.HostFromRequest(r)).WithField("url", r.URL.Path).Infof("Unauthorised probe request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -198,7 +198,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 		ctx := r.Context()
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			user.LogWith(ctx, logging.Global()).WithField("host", httpUtil.HostFromRequest(r)).Infof("Unauthorised user request, no auth cookie: %v", err)
+			user.LogWith(ctx, logging.Global()).WithField("host", httpUtil.HostFromRequest(r)).WithField("url", r.URL.Path).Infof("Unauthorised user request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
