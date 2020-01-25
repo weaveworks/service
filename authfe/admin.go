@@ -29,9 +29,10 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/kibana/">Kibana</a></li>
 		</ul>
 
-		<h2>Tracing</h2>
+		<h2>Tracing and Profiling</h2>
 		<ul>
 			<li><a href="/admin/jaeger/">Jaeger</a></li>
+			<li><a href="/admin/conprof/">Conprof (Continuous Profiling)</a></li>
 		</ul>
 
 		<h2>Management</h2>

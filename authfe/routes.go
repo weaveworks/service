@@ -363,6 +363,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/cortex/all_user_stats", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/jaeger", c.jaegerHost},
+				{"/conprof", c.conprofHost},
 				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
 				{"/elasticsearch", trimPrefix("/admin/elasticsearch", c.elasticsearchHost)},
 				{"/esh", trimPrefix("/admin/esh", c.eshHost)},
