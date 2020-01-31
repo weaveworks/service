@@ -68,6 +68,7 @@ type Config struct {
 	billingUploaderHost   proxyConfig
 	compareImagesHost     proxyConfig
 	compareRevisionsHost  proxyConfig
+	conprofHost           proxyConfig
 	corpAtlantisHost      proxyConfig
 	corpDiffHost          proxyConfig
 	corpTerradiffHost     proxyConfig
@@ -84,6 +85,7 @@ type Config struct {
 	prodGrafanaHost       proxyConfig
 	promAlertmanagerHost  proxyConfig
 	promDistributorHost   proxyConfig
+	promRulerHost         proxyConfig
 	promQuerierHost       proxyConfig
 	prometheusHost        proxyConfig
 	scopeHost             proxyConfig
@@ -115,6 +117,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"prom-alertmanager":    &c.promAlertmanagerHost,
 		"prom-configs":         &c.promConfigsHost,
 		"prom-distributor":     &c.promDistributorHost,
+		"prom-ruler":           &c.promRulerHost,
 		"prom-querier":         &c.promQuerierHost,
 		"query":                &c.queryHost,
 		"ui-metrics":           &c.uiMetricsHost,
@@ -128,6 +131,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"billing-uploader":   &c.billingUploaderHost,
 		"compare-images":     &c.compareImagesHost,
 		"compare-revisions":  &c.compareRevisionsHost,
+		"conprof":            &c.conprofHost,
 		"corp-atlantis":      &c.corpAtlantisHost,
 		"corpdiff":           &c.corpDiffHost,
 		"corp-terradiff":     &c.corpTerradiffHost,
