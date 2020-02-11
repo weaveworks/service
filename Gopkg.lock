@@ -169,14 +169,6 @@
   version = "v2.6"
 
 [[projects]]
-  branch = "master"
-  digest = "1:8ecb89af7dfe3ac401bdb0c9390b134ef96a97e85f732d2b0604fb7b3977839f"
-  name = "github.com/codahale/hdrhistogram"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
-
-[[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -722,16 +714,15 @@
   revision = "db30781987df913dc5a2345439c43e1598e33434"
 
 [[projects]]
-  branch = "hijack"
-  digest = "1:aa4ea1ade473b9c22e702939c444dcbdce7987f3a4d1338a9abf8ba7544721a6"
+  branch = "master"
+  digest = "1:bce8a8c7289c6c5e23423799b905c3e8f2d532117c3778a45592bdc095cf5c83"
   name = "github.com/opentracing-contrib/go-stdlib"
   packages = ["nethttp"]
   pruneopts = "NUT"
-  revision = "bda006badb2f0814cf5888d8be65c5244e6684fd"
-  source = "github.com/weaveworks/go-stdlib"
+  revision = "cf7a6c988dc994e945d2715565026f3cc8718689"
 
 [[projects]]
-  digest = "1:7da29c22bcc5c2ffb308324377dc00b5084650348c2799e573ed226d8cc9faf0"
+  digest = "1:6846140b3f116579680eefdc17145f2bcf064b68deb9febf86b4419a454049af"
   name = "github.com/opentracing/opentracing-go"
   packages = [
     ".",
@@ -739,8 +730,8 @@
     "log",
   ]
   pruneopts = "NUT"
-  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
-  version = "v1.0.2"
+  revision = "659c90643e714681897ec2521c60567dd21da733"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -1002,13 +993,14 @@
   version = "v1.2.15"
 
 [[projects]]
-  digest = "1:3d48c38e0eca8c66df62379c5ae7a83fb5cd839b94f241354c07ba077da7bc45"
+  digest = "1:a80729643d3c77441401c6974320c2b632cace5fa78085c3305c6ecc5776b87b"
   name = "github.com/uber/jaeger-client-go"
   packages = [
     ".",
     "config",
     "internal/baggage",
     "internal/baggage/remote",
+    "internal/reporterstats",
     "internal/spanlog",
     "internal/throttler",
     "internal/throttler/remote",
@@ -1020,22 +1012,23 @@
     "thrift-gen/jaeger",
     "thrift-gen/sampling",
     "thrift-gen/zipkincore",
+    "transport",
     "utils",
   ]
   pruneopts = "NUT"
-  revision = "b043381d944715b469fd6b37addfd30145ca1758"
-  version = "v2.14.0"
+  revision = "2d55657eac169e2a86b4fcc1a421e26a9a485b63"
+  version = "v2.22.1"
 
 [[projects]]
-  digest = "1:77d4829f7b91e9efa38dfb4c6aec08857359f25b2d9c932f7ed72ad315560b91"
+  digest = "1:541583f90baf0adc4c514660dab68ff309488554b3d3cd1c7594deff064faf06"
   name = "github.com/uber/jaeger-lib"
   packages = [
     "metrics",
     "metrics/prometheus",
   ]
   pruneopts = "NUT"
-  revision = "ed3a127ec5fef7ae9ea95b01b542c47fbd999ce5"
-  version = "v1.5.0"
+  revision = "a87ae9d84fb038a8d79266298970720be7c80fcd"
+  version = "v2.2.0"
 
 [[projects]]
   digest = "1:48b687b663f398d142bb02c0c7656038629aa4d5a05777ee0830c73ed8f9991b"
@@ -1178,6 +1171,14 @@
   revision = "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 
 [[projects]]
+  digest = "1:f0635c284d572c51bf57b5e8b2d66ad7c46ea474fc6deb0061f996dc28f97d13"
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "40ae6a40a970ef4cdbffa7b24b280e316db8accc"
+  version = "v1.5.1"
+
+[[projects]]
   branch = "master"
   digest = "1:f006d0b1a564169d9c5b731486286a26ba8a4ed0b5aa8830599a668e3cb67953"
   name = "golang.org/x/crypto"
@@ -1190,6 +1191,17 @@
   ]
   pruneopts = "NUT"
   revision = "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5"
+
+[[projects]]
+  branch = "master"
+  digest = "1:5b8b10c6c3a2c1b4131a1e05de506f8a544ff4ede7cd26cdfcdef4fc2a5b1510"
+  name = "golang.org/x/lint"
+  packages = [
+    ".",
+    "golint",
+  ]
+  pruneopts = "NUT"
+  revision = "fdd1cda4f05fd1fd86124f0ef9ce31a0b72c8448"
 
 [[projects]]
   branch = "master"
@@ -1287,9 +1299,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d9fd2064b6dc5205290d6c510622d056826f9d122cc7129553044528874ed671"
+  digest = "1:7a2a54c3250da2301e5044dbd81ccaede714b2e9611afbbc9838553fdc1a8cb3"
   name = "golang.org/x/tools"
-  packages = ["cover"]
+  packages = [
+    "cover",
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/gcimporter15",
+    "go/types/typeutil",
+  ]
   pruneopts = "NUT"
   revision = "e531a2a1c15f94033f6fa87666caeb19a688175f"
 

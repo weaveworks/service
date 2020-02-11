@@ -80,11 +80,11 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
+		tracing.ForceTraceIfFlagged(ctx, r, response.FeatureFlags) // must do this before setting tags
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			span.SetTag(userTag, response.UserID)
 			span.SetTag(orgTag, response.OrganizationID)
 		}
-		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logger.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -135,10 +135,10 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
+		tracing.ForceTraceIfFlagged(ctx, r, response.FeatureFlags) // must do this before setting tags
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			span.SetTag(orgTag, response.OrganizationID)
 		}
-		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logger.Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
