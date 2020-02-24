@@ -114,6 +114,7 @@ AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
 USERS_SYNC_EXE := users-sync/cmd/users-sync
 METRICS_EXE := metrics/metrics
+METRICS_USAGE_EXE := metrics-usage/metrics-usage
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 FLUX_API_EXE := flux-api/flux-api
@@ -129,7 +130,7 @@ SCOPE_DATA_CLEANING_EXE := scope-data-cleaning/scanner
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(USERS_SYNC_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) \
 	$(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) \
 	$(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE) $(DASHBOARD_EXE) $(NET_DISCOVERY_EXE) \
-	$(SCOPE_DATA_CLEANING_EXE)
+	$(SCOPE_DATA_CLEANING_EXE) $(METRICS_USAGE_EXE)
 
 # And what goes into each exe
 gofiles = $(shell find $1 -name '*.go')
@@ -139,6 +140,7 @@ $(AUTHFE_EXE): $(call gofiles,authfe) $(call gofiles,users/client) $(COMMON) use
 $(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
 $(USERS_SYNC_EXE): $(call gofiles,users-sync) $(COMMON) users-sync/api/users-sync.pb.go
 $(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
+$(METRICS_USAGE_EXE): $(call gofiles,metrics-usage) $(COMMON)
 $(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(call gofiles,service-ui-kicker) $(COMMON)
 $(FLUX_API_EXE): $(call gofiles,flux-api) $(COMMON)
@@ -159,6 +161,7 @@ authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') $(call common-templates-deps,users) users/templates/*
 users-sync/$(UPTODATE): $(USERS_SYNC_EXE)
 metrics/$(UPTODATE): $(METRICS_EXE)
+metrics-usage/$(UPTODATE): $(METRICS_USAGE_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
