@@ -255,7 +255,7 @@ billing-integration-test: build/$(UPTODATE)
 flux-integration-test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	NATS_CONTAINER="$$(docker run -d nats)"; \
-	POSTGRES_CONTAINER="$$(docker run -d postgres)"; \
+	POSTGRES_CONTAINER="$$(docker run -d postgres:10.6)"; \
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
