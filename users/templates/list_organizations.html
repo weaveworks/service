@@ -133,7 +133,8 @@
               <label><input type="checkbox" name="RefuseDataAccess" {{if .RefuseDataAccess}}checked {{end}}/> RefuseDataAccess</label>
               <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label><br/>
               <label>Refuse reason <input type="text" name="RefuseDataReason" value="{{.RefuseDataReason}}" title="If custom reason is set returns 403 Forbidden; otherwise 402 Payment Required" /></label><br/>
-              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
+              <input type="text" name="FeatureFlags" id="feature-flags-tooltip-{{.ID}}" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
+              <div class="mdl-tooltip" data-mdl-for="feature-flags-tooltip-{{.ID}}">Space ' ' separated list of flags. Example: billing no-billing canary weekly-reportable</div>
               <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" />
           </form>
           {{end}}
