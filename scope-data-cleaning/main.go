@@ -295,6 +295,9 @@ func setupOrgs(deleteOrgsFile, keepOrgsStr string) (deleteOrgs, keepOrgs map[int
 func parseRecord(record string) (orgStr string, org, hour, count int, err error) {
 	// Record is something like "1-406768, 4103", which is org-hour, reports
 	fields := strings.Split(record, ", ")
+	if len(fields != 2) {
+		return "", 0, 0, 0, fmt.Errorf("unrecognized record")
+	}
 	count, err = strconv.Atoi(fields[1])
 	if err != nil {
 		return
