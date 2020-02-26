@@ -115,7 +115,7 @@ func (m *metricsJob) promQuery(ctx context.Context, now time.Time, query string)
 
 func (m *metricsJob) emitBillingRecord(ctx context.Context, now time.Time, userID, uniqueKey string, samples int64) error {
 	amounts := billing.Amounts{
-		billing.Samples: samples,
+		"metrics-samples": samples, // using non-standard key so it can run alongside distributor version
 	}
 	return m.billingClient.AddAmounts(uniqueKey, userID, now, amounts, nil)
 }
