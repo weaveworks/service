@@ -84,6 +84,8 @@ func (m *metricsJob) Run() {
 	now := mtime.Now()
 	// Note 'user' here means instance in Weave-Cloud-speak.
 	m.queryAndEmit(ctx, now, "metrics-samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
+	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m]))`)
+	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
 }
 
 func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType billing.AmountType, tag, query string) {
