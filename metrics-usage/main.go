@@ -83,10 +83,10 @@ func (m *metricsJob) Run() {
 	ctx := context.Background()
 	now := mtime.Now()
 	// Note 'user' here means instance in Weave-Cloud-speak.
-	m.queryAndEmit(ctx, now, "metrics-samples", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
+	m.queryAndEmit(ctx, now, "metrics-samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
 }
 
-func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType billing.AmountType, query string) {
+func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType billing.AmountType, tag, query string) {
 	vector, err := m.promQuery(ctx, now, query)
 	if err != nil {
 		m.log.Warnf("error from query %q: %s", query, err)
@@ -101,7 +101,7 @@ func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType
 			m.log.Warnf("User not found in query result: %v", vector)
 			return
 		}
-		uniqueKey := user + ":" + fmt.Sprint(sample.Timestamp)
+		uniqueKey := user + ":" + fmt.Sprint(sample.Timestamp) + tag
 		m.emitBillingRecord(ctx, now, amountType, user, uniqueKey, int64(sample.Value))
 	}
 }
