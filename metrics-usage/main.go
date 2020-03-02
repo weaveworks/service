@@ -82,6 +82,7 @@ func newMetricsJob(log logging.Interface, billingClient *billing.Client, promCli
 func (m *metricsJob) Run() {
 	ctx := context.Background()
 	now := mtime.Now()
+	// Note 'user' here means instance in Weave-Cloud-speak.
 	vector, err := m.promQuery(ctx, now, `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
 	if err != nil {
 		m.log.Warnf("error from samples query: %s", err)
@@ -96,7 +97,7 @@ func (m *metricsJob) Run() {
 			m.log.Warnf("User not found in query result: %v", vector)
 			return
 		}
-		uniqueKey := fmt.Sprint(sample.Timestamp)
+		uniqueKey := user + ":" + fmt.Sprint(sample.Timestamp)
 		m.emitBillingRecord(ctx, now, user, uniqueKey, int64(sample.Value))
 	}
 }
