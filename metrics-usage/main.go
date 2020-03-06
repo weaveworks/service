@@ -83,9 +83,15 @@ func (m *metricsJob) Run() {
 	ctx := context.Background()
 	now := mtime.Now()
 	// Note 'user' here means instance in Weave-Cloud-speak.
-	vector, err := m.promQuery(ctx, now, `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
+	m.queryAndEmit(ctx, now, "metrics-samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
+	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m]))`)
+	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
+}
+
+func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType billing.AmountType, tag, query string) {
+	vector, err := m.promQuery(ctx, now, query)
 	if err != nil {
-		m.log.Warnf("error from samples query: %s", err)
+		m.log.Warnf("error from query %q: %s", query, err)
 		return
 	}
 	for _, sample := range vector {
@@ -97,8 +103,8 @@ func (m *metricsJob) Run() {
 			m.log.Warnf("User not found in query result: %v", vector)
 			return
 		}
-		uniqueKey := user + ":" + fmt.Sprint(sample.Timestamp)
-		m.emitBillingRecord(ctx, now, user, uniqueKey, int64(sample.Value))
+		uniqueKey := user + ":" + fmt.Sprint(sample.Timestamp) + tag
+		m.emitBillingRecord(ctx, now, amountType, user, uniqueKey, int64(sample.Value))
 	}
 }
 
@@ -114,11 +120,14 @@ func (m *metricsJob) promQuery(ctx context.Context, now time.Time, query string)
 	return vector, nil
 }
 
-func (m *metricsJob) emitBillingRecord(ctx context.Context, now time.Time, userID, uniqueKey string, samples int64) error {
+func (m *metricsJob) emitBillingRecord(ctx context.Context, now time.Time, amountType billing.AmountType, userID, uniqueKey string, samples int64) {
 	amounts := billing.Amounts{
-		"metrics-samples": samples, // using non-standard key so it can run alongside distributor version
+		amountType: samples,
 	}
-	return m.billingClient.AddAmounts(uniqueKey, userID, now, amounts, nil)
+	err := m.billingClient.AddAmounts(uniqueKey, userID, now, amounts, nil)
+	if err != nil {
+		m.log.Warnf("error sending billing data: %s", err)
+	}
 }
 
 func checkFatal(e error) {
