@@ -510,3 +510,18 @@ func (a *usersServer) RequireOrgMemberPermissionTo(ctx context.Context, req *use
 
 	return &users.Empty{}, api.RequireOrgMemberPermissionTo(ctx, a.db, req.UserID, orgExternalID, req.PermissionID)
 }
+
+func (a *usersServer) GetDataRetention(ctx context.Context, req *users.GetOrganizationRequest) (*users.DataRetention, error) {
+	resp, err := a.GetOrganization(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	days := 90
+	if resp.Organization.DeletedAt != nil {
+		days = 0
+	}
+	return &users.DataRetention{
+		ID:                resp.Organization.ID,
+		DataRetentionDays: 21,
+	}, nil
+}

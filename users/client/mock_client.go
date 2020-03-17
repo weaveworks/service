@@ -159,3 +159,7 @@ func (MockClient) RequireTeamMemberPermissionTo(ctx context.Context, req *users.
 func (MockClient) RequireOrgMemberPermissionTo(ctx context.Context, req *users.RequireOrgMemberPermissionToRequest, opts ...grpc.CallOption) (*users.Empty, error) {
 	return &users.Empty{}, nil
 }
+
+func (MockClient) GetDataRetention(ctx context.Context, req *users.GetOrganizationRequest, opts ...grpc.CallOption) (*users.DataRetention, error) {
+	return &users.DataRetention{}, nil
+}
