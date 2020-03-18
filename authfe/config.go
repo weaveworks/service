@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/weaveworks/service/common"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 // Config is all the config we need to build the routes
@@ -213,6 +215,7 @@ type proxyConfig struct {
 
 	// Set this based on the flags
 	http.Handler
+	balancer balance.Balancer
 }
 
 func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {

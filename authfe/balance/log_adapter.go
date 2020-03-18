@@ -1,4 +1,4 @@
-package main
+package balance
 
 import (
 	"github.com/go-kit/kit/log"
