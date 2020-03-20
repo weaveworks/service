@@ -10,9 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-kit/kit/sd"
 	gorillaws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 func TestProxyWebSocket(t *testing.T) {
@@ -85,6 +88,73 @@ func TestProxyGet(t *testing.T) {
 	_, err = http.Get(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI))
 	assert.NoError(t, err, "Failed to get URL")
 	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server wasn't called")
+}
+
+// Test proxying to more than one backend
+func TestProxyMultiServer(t *testing.T) {
+	const nCalls = 12
+
+	roundRobin := func(hosts []string) balance.Balancer {
+		return balance.NewRoundRobin(sd.FixedInstancer(hosts))
+	}
+
+	for _, test := range []struct {
+		name           string
+		serverSpeed    []int
+		factory        func([]string) balance.Balancer
+		expectedCalls  []int
+		expectedStatus int
+	}{
+		{
+			name:           "no servers",
+			factory:        roundRobin,
+			expectedStatus: 500,
+		},
+		{
+			name:           "two same-speed servers",
+			serverSpeed:    []int{1, 1},
+			factory:        roundRobin,
+			expectedCalls:  []int{nCalls / 2, nCalls / 2},
+			expectedStatus: 200,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			hosts := make([]string, len(test.serverSpeed))
+			handlerCalled := make([]uint32, len(test.serverSpeed))
+			// Set up N dummy servers that count calls and wait a short time
+			for i, speed := range test.serverSpeed {
+				i := i // new copy for closure capture
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					atomic.AddUint32(&handlerCalled[i], 1)
+					time.Sleep(time.Duration(speed) * time.Millisecond)
+				}))
+				defer server.Close()
+				serverURL, err := url.Parse(server.URL)
+				assert.NoError(t, err)
+				hosts[i] = serverURL.Host
+			}
+
+			balancer := test.factory(hosts[:])
+			defer balancer.Close()
+			proxy, _ := newProxy(proxyConfig{
+				balancer: balancer,
+				protocol: "http",
+			})
+			proxyServer := httptest.NewServer(proxy)
+			defer proxyServer.Close()
+
+			// Now make N calls through the proxy
+			for i := 0; i < nCalls; i++ {
+				resp, err := http.Get(proxyServer.URL)
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedStatus, resp.StatusCode)
+			}
+			// Check we got the expected number of calls
+			for i, expectedCalls := range test.expectedCalls {
+				assert.Equal(t, uint32(expectedCalls), atomic.LoadUint32(&handlerCalled[i]), "wrong number of calls")
+			}
+		})
+	}
 }
 
 func TestProxyReadOnly(t *testing.T) {
