@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	promApi "github.com/prometheus/client_golang/api"
@@ -14,6 +15,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 
 	billing "github.com/weaveworks/billing-client"
 	"github.com/weaveworks/common/instrument"
@@ -37,9 +39,11 @@ func main() {
 		billingConfig billing.Config
 		url           string
 		wcInstance    string
+		instances     string
 	)
 	flag.StringVar(&url, "metrics.url", "", "Cortex query URL")
 	flag.StringVar(&wcInstance, "wc.instance", "2", "instance ID holding internal Cortex metrics")
+	flag.StringVar(&instances, "poll.instances", "", "Space-separated list of instances to poll for usage from Cortex")
 	serverConfig.RegisterFlags(flag.CommandLine)
 	billingConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
@@ -54,7 +58,7 @@ func main() {
 	promClient, err := common.NewPrometheusClient(url)
 	checkFatal(err)
 
-	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient, wcInstance)
+	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient, wcInstance, strings.Split(instances, " "))
 	checkFatal(err)
 
 	metricsCron := cron.New()
@@ -74,15 +78,17 @@ type metricsJob struct {
 	billingClient *billing.Client
 	promAPI       promV1.API
 	wcInstance    string
+	instances     []string
 	limiter       *rate.Limiter
 }
 
-func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client, wcInstance string) (cron.Job, error) {
+func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client, wcInstance string, instances []string) (cron.Job, error) {
 	return &metricsJob{
 		log:           log,
 		billingClient: billingClient,
 		promAPI:       promV1.NewAPI(promClient),
 		wcInstance:    wcInstance,
+		instances:     instances,
 		limiter:       rate.NewLimiter(5, 1),
 	}, nil
 }
@@ -97,6 +103,14 @@ func (m *metricsJob) Run() {
 	m.queryAndEmit(ctx, now, "samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
+
+	for _, instance := range m.instances {
+		ctx := user.InjectOrgID(ctx, instance)
+		count := `count(kube_node_status_condition{kubernetes_namespace="weave",condition="Ready",status="true"})`
+		// Use label_replace to add a 'user' column which isn't in the underlying data
+		queryStr := fmt.Sprintf(`label_replace(%s,"user","%s","",".*") * 60`, count, instance)
+		m.queryAndEmit(ctx, now, "metrics-node-seconds", "", queryStr)
+	}
 }
 
 // Run a Prom query and emit one billing record for each point that comes back
@@ -122,6 +136,7 @@ func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType
 
 // Run a Prom query and check that we get the expected type
 func (m *metricsJob) promQuery(ctx context.Context, now time.Time, query string) (model.Vector, error) {
+	m.limiter.Wait(ctx)
 	value, err := m.promAPI.Query(ctx, query, now)
 	if err != nil {
 		return nil, err
