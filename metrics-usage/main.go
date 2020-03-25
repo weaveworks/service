@@ -79,6 +79,7 @@ func newMetricsJob(log logging.Interface, billingClient *billing.Client, promCli
 	}, nil
 }
 
+// This function will get run periodically by the cron package
 func (m *metricsJob) Run() {
 	ctx := context.Background()
 	now := mtime.Now()
@@ -88,6 +89,7 @@ func (m *metricsJob) Run() {
 	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
 }
 
+// Run a Prom query and emit one billing record for each point that comes back
 func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType billing.AmountType, tag, query string) {
 	vector, err := m.promQuery(ctx, now, query)
 	if err != nil {
@@ -108,6 +110,7 @@ func (m *metricsJob) queryAndEmit(ctx context.Context, now time.Time, amountType
 	}
 }
 
+// Run a Prom query and check that we get the expected type
 func (m *metricsJob) promQuery(ctx context.Context, now time.Time, query string) (model.Vector, error) {
 	value, err := m.promAPI.Query(ctx, query, now)
 	if err != nil {
