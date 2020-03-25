@@ -20,6 +20,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common"
 )
 
 var jobCollector = instrument.NewJobCollector("usage")
@@ -34,8 +36,10 @@ func main() {
 		serverConfig  server.Config
 		billingConfig billing.Config
 		url           string
+		wcInstance    string
 	)
-	flag.StringVar(&url, "metrics.url", "", "Prometheus query URL")
+	flag.StringVar(&url, "metrics.url", "", "Cortex query URL")
+	flag.StringVar(&wcInstance, "wc.instance", "2", "instance ID holding internal Cortex metrics")
 	serverConfig.RegisterFlags(flag.CommandLine)
 	billingConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
@@ -47,10 +51,10 @@ func main() {
 
 	billingClient, err := billing.NewClient(billingConfig)
 	checkFatal(err)
-	promClient, err := promApi.NewClient(promApi.Config{Address: url})
+	promClient, err := common.NewPrometheusClient(url)
 	checkFatal(err)
 
-	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient)
+	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient, wcInstance)
 	checkFatal(err)
 
 	metricsCron := cron.New()
@@ -69,21 +73,27 @@ type metricsJob struct {
 	log           logging.Interface
 	billingClient *billing.Client
 	promAPI       promV1.API
+	wcInstance    string
+	limiter       *rate.Limiter
 }
 
-func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client) (cron.Job, error) {
+func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client, wcInstance string) (cron.Job, error) {
 	return &metricsJob{
 		log:           log,
 		billingClient: billingClient,
 		promAPI:       promV1.NewAPI(promClient),
+		wcInstance:    wcInstance,
+		limiter:       rate.NewLimiter(5, 1),
 	}, nil
 }
 
 // This function will get run periodically by the cron package
 func (m *metricsJob) Run() {
-	ctx := context.Background()
+	// Query WC internal stats via our own instance-id
+	ctx := user.InjectOrgID(context.Background(), m.wcInstance)
 	now := mtime.Now()
 	// Note 'user' here means instance in Weave-Cloud-speak.
+	// Note also the '1m' window must match the cron-job run interval
 	m.queryAndEmit(ctx, now, "samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
