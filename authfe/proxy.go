@@ -17,6 +17,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 const defaultPort = "80"
@@ -119,8 +121,11 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := user.LogWith(r.Context(), logging.Global())
 
 	hostAndPort := p.hostAndPort
+	var endpoint balance.Endpoint
 	if p.balancer != nil {
-		endpoint, err := p.balancer.Get("") //fixme
+		key := r.Header.Get(user.OrgIDHeaderName)
+		var err error
+		endpoint, err = p.balancer.Get(key)
 		if err != nil {
 			logger.Errorf("proxy: loadbalancer error: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -141,11 +146,18 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if middleware.IsWSHandshakeRequest(r) {
 		logger.Debugf("proxy: detected websocket handshake")
 		p.proxyWS(w, r)
+		if endpoint != nil {
+			p.balancer.Put(endpoint)
+		}
 		return
 	}
 
 	// Proxy request
 	p.reverseProxy.ServeHTTP(w, r)
+
+	if endpoint != nil {
+		p.balancer.Put(endpoint)
+	}
 }
 
 func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
