@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -92,10 +93,14 @@ func TestProxyGet(t *testing.T) {
 
 // Test proxying to more than one backend
 func TestProxyMultiServer(t *testing.T) {
-	const nCalls = 12
+	const nCalls = 100
 
 	roundRobin := func(hosts []string) balance.Balancer {
 		return balance.NewRoundRobin(sd.FixedInstancer(hosts))
+	}
+	bounded := func(hosts []string) balance.Balancer {
+		// Use load-factor very close to 1 to get "very fair" balancing
+		return balance.NewConsistentWrapper(sd.FixedInstancer(hosts), 1.01)
 	}
 
 	for _, test := range []struct {
@@ -111,10 +116,24 @@ func TestProxyMultiServer(t *testing.T) {
 			expectedStatus: 500,
 		},
 		{
-			name:           "two same-speed servers",
-			serverSpeed:    []int{1, 1},
+			name:           "round-robin, two same-speed servers",
+			serverSpeed:    []int{50, 50},
 			factory:        roundRobin,
 			expectedCalls:  []int{nCalls / 2, nCalls / 2},
+			expectedStatus: 200,
+		},
+		{
+			name:           "bounded, two same-speed servers",
+			serverSpeed:    []int{50, 50},
+			factory:        bounded,
+			expectedCalls:  []int{nCalls / 2, nCalls / 2},
+			expectedStatus: 200,
+		},
+		{
+			name:           "bounded, one server twice as slow as another",
+			serverSpeed:    []int{50, 100},
+			factory:        bounded,
+			expectedCalls:  []int{nCalls / 3 * 2, nCalls / 3},
 			expectedStatus: 200,
 		},
 	} {
@@ -123,7 +142,7 @@ func TestProxyMultiServer(t *testing.T) {
 			handlerCalled := make([]uint32, len(test.serverSpeed))
 			// Set up N dummy servers that count calls and wait a short time
 			for i, speed := range test.serverSpeed {
-				i := i // new copy for closure capture
+				i, speed := i, speed // new copies for closure capture
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					atomic.AddUint32(&handlerCalled[i], 1)
 					time.Sleep(time.Duration(speed) * time.Millisecond)
@@ -143,15 +162,25 @@ func TestProxyMultiServer(t *testing.T) {
 			proxyServer := httptest.NewServer(proxy)
 			defer proxyServer.Close()
 
-			// Now make N calls through the proxy
+			// Now make N calls through the proxy, in parallel
+			wg := sync.WaitGroup{}
+			wg.Add(nCalls)
 			for i := 0; i < nCalls; i++ {
-				resp, err := http.Get(proxyServer.URL)
-				assert.NoError(t, err)
-				assert.Equal(t, test.expectedStatus, resp.StatusCode)
+				go func() {
+					resp, err := http.Get(proxyServer.URL)
+					assert.NoError(t, err)
+					assert.Equal(t, test.expectedStatus, resp.StatusCode)
+					wg.Done()
+				}()
+				time.Sleep(5 * time.Millisecond)
 			}
-			// Check we got the expected number of calls
+			wg.Wait()
+			// Check we got the expected number of calls, within a fudge factor of 10%
 			for i, expectedCalls := range test.expectedCalls {
-				assert.Equal(t, uint32(expectedCalls), atomic.LoadUint32(&handlerCalled[i]), "wrong number of calls")
+				actualCalls := int(atomic.LoadUint32(&handlerCalled[i]))
+				if expectedCalls < actualCalls-nCalls/10 || expectedCalls > actualCalls+nCalls/10 {
+					t.Fatalf("wrong number of calls: expected %d, got %d", expectedCalls, actualCalls)
+				}
 			}
 		})
 	}
