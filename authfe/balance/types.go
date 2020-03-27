@@ -5,6 +5,7 @@ type Hash func(data []byte) uint32
 
 // Endpoint is service endpoint.
 type Endpoint interface {
+	HostAndPort() string
 	Key() string
 }
 
