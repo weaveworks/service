@@ -9,7 +9,7 @@ from prometheus_client import start_http_server, make_wsgi_app
 from google.oauth2 import service_account
 import click
 from werkzeug.serving import run_simple
-from werkzeug.wsgi import DispatcherMiddleware
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from flask import Flask
 
 from .checks.access import AccessCheck
