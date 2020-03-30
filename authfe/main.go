@@ -95,7 +95,11 @@ func main() {
 		}
 		// Optional load balancer is applied if the address looks like an SRV name
 		if strings.Contains(proxyCfg.hostAndPort, "._tcp.") {
-			proxyCfg.balancer = balance.NewSRVRoundRobin(proxyCfg.hostAndPort)
+			if proxyCfg.loadFactor != 0 {
+				proxyCfg.balancer = balance.NewSRVConsistent(proxyCfg.hostAndPort, proxyCfg.loadFactor)
+			} else {
+				proxyCfg.balancer = balance.NewSRVRoundRobin(proxyCfg.hostAndPort)
+			}
 		}
 		handler, err := newProxy(*proxyCfg)
 		if err != nil {
