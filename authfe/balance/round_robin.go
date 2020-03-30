@@ -1,5 +1,3 @@
-// Wrappper for go-kit load-balancer so we can have a common interface
-// between round-robin and bounded-load-consistent.
 package balance
 
 import (
@@ -15,6 +13,9 @@ import (
 	"github.com/weaveworks/common/logging"
 )
 
+// Wrappper for go-kit load-balancer so we can have a common interface
+// between round-robin and bounded-load-consistent.
+
 // Balancer is an interface abstracting load balancers.
 type Balancer interface {
 	// Get returns the Service Endpoint to use for the next request, for an affinity key.
@@ -29,13 +30,15 @@ type closer interface {
 	Close()
 }
 
-type RoundRobin struct {
+type roundRobin struct {
 	balancer   lb.Balancer
 	endpointer closer
 }
 
-var _ Balancer = &RoundRobin{}
+var _ Balancer = &roundRobin{}
 
+// NewSRVRoundRobin creates a load-balancer given a DNS SRV name like
+// _http._tcp.collectionh.scope.svc.cluster.local.
 func NewSRVRoundRobin(hostAndPort string) Balancer {
 	logger := gokitAdapter{i: logging.Global()}
 	// Poll DNS for updates every 5 seconds
@@ -43,10 +46,11 @@ func NewSRVRoundRobin(hostAndPort string) Balancer {
 	return NewRoundRobin(instancer)
 }
 
-func NewRoundRobin(instancer sd.Instancer) *RoundRobin {
+// NewRoundRobin creates a load-balancer given an instancer; mostly for testing.
+func NewRoundRobin(instancer sd.Instancer) Balancer {
 	logger := gokitAdapter{i: logging.Global()}
 	endpointer := sd.NewEndpointer(instancer, endpointFactory, logger)
-	return &RoundRobin{
+	return &roundRobin{
 		balancer:   lb.NewRoundRobin(endpointer),
 		endpointer: endpointer,
 	}
@@ -61,7 +65,7 @@ func endpointFactory(instance string) (endpoint.Endpoint, io.Closer, error) {
 		nil, nil
 }
 
-func (rr *RoundRobin) Get(key string) (Endpoint, error) {
+func (rr *roundRobin) Get(key string) (Endpoint, error) {
 	endpointFn, err := rr.balancer.Endpoint()
 	if err != nil {
 		return nil, err
@@ -77,10 +81,10 @@ func (rr *RoundRobin) Get(key string) (Endpoint, error) {
 	return addressEndpoint, nil
 }
 
-func (rr *RoundRobin) Put(Endpoint) {
+func (rr *roundRobin) Put(Endpoint) {
 	// no-op
 }
 
-func (rr *RoundRobin) Close() {
+func (rr *roundRobin) Close() {
 	rr.endpointer.Close()
 }

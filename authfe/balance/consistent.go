@@ -12,7 +12,8 @@ import (
 
 // map dlespiau/balance into go-kit world
 
-var ENoEndpoints = errors.New("no endpoints")
+// ErrNoEndpoints means no endpoints were available to balance across
+var ErrNoEndpoints = errors.New("no endpoints")
 
 type consistentWrapper struct {
 	mtx       sync.RWMutex
@@ -24,6 +25,8 @@ type consistentWrapper struct {
 
 var _ Balancer = &consistentWrapper{}
 
+// NewSRVConsistent creates a load-balancer given a DNS SRV name like
+// _http._tcp.collectionh.scope.svc.cluster.local.
 func NewSRVConsistent(hostAndPort string, loadFactor float64) Balancer {
 	logger := gokitAdapter{i: logging.Global()}
 	// Poll DNS for updates every 5 seconds
@@ -31,6 +34,7 @@ func NewSRVConsistent(hostAndPort string, loadFactor float64) Balancer {
 	return NewConsistentWrapper(instancer, loadFactor)
 }
 
+// NewConsistentWrapper creates a load-balancer given an instancer; mostly for testing.
 func NewConsistentWrapper(instancer sd.Instancer, loadFactor float64) Balancer {
 	cw := &consistentWrapper{
 		instancer: instancer,
@@ -90,7 +94,7 @@ cacheLoop:
 func (c *consistentWrapper) Get(key string) (Endpoint, error) {
 	e := c.c.Get(key)
 	if e == nil {
-		return nil, ENoEndpoints
+		return nil, ErrNoEndpoints
 	}
 	return e, nil
 }
