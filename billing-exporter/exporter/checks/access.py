@@ -28,6 +28,8 @@ SELECT
   internal_instance_id
 FROM billing{dataset_suffix}.events
 WHERE (_PARTITIONDATE = @day OR _PARTITIONDATE IS NULL)
+-- storage can continue an hour or so after the beginning of the day so exclude it
+AND amount_type != "storage-bytes"
 AND DATE(received_at) = @day
 GROUP BY _PARTITIONDATE, internal_instance_id
 ORDER BY internal_instance_id
