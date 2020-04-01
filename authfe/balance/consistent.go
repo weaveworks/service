@@ -27,20 +27,21 @@ var _ Balancer = &consistentWrapper{}
 
 // NewSRVConsistent creates a load-balancer given a DNS SRV name like
 // _http._tcp.collectionh.scope.svc.cluster.local.
-func NewSRVConsistent(hostAndPort string, loadFactor float64) Balancer {
+func NewSRVConsistent(name, hostAndPort string, loadFactor float64) Balancer {
 	logger := gokitAdapter{i: logging.Global()}
 	// Poll DNS for updates every 5 seconds
 	instancer := dnssrv.NewInstancer(hostAndPort, 5*time.Second, logger)
-	return NewConsistentWrapper(instancer, loadFactor)
+	return NewConsistentWrapper(name, instancer, loadFactor)
 }
 
 // NewConsistentWrapper creates a load-balancer given an instancer; mostly for testing.
-func NewConsistentWrapper(instancer sd.Instancer, loadFactor float64) Balancer {
+func NewConsistentWrapper(name string, instancer sd.Instancer, loadFactor float64) Balancer {
 	cw := &consistentWrapper{
 		instancer: instancer,
 		cache:     make(map[string]Endpoint),
 		ch:        make(chan sd.Event),
 		c: NewConsistent(ConsistentConfig{
+			Name:       name,
 			LoadFactor: loadFactor,
 		}),
 	}

@@ -100,7 +100,7 @@ func TestProxyMultiServer(t *testing.T) {
 	}
 	bounded := func(hosts []string) balance.Balancer {
 		// Use load-factor very close to 1 to get "very fair" balancing
-		return balance.NewConsistentWrapper(sd.FixedInstancer(hosts), 1.01)
+		return balance.NewConsistentWrapper("test", sd.FixedInstancer(hosts), 1.01)
 	}
 
 	for _, test := range []struct {
