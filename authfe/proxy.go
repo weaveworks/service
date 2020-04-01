@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -11,10 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/endpoint"
-	"github.com/go-kit/kit/sd"
-	"github.com/go-kit/kit/sd/dnssrv"
-	"github.com/go-kit/kit/sd/lb"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -22,6 +17,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 const defaultPort = "80"
@@ -39,23 +36,12 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 type httpProxy struct {
 	proxyConfig
 	reverseProxy httputil.ReverseProxy
-	balancer     lb.Balancer
 }
 
 func newHTTPProxy(cfg proxyConfig) (*httpProxy, error) {
 	proxyTransport := proxyTransportNoKeepAlives
 	if cfg.allowKeepAlive {
 		proxyTransport = proxyTransportWithKeepAlives
-	}
-
-	// Optional go-kit round-robin is applied if the address looks like an SRV name
-	var balancer lb.Balancer
-	if strings.Contains(cfg.hostAndPort, "._tcp.") {
-		logger := gokitAdapter{i: logging.Global()}
-		// Poll DNS for updates every 5 seconds
-		instancer := dnssrv.NewInstancer(cfg.hostAndPort, 5*time.Second, logger)
-		endpointer := sd.NewEndpointer(instancer, endpointFactory, logger)
-		balancer = lb.NewRoundRobin(endpointer)
 	}
 
 	// Make all transformations outside of the director since
@@ -66,17 +52,7 @@ func newHTTPProxy(cfg proxyConfig) (*httpProxy, error) {
 			Director:  func(*http.Request) {},
 			Transport: proxyTransport,
 		},
-		balancer: balancer,
 	}, nil
-}
-
-// Indirect via the go-kit Endpoint abstraction that we don't really need:
-// create a function that just returns the instance name as an interface{}
-func endpointFactory(instance string) (endpoint.Endpoint, io.Closer, error) {
-	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-			return instance, nil
-		},
-		nil, nil
 }
 
 var readOnlyMethods = map[string]struct{}{
@@ -129,7 +105,7 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
-	if p.hostAndPort == "" {
+	if p.hostAndPort == "" && p.balancer == nil {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
@@ -145,21 +121,17 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := user.LogWith(r.Context(), logging.Global())
 
 	hostAndPort := p.hostAndPort
+	var endpoint balance.Endpoint
 	if p.balancer != nil {
-		endpoint, err := p.balancer.Endpoint()
+		key := r.Header.Get(user.OrgIDHeaderName)
+		var err error
+		endpoint, err = p.balancer.Get(key)
 		if err != nil {
 			logger.Errorf("proxy: loadbalancer error: %v", err)
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		endpointResponse, err := endpoint(r.Context(), nil)
-		var ok bool
-		hostAndPort, ok = endpointResponse.(string)
-		if !ok || err != nil {
-			logger.Errorf("proxy: unexpected loadbalancer response: %v, %v", ok, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		hostAndPort = endpoint.HostAndPort()
 	}
 
 	// Tweak request before sending
@@ -174,11 +146,18 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if middleware.IsWSHandshakeRequest(r) {
 		logger.Debugf("proxy: detected websocket handshake")
 		p.proxyWS(w, r)
+		if endpoint != nil {
+			p.balancer.Put(endpoint)
+		}
 		return
 	}
 
 	// Proxy request
 	p.reverseProxy.ServeHTTP(w, r)
+
+	if endpoint != nil {
+		p.balancer.Put(endpoint)
+	}
 }
 
 func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {

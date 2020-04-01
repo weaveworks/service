@@ -6,13 +6,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/go-kit/kit/sd"
 	gorillaws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 func TestProxyWebSocket(t *testing.T) {
@@ -85,6 +89,101 @@ func TestProxyGet(t *testing.T) {
 	_, err = http.Get(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI))
 	assert.NoError(t, err, "Failed to get URL")
 	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server wasn't called")
+}
+
+// Test proxying to more than one backend
+func TestProxyMultiServer(t *testing.T) {
+	const nCalls = 100
+
+	roundRobin := func(hosts []string) balance.Balancer {
+		return balance.NewRoundRobin(sd.FixedInstancer(hosts))
+	}
+	bounded := func(hosts []string) balance.Balancer {
+		// Use load-factor very close to 1 to get "very fair" balancing
+		return balance.NewConsistentWrapper("test", sd.FixedInstancer(hosts), 1.01)
+	}
+
+	for _, test := range []struct {
+		name           string
+		serverSpeed    []int
+		factory        func([]string) balance.Balancer
+		expectedCalls  []int
+		expectedStatus int
+	}{
+		{
+			name:           "no servers",
+			factory:        roundRobin,
+			expectedStatus: 500,
+		},
+		{
+			name:           "round-robin, two same-speed servers",
+			serverSpeed:    []int{50, 50},
+			factory:        roundRobin,
+			expectedCalls:  []int{nCalls / 2, nCalls / 2},
+			expectedStatus: 200,
+		},
+		{
+			name:           "bounded, two same-speed servers",
+			serverSpeed:    []int{50, 50},
+			factory:        bounded,
+			expectedCalls:  []int{nCalls / 2, nCalls / 2},
+			expectedStatus: 200,
+		},
+		{
+			name:           "bounded, one server twice as slow as another",
+			serverSpeed:    []int{50, 100},
+			factory:        bounded,
+			expectedCalls:  []int{nCalls / 3 * 2, nCalls / 3},
+			expectedStatus: 200,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			hosts := make([]string, len(test.serverSpeed))
+			handlerCalled := make([]uint32, len(test.serverSpeed))
+			// Set up N dummy servers that count calls and wait a short time
+			for i, speed := range test.serverSpeed {
+				i, speed := i, speed // new copies for closure capture
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					atomic.AddUint32(&handlerCalled[i], 1)
+					time.Sleep(time.Duration(speed) * time.Millisecond)
+				}))
+				defer server.Close()
+				serverURL, err := url.Parse(server.URL)
+				assert.NoError(t, err)
+				hosts[i] = serverURL.Host
+			}
+
+			balancer := test.factory(hosts[:])
+			defer balancer.Close()
+			proxy, _ := newProxy(proxyConfig{
+				balancer: balancer,
+				protocol: "http",
+			})
+			proxyServer := httptest.NewServer(proxy)
+			defer proxyServer.Close()
+
+			// Now make N calls through the proxy, in parallel
+			wg := sync.WaitGroup{}
+			wg.Add(nCalls)
+			for i := 0; i < nCalls; i++ {
+				go func() {
+					resp, err := http.Get(proxyServer.URL)
+					assert.NoError(t, err)
+					assert.Equal(t, test.expectedStatus, resp.StatusCode)
+					wg.Done()
+				}()
+				time.Sleep(5 * time.Millisecond)
+			}
+			wg.Wait()
+			// Check we got the expected number of calls, within a fudge factor of 10%
+			for i, expectedCalls := range test.expectedCalls {
+				actualCalls := int(atomic.LoadUint32(&handlerCalled[i]))
+				if expectedCalls < actualCalls-nCalls/10 || expectedCalls > actualCalls+nCalls/10 {
+					t.Fatalf("wrong number of calls: expected %d, got %d", expectedCalls, actualCalls)
+				}
+			}
+		})
+	}
 }
 
 func TestProxyReadOnly(t *testing.T) {

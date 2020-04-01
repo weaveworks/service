@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/weaveworks/service/common"
+
+	"github.com/weaveworks/service/authfe/balance"
 )
 
 // Config is all the config we need to build the routes
@@ -210,9 +212,11 @@ type proxyConfig struct {
 	hostAndPort string
 	protocol    string
 	readOnly    bool
+	loadFactor  float64
 
 	// Set this based on the flags
 	http.Handler
+	balancer balance.Balancer
 }
 
 func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {
@@ -220,4 +224,5 @@ func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {
 	f.StringVar(&p.hostAndPort, name, "", fmt.Sprintf("Hostname & port for %s service", name))
 	f.StringVar(&p.protocol, name+".protocol", "http", fmt.Sprintf("Protocol to connect to this %s service via (Must be: http or https)", name))
 	f.BoolVar(&p.readOnly, name+".readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", name))
+	f.Float64Var(&p.loadFactor, name+".load-factor", 0, fmt.Sprintf("Use bounded-load consistent balancing for %s service, with max load on one endpoint this times average", name))
 }

@@ -16,6 +16,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/common/user"
+
+	"github.com/weaveworks/service/authfe/balance"
 	"github.com/weaveworks/service/common"
 	users "github.com/weaveworks/service/users/client"
 )
@@ -89,6 +91,14 @@ func main() {
 		for _, n := range strings.Split(cfg.httpKeepAlives, ",") {
 			if n == name {
 				proxyCfg.allowKeepAlive = true
+			}
+		}
+		// Optional load balancer is applied if the address looks like an SRV name
+		if strings.Contains(proxyCfg.hostAndPort, "._tcp.") {
+			if proxyCfg.loadFactor != 0 {
+				proxyCfg.balancer = balance.NewSRVConsistent(name, proxyCfg.hostAndPort, proxyCfg.loadFactor)
+			} else {
+				proxyCfg.balancer = balance.NewSRVRoundRobin(proxyCfg.hostAndPort)
 			}
 		}
 		handler, err := newProxy(*proxyCfg)
