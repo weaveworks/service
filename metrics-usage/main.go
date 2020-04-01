@@ -39,11 +39,13 @@ func main() {
 		billingConfig billing.Config
 		url           string
 		wcInstance    string
-		instances     string
+		k8sInstances  string
+		nodeInstances string
 	)
 	flag.StringVar(&url, "metrics.url", "", "Cortex query URL")
 	flag.StringVar(&wcInstance, "wc.instance", "2", "instance ID holding internal Cortex metrics")
-	flag.StringVar(&instances, "poll.instances", "", "Space-separated list of instances to poll for usage from Cortex")
+	flag.StringVar(&k8sInstances, "poll.k8s.instances", "", "Space-separated list of instances to poll for usage using Kubernetes metrics in Cortex")
+	flag.StringVar(&nodeInstances, "poll.node.instances", "", "Space-separated list of instances to poll for usage using node-exporter metrics in Cortex")
 	serverConfig.RegisterFlags(flag.CommandLine)
 	billingConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
@@ -58,7 +60,7 @@ func main() {
 	promClient, err := common.NewPrometheusClient(url)
 	checkFatal(err)
 
-	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient, wcInstance, strings.Split(instances, " "))
+	metricsJob, err := newMetricsJob(server.Log, billingClient, promClient, wcInstance, strings.Split(k8sInstances, " "), strings.Split(nodeInstances, " "))
 	checkFatal(err)
 
 	metricsCron := cron.New()
@@ -78,17 +80,19 @@ type metricsJob struct {
 	billingClient *billing.Client
 	promAPI       promV1.API
 	wcInstance    string
-	instances     []string
+	k8sInstances  []string
+	nodeInstances []string
 	limiter       *rate.Limiter
 }
 
-func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client, wcInstance string, instances []string) (cron.Job, error) {
+func newMetricsJob(log logging.Interface, billingClient *billing.Client, promClient promApi.Client, wcInstance string, k8sInstances, nodeInstances []string) (cron.Job, error) {
 	return &metricsJob{
 		log:           log,
 		billingClient: billingClient,
 		promAPI:       promV1.NewAPI(promClient),
 		wcInstance:    wcInstance,
-		instances:     instances,
+		k8sInstances:  k8sInstances,
+		nodeInstances: nodeInstances,
 		limiter:       rate.NewLimiter(5, 1),
 	}, nil
 }
@@ -104,9 +108,13 @@ func (m *metricsJob) Run() {
 	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
 
-	for _, instance := range m.instances {
+	m.instanceQuery(ctx, now, m.k8sInstances, `count(kube_node_status_condition{kubernetes_namespace="weave",condition="Ready",status="true"})`)
+	m.instanceQuery(ctx, now, m.nodeInstances, `count(node_memory_Active)`)
+}
+
+func (m *metricsJob) instanceQuery(ctx context.Context, now time.Time, instances []string, count string) {
+	for _, instance := range instances {
 		ctx := user.InjectOrgID(ctx, instance)
-		count := `count(kube_node_status_condition{kubernetes_namespace="weave",condition="Ready",status="true"})`
 		// Use label_replace to add a 'user' column which isn't in the underlying data
 		queryStr := fmt.Sprintf(`label_replace(%s,"user","%s","",".*") * 60`, count, instance)
 		m.queryAndEmit(ctx, now, "metrics-node-seconds", "", queryStr)
