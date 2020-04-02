@@ -145,7 +145,7 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Detect whether we should do websockets
 	if middleware.IsWSHandshakeRequest(r) {
 		logger.Debugf("proxy: detected websocket handshake")
-		p.proxyWS(w, r)
+		proxyWS(w, r)
 		if endpoint != nil {
 			p.balancer.Put(endpoint)
 		}
@@ -160,12 +160,12 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
+func proxyWS(w http.ResponseWriter, r *http.Request) {
 	wsRequestCount.Inc()
 	wsConnections.Inc()
 	defer wsConnections.Dec()
 
-	address := p.hostAndPort
+	address := r.Host
 	if !strings.Contains(address, ":") {
 		address = address + ":" + defaultPort
 	}
@@ -174,7 +174,7 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	// Connect to target
 	targetConn, err := net.Dial("tcp", address)
 	if err != nil {
-		logger.Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
+		logger.Errorf("proxy: websocket: error dialing backend %q: %v", address, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -183,7 +183,7 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		logger.Errorf("proxy: websocket: error casting to Hijacker on request to %q", p.hostAndPort)
+		logger.Errorf("proxy: websocket: error casting to Hijacker on request to %q", address)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -196,7 +196,7 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	defer clientConn.Close()
 
 	// Forward current request to the target host since it was received before hijacking
-	logger.Debugf("proxy: websocket: writing original request to %s%s", p.hostAndPort, r.URL.Opaque)
+	logger.Debugf("proxy: websocket: writing original request to %s%s", address, r.URL.Opaque)
 	if err := r.Write(targetConn); err != nil {
 		logger.Errorf("proxy: websocket: error copying request to target: %v", err)
 		return
