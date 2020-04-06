@@ -14,3 +14,8 @@ func ValidateEmail(email string) bool {
 	re := regexp.MustCompile("\\A[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\z")
 	return re.MatchString(strings.ToLower(email))
 }
+
+// ValidateName validates a first or second name
+func ValidateName(name string) bool {
+	return len(name) <= 100
+}
