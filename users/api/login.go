@@ -314,6 +314,15 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		if !validation.ValidateEmail(email) {
 			return nil, nil, users.ValidationErrorf("Please provide a valid email")
 		}
+		if !validation.ValidateName(req.FirstName) {
+			return nil, nil, users.ValidationErrorf("Please provide a valid first name")
+		}
+		if !validation.ValidateName(req.LastName) {
+			return nil, nil, users.ValidationErrorf("Please provide a valid last name")
+		}
+		if !validation.ValidateName(req.Company) {
+			return nil, nil, users.ValidationErrorf("Please provide a valid company name")
+		}
 		user, err = a.db.CreateUser(ctx, email, &users.UserUpdate{
 			Name:      fmt.Sprintf("%s %s", req.FirstName, req.LastName),
 			FirstName: req.FirstName,
