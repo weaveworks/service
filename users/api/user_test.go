@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,6 +77,19 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 		assert.Equal(t, "DAVE", user.LastName)
 		assert.Equal(t, "Dave DAVE", user.Name)
 		assert.Equal(t, "Evil Corp", user.Company)
+	})
+	t.Run("invalid name", func(t *testing.T) {
+		user = getUser(t)
+		w := httptest.NewRecorder()
+		body, _ := json.Marshal(map[string]string{"company": strings.Repeat("x", 120)})
+		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
+		app.ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		user, err := database.FindUserByEmail(context.TODO(), user.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, "", user.Company)
 	})
 }
 
