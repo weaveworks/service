@@ -49,6 +49,10 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
+	if err := validateNames(update.Name, update.FirstName, update.LastName, update.Company); err != nil {
+		renderError(w, r, err)
+		return
+	}
 
 	update.Name = strings.TrimSpace(stripHTML(update.Name))
 	update.Company = strings.TrimSpace(stripHTML(update.Company))
