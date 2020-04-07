@@ -8,6 +8,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/weaveworks/service/common/render"
+	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 )
 
@@ -22,6 +23,22 @@ func (a *API) getCurrentUser(currentUser *users.User, w http.ResponseWriter, r *
 		LastName:  currentUser.LastName,
 	}
 	render.JSON(w, http.StatusOK, resp)
+}
+
+func validateNames(name, first, last, company string) error {
+	if !validation.ValidateName(name) {
+		return users.ValidationErrorf("Please provide a valid name")
+	}
+	if !validation.ValidateName(first) {
+		return users.ValidationErrorf("Please provide a valid first name")
+	}
+	if !validation.ValidateName(last) {
+		return users.ValidationErrorf("Please provide a valid last name")
+	}
+	if !validation.ValidateName(company) {
+		return users.ValidationErrorf("Please provide a valid company name")
+	}
+	return nil
 }
 
 func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
