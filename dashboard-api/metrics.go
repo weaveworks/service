@@ -69,7 +69,26 @@ func (api *API) getAWSMetrics(ctx context.Context, awsType aws.Type, startTime, 
 		return nil, errors.ErrNotFound
 	}
 	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\", %s=~\".+\"}", aws.Namespace, aws.Service, product.LabelName)
-	return api.getMetrics(ctx, []string{query}, startTime, endTime)
+	log.WithFields(log.Fields{"query": query, "from": startTime, "to": endTime}).Debug("getAWSMetrics")
+	labelsets, err := api.prometheus.Series(ctx, []string{query}, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	// Condense to a set of unique names
+	names := make(map[string]struct{})
+	for _, set := range labelsets {
+		names[string(set[model.MetricNameLabel])] = struct{}{}
+	}
+
+	var metrics []string
+	for key := range names {
+		metrics = append(metrics, key)
+	}
+	if len(metrics) == 0 {
+		return nil, errors.ErrNotFound
+	}
+	return metrics, nil
 }
 
 // Given a list of match clauses like {kubernetes_namespace="x",_weave_service="y"},
