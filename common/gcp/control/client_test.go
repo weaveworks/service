@@ -24,7 +24,6 @@ func init() {
 	config.ServiceAccountKeyFile = "../../../testdata/google-service-account-key.json"
 	config.ServiceName = "google.weave.test"
 	config.URL = basePath
-	flag.Parse()
 }
 
 func TestClient_OperationID(t *testing.T) {
