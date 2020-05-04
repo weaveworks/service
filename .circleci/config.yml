@@ -22,6 +22,7 @@ jobs:
           ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
           touch .uptodate
       - run: make RM=
+      - run: make generated
       - run: |
           set -e
           set -o pipefail
@@ -46,6 +47,17 @@ jobs:
           root: .
           paths:
            - build-images
+           - gcp-service/grpc/gcp-service.pb.go
+           - users/users.pb.go
+           - users-sync/api/users-sync.pb.go
+           - common/billing/grpc/billing.pb.go
+           - kubectl-service/grpc/kubectl-service.pb.go
+           - users/mock_users/mock_usersclient.go
+           - billing-api/db/mock_db/mock_db.go
+           - common/billing/grpc/mock_grpc.go
+           - common/gcp/procurement/mock_procurement/mock_client.go
+           - notification-eventmanager/templates/wrapper.html
+           - notification-eventmanager/templates/wrapper.text
   test:
     <<: *defaults
     steps:
@@ -67,7 +79,16 @@ jobs:
       - &pull-tmp-images
         run:
           name: Load docker images
-          command: find build-images -type f -exec docker load -i {} \;
+          command: |
+            find build-images -type f -exec docker load -i {} \;
+            # Update files that would otherwise trigger a rebuild
+            make build/.uptodate
+            touch gcp-service/grpc/gcp-service.pb.go users/users.pb.go users-sync/api/users-sync.pb.go common/billing/grpc/billing.pb.go kubectl-service/grpc/kubectl-service.pb.go
+            touch users/mock_users/mock_usersclient.go billing-api/db/mock_db/mock_db.go common/billing/grpc/mock_grpc.go common/gcp/procurement/mock_procurement/mock_client.go
+            touch kubectl-service/kubectl-service gcp-service/gcp-service notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
+            touch kubectl-service/.uptodate gcp-service/.uptodate notification-eventmanager/.uptodate notification-sender/.uptodate
+            touch notification-eventmanager/templates/wrapper.html notification-eventmanager/templates/wrapper.text
+
       - run: docker run -d -p 4222:4222 nats
       - run: make notebooks-integration-test
       - run: make users-integration-test

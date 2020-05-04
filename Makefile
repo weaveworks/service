@@ -1,4 +1,4 @@
-.PHONY: all test \
+.PHONY: all test generated \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
 	notification-integration-test flux-integration-test clean images ui-upload
 .DEFAULT_GOAL := all
@@ -223,7 +223,7 @@ $(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
+$(PROTO_GOS) $(MOCK_GOS) generated lint: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -282,6 +282,8 @@ $(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/
 $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
+
+generated: $(PROTO_GOS) $(MOCK_GOS)
 
 %.pb.go: build/$(UPTODATE)
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
