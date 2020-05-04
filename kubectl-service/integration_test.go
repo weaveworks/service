@@ -18,22 +18,22 @@ func TestGetPods(t *testing.T) {
 	kubeCfgYAML := newKubeConfigYAML(t)
 
 	resp, err := client.RunKubectlCmd(context.Background(), &grpc.KubectlRequest{
-		Version:    "1.8.6",
+		Version:    "1.17.5",
 		Kubeconfig: kubeCfgYAML,
 		Args:       []string{"get", "pods", "--all-namespaces"},
 	})
 	assert.NoError(t, err)
-	// 1.8.6 is packaged with the current version of kubectl-service, hence it was selected to run the provided command:
-	assert.Regexp(t, "Dry run: /kubectl/1\\.8\\.6 \\[--kubeconfig=/tmp/kubeconfig[0-9]+ get pods --all-namespaces\\]", resp.Output)
+	// 1.17.5 is packaged with the current version of kubectl-service, hence it was selected to run the provided command:
+	assert.Regexp(t, "Dry run: /kubectl/1\\.17\\.5 \\[--kubeconfig=/tmp/kubeconfig[0-9]+ get pods --all-namespaces\\]", resp.Output)
 
 	resp, err = client.RunKubectlCmd(context.Background(), &grpc.KubectlRequest{
-		Version:    "1.8.4-gke.0",
+		Version:    "1.17.3-gke.0",
 		Kubeconfig: kubeCfgYAML,
 		Args:       []string{"get", "pods", "--all-namespaces"},
 	})
 	assert.NoError(t, err)
-	// "1.8.4-gke.0"'s closest match is 1.8.6 which is packaged with the current version of kubectl-service, hence it was selected to run the provided command:
-	assert.Regexp(t, "Dry run: /kubectl/1\\.8\\.6 \\[--kubeconfig=/tmp/kubeconfig[0-9]+ get pods --all-namespaces\\]", resp.Output)
+	// "1.17.3-gke.0"'s closest match is 1.17.5 which is packaged with the current version of kubectl-service, hence it was selected to run the provided command:
+	assert.Regexp(t, "Dry run: /kubectl/1\\.17\\.5 \\[--kubeconfig=/tmp/kubeconfig[0-9]+ get pods --all-namespaces\\]", resp.Output)
 
 	resp, err = client.RunKubectlCmd(context.Background(), &grpc.KubectlRequest{
 		Version:    "2.0.0-gke.0",
