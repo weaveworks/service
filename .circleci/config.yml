@@ -69,15 +69,14 @@ jobs:
           name: Load docker images
           command: find build-images -type f -exec docker load -i {} \;
       - run: docker run -d -p 4222:4222 nats
-      - run: |
-          make RM= notebooks-integration-test
-          make RM= users-integration-test
-          make RM= billing-integration-test
-          make RM= pubsub-integration-test
-          make RM= flux-integration-test
-          make RM= kubectl-service-integration-test
-          make RM= gcp-service-integration-test
-          make RM= notification-integration-test
+      - run: make notebooks-integration-test
+      - run: make users-integration-test
+      - run: make billing-integration-test
+      - run: make pubsub-integration-test
+      - run: make flux-integration-test
+      - run: make kubectl-service-integration-test
+      - run: make gcp-service-integration-test
+      - run: make notification-integration-test
 
   upload:
     <<: *defaults
