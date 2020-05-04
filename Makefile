@@ -290,7 +290,7 @@ lint: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	./tools/lint .
 
 test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
-	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
+	TESTDIRS=${TESTDIRS} NO_SCHEDULER="true" ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
