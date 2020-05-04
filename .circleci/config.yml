@@ -1,151 +1,35 @@
 version: 2
-defaults: &defaults
-  machine:
-    docker_layer_caching: true
-  working_directory: /home/circleci/src/github.com/weaveworks/service
-  environment:
-    GOPATH: /home/circleci/
 jobs:
-  lint:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: make RM= lint
-
   build:
-    <<: *defaults
+    # Use 'machine' type so we can run the lint step with directory mounted
+    machine:
+      docker_layer_caching: true
+    working_directory: /home/circleci/src/github.com/weaveworks/build-tools
+    environment:
+      GOPATH: /home/circleci/
     steps:
-      - checkout
-      - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
-      - run: |
-          cd build
-          ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
-          touch .uptodate
-      - run: make RM=
-      - run: |
-          set -e
-          set -o pipefail
-          if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
-            echo "WIP build; exiting with error to mark as a failure"
-            git --no-pager diff
-            exit 1
+    - checkout
+    - run: cd build; make
+    - run: docker run --rm -v "$PWD:$PWD" -w "$PWD" --entrypoint sh weaveworks/build-golang -c "./shell-lint ."
+    - run: docker run --rm -v "$PWD:/go/src" -w "/go/src/cover" --entrypoint sh weaveworks/build-golang -c make
+    - run: docker run --rm -v "$PWD:/go/src" -w "/go/src/socks" --entrypoint sh weaveworks/build-golang -c "make proxy"
+    - run: docker run --rm -v "$PWD:/go/src" -w "/go/src/runner" --entrypoint sh weaveworks/build-golang -c make
+    - run: docker run --rm -v "$PWD:/go/src" -w "/go/src" --entrypoint sh weaveworks/build-golang -c "./lint ./build ./config_management ./cover ./dependencies ./integration ./provisioning ./runner ./scheduler ./socks"
+
+    - deploy:
+        command: |
+          if [ "${CIRCLE_BRANCH}" == "master" ]; then
+            cd build
+            docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_PASSWORD
+            for image in $(make images); do
+              # Push all tags - latest and git-tag
+              docker push "${image}"
+
+              # Tag the built images with something derived from the base images in
+              # their respective Dockerfiles. So "FROM golang:1.8.0-stretch" as a
+              # base image would lead to a tag of "1.8.0-stretch"
+              IMG_TAG=$(make "imagetag-${image#weaveworks/build-}")
+              docker tag "${image}:latest" "${image}:${IMG_TAG}"
+              docker push "${image}:${IMG_TAG}"
+            done
           fi
-      - run:
-          name: Upload docker images for use later in workflow
-          command: |
-            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
-            IMAGE_TAG="$(./tools/image-tag)"
-            IMAGES=$(make images)
-            for image in ${IMAGES}; do
-              if [[ "$image" == *"build"* ]]; then
-                continue
-              fi
-              tagged_image="${image}:${IMAGE_TAG}"
-              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-              docker tag ${tagged_image} ${repo_tmp_image}
-              docker push $repo_tmp_image
-            done
-  test:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: go get github.com/mattn/goveralls
-      - run: COVERDIR=./coverage make RM= test
-      - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
-      - run: ~/bin/goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
-      - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
-      - store_artifacts:
-          path: /tmp/coverage
-
-  integration-test:
-    <<: *defaults
-    steps:
-      - checkout
-      - &pull-tmp-images
-        run:
-          name: Download docker images build earlier in workflow
-          command: |
-            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
-            # Pull our previously built image, retag it
-            IMAGE_TAG="$(./tools/image-tag)"
-            IMAGES=$(make images)
-            for image in ${IMAGES}; do
-              if [[ "$image" == *"build"* ]]; then
-                continue
-              fi
-              tagged_image="${image}:${IMAGE_TAG}"
-              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-              docker pull $repo_tmp_image
-              docker tag ${repo_tmp_image} ${tagged_image}
-              docker tag ${repo_tmp_image} ${image}:latest
-              docker image rm ${repo_tmp_image}
-            done
-      - run: docker run -d -p 4222:4222 nats
-      - run: |
-          make RM= notebooks-integration-test
-          make RM= users-integration-test
-          make RM= billing-integration-test
-          make RM= pubsub-integration-test
-          make RM= flux-integration-test
-          make RM= kubectl-service-integration-test
-          make RM= gcp-service-integration-test
-          make RM= notification-integration-test
-
-  upload:
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *pull-tmp-images
-      - run:
-          name: Publish docker images to final repository
-          command: |
-            set -o pipefail
-            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=50' | jq -r 'map(select(.build_parameters.CIRCLE_JOB == "upload")) | .[0].vcs_revision')
-            echo Last successful build was commit $LAST_BUILD_COMMIT
-            mkdir ~/.aws
-            echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
-            $(aws ecr get-login --no-include-email --region us-east-1)
-            ./push-images --if-changed-since $LAST_BUILD_COMMIT
-            IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --if-changed-since $LAST_BUILD_COMMIT
-
-  dry-run-upload:
-    <<: *defaults
-    steps:
-      - checkout
-      - <<: *pull-tmp-images
-      - run:
-          name: Dry-run of publishing docker images
-          command: |
-            set -o pipefail
-            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=50' | jq -r 'map(select(.build_parameters.CIRCLE_JOB == "upload")) | .[0].vcs_revision')
-            echo Last successful build was commit $LAST_BUILD_COMMIT
-            mkdir ~/.aws
-            echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
-            $(aws ecr get-login --no-include-email --region us-east-1)
-            ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
-            IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
-
-workflows:
-  version: 2
-  build_test_and_upload:
-    jobs:
-      - lint
-      - test
-      - build
-      - integration-test:
-          requires:
-            - build
-            - lint
-            - test
-      - upload:
-          requires:
-            - integration-test
-          filters:
-            branches:
-              only: master
-      - dry-run-upload:
-          requires:
-            - integration-test
-          filters:
-            branches:
-              ignore: master

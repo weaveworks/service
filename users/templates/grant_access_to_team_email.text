@@ -1,7 +1,0 @@
-{{.InviterName}} has added you to the ‘{{.TeamName}}’ team on Weave Cloud.
-
-View «{{.TeamName}}»:
-
-    {{.TeamURL}}
-
-Thanks, the Weaveworks team

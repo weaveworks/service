@@ -1,201 +1,53 @@
-#!/usr/bin/env python
+#!/usr/bin/env bash
 
-import argparse
-import os
-import subprocess
-import sys
+set -o errexit
+set -o nounset
+set -o pipefail
 
+QUAY_PREFIX=quay.io/
+IMAGES=$(make images)
+IMAGE_TAG=$(./tools/image-tag)
 
-BUILD_IMAGE_REPO = 'quay.io/weaveworks'
-SERVICE_REPO = 'github.com/weaveworks/service'
+usage() {
+    echo "$0 [-no-docker-hub]"
+}
 
-QUAY_IO_WARNING = """
-When pushing to quay.io, you will *not* be prompted to log in. To get your password:
+NO_DOCKER_HUB=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -no-docker-hub)
+            NO_DOCKER_HUB=1
+            shift 1
+            ;;
+        *)
+            usage
+            exit 2
+            ;;
+    esac
+done
 
-  1. Go to http://quay.io
-  2. Log in with e.g. GitHub
-  3. Go to settings and generate an encrypted password
-  4. Follow instructions
-"""
+pids=""
+for image in ${IMAGES}; do
+    if [[ "$image" == *"build"* ]]; then
+        continue
+    fi
+    echo "Will push ${image}:${IMAGE_TAG}"
+    docker push "${image}:${IMAGE_TAG}" &
+    pids="$pids $!"
 
-EXCLUDED_COMPONENTS = [
-    'build',
-    'postgres-configs-db',
-]
+    if [ -z "$NO_DOCKER_HUB" ]; then
+        # remove the quey prefix and push to docker hub
+        docker_hub_image=${image#$QUAY_PREFIX}
+        docker tag "${image}:${IMAGE_TAG}" "${docker_hub_image}:${IMAGE_TAG}"
+        echo "Will push ${docker_hub_image}:${IMAGE_TAG}"
+        docker push "${docker_hub_image}:${IMAGE_TAG}" &
+        pids="$pids $!"
+    fi
+done
 
-class ConfigError(Exception):
-    """There was a problem with the local repository's config."""
+# Wait individually for tasks so we fail-exit on any non-zero return code
+for p in $pids; do
+    wait "$p"
+done
 
-
-def no_such_image(build_image, image_tag, component):
-    """Raised when we cannot find the build image."""
-    return ConfigError('''
-Expected image {} to exist, given the working directory state:
-    {}
-and the component to push:
-    {}
-But it does not exist. The local build may not have resulted in a new image.
-        '''.format(build_image, image_tag, component))
-
-
-def make_parser():
-    parser = argparse.ArgumentParser(prog='push-images')
-    # XXX: Not quite the same behaviour as the old one, since that has
-    # different behaviour depending on whether the flag is given with a value
-    # or without.
-    parser.add_argument(
-        '--if-changed-since', type=str, default=None, dest='since',
-        help='Only push images if changed since this revision')
-    parser.add_argument(
-        '--dry-run', action="store_true",
-        help='Do not perform side-effect (eg pushing images)')
-    parser.add_argument(
-        'components', type=str, nargs='*',
-        help='Which components to push')
-    return parser
-
-
-def get_dependencies(component):
-    """Returns the list of files and directories used to build 'component'.
-
-    Currently assumes that code is named for directories in components.
-    """
-    # add itself
-    deps = [component]
-
-    # add go dependencies
-    try:
-        deps.extend(get_go_dependencies(component))
-    except KeyError:
-        raise ConfigError(
-            "Couldn't find dependencies for component {}".format(component))
-
-    # common non-go dependencies
-    deps.extend(common_dependencies())
-    return deps
-
-
-def common_dependencies():
-    # If this script changes, push all images (should be rare).
-    # This is required because of the following case:
-    # 1. someone forgets to add their component to `push-images`
-    # 2. pushes their work to master
-    # 3. realises CI hasn't pushed the image
-    # 4. Edits `push-images` accordingly, but the image, again, isn't pushed
-    #    because the code was not changed.
-    return ['push-images']
-
-
-def get_go_dependencies(component):
-    # Fetch go dependencies using 'go list'
-    cmd = """
-        cd {} &&
-        for dep in `go list -f '{{{{ .Deps }}}}' ./...`; do
-            echo $dep | grep '{}';
-        done | xargs
-    """.format(component, SERVICE_REPO)
-    deps = subprocess.check_output(cmd, shell=True).strip().split()
-    deps = list(map(lambda dep: dep[len(SERVICE_REPO + '/'):], deps))
-    return deps
-
-
-def has_changed_since(since, component):
-    """Has 'component' changed since the given revision?
-
-    :raise ConfigError: If any of the dependencies are not files or directories
-        that exist on disk.
-    :return: True if component has changed since 'since', otherwise False.
-    """
-    deps = get_dependencies(component)
-    for dep in deps:
-        if not os.path.exists(dep):
-            raise ConfigError(
-                'Component {} depends on {} but it does not exist'.format(
-                    component, dep))
-
-    cmd = ['git', 'diff', '--quiet', since, '--']
-    cmd.extend(deps)
-    try:
-        subprocess.check_output(cmd)
-    except subprocess.CalledProcessError:
-        # git diff --quiet exits with 1 if there were differences.
-        return True
-    return False
-
-
-def image_exists(image_name):
-    """Is there an image named 'image_name' in the local registry?"""
-    try:
-        subprocess.check_output(['docker', 'inspect', image_name])
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
-def push_to_repo(build_image, push_image, dry_run=False):
-    """Push 'build_image' to a Docker repository as 'push_image'."""
-    if build_image != push_image:
-        print('Tagging build image {} for pushing as {}'.format(build_image, push_image))
-        subprocess.check_call(['docker', 'tag', build_image, push_image])
-
-    print('Pushing {}{}'.format('<dry run> ' if dry_run else '', push_image))
-    if not dry_run:
-        subprocess.check_call(['docker', 'push', push_image])
-
-
-def push_component(component, image_repository, image_tag, since=None, dry_run=False):
-    """Push 'compenent' to 'image_repository' with 'image_tag'.
-
-    Do not push if not changed since 'since'. If 'since' not supplied, push
-    regardless.
-    """
-    image = os.path.basename(component)
-    build_image = '{}/{}:{}'.format(BUILD_IMAGE_REPO, image, image_tag)
-    if not image_exists(build_image):
-        raise no_such_image(build_image, image_tag, component)
-
-    push_image = '{}/{}:{}'.format(image_repository, image, image_tag)
-    if since and not has_changed_since(since, component):
-        print(
-            'Not pushing image for {}, because no changes in {} since commit {}'.format(
-                push_image, component, since))
-        return
-
-    push_to_repo(build_image, push_image, dry_run)
-
-
-def get_components():
-    components = subprocess.check_output(['make', 'images']).strip().split()
-    components = list(map(lambda dep: dep[len(BUILD_IMAGE_REPO + '/'):], components))
-    for excluded in EXCLUDED_COMPONENTS:
-        if excluded in components:
-            components.remove(excluded)
-    return components
-
-
-def main():
-    image_repository = os.environ.get('IMAGE_REPOSITORY', BUILD_IMAGE_REPO)
-    if image_repository == BUILD_IMAGE_REPO:
-        print(QUAY_IO_WARNING)
-
-    parser = make_parser()
-    opts = parser.parse_args()
-
-    components = opts.components
-    if not components:
-        components = get_components()
-
-    print('Using components: {}'.format(' '.join(components)))
-
-    image_tag = subprocess.check_output(['./tools/image-tag']).strip()
-
-    for component in components:
-        try:
-            push_component(component, image_repository, image_tag, opts.since, opts.dry_run)
-        except ConfigError as e:
-            sys.stderr.write(str(e))
-            sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
+wait

@@ -1,9 +1,0 @@
-./.git*
-./tools*
-./vendor*
-# billing-exporter is python3, whereas our build image, in which the
-# linter runs, only contains python2.7, resulting in lots of errors.
-./billing-exporter/*
-# users/db/backfills scripts have a bunch of overlong lines, some of
-# which aren't easy to break.
-./users/db/backfills/*
