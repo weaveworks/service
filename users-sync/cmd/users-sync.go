@@ -35,8 +35,6 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
-		segementWriteKeyFile = flag.String("segment-write-key-file", "", "File containing segment write key")
-
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
 		marketoCfg marketing.MarketoConfig
@@ -82,12 +80,6 @@ func main() {
 	}
 	defer billingClient.Close()
 
-	segmentClient, err := attrsync.NewSegmentClient(*segementWriteKeyFile, logger)
-	if err != nil {
-		logrus.Fatalf("Failed creating a segment client: %v", err)
-	}
-	defer segmentClient.Close()
-
 	marketoClient, err := attrsync.NewMarketoClient(marketoCfg)
 	if err != nil {
 		logrus.Fatalf("Failed creating a marketo client: %v", err)
@@ -96,7 +88,7 @@ func main() {
 	weeklyReporter := weeklyreporter.New(logger, usersClient)
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(
-		logger, db, billingClient, segmentClient, marketoClient)
+		logger, db, billingClient, marketoClient)
 	logger.Debugln("Debug logging enabled")
 
 	logger.Infof("users-sync listening on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)

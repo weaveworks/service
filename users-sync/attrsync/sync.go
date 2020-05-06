@@ -33,7 +33,6 @@ const (
 
 func init() {
 	attrsComputeDurationCollector.Register()
-	prometheus.MustRegister(segmentMessagesTotalCounter)
 }
 
 // AttributeSyncer sends metadata about users to external services
@@ -45,17 +44,15 @@ type AttributeSyncer struct {
 	quit              chan struct{}
 	db                db.DB
 	billingClient     billing_grpc.BillingClient
-	segmentClient     analytics.Client
 	marketoClient     marketing.MarketoClient
 }
 
 // New creates a attributeSyncer service
-func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, segmentClient analytics.Client, marketoClient marketing.MarketoClient) *AttributeSyncer {
+func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, marketoClient marketing.MarketoClient) *AttributeSyncer {
 	return &AttributeSyncer{
 		log:               log,
 		db:                db,
 		billingClient:     billingClient,
-		segmentClient:     segmentClient,
 		marketoClient:     marketoClient,
 		recentUsersTicker: time.NewTicker(recentUsersPeriod),
 		staleUsersTicker:  time.NewTicker(staleUsersPeriod),
@@ -166,6 +163,30 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 	return nil
 }
 
+func segmentTrait(user *users.User, attrs map[string]int) analytics.Traits {
+	trait := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
+
+	// Since old users won't have this data, send it optionally
+	if user.Name != "" {
+		trait.SetName(user.Name)
+	}
+	if user.FirstName != "" {
+		trait.SetFirstName(user.FirstName)
+	}
+	if user.LastName != "" {
+		trait.SetLastName(user.LastName)
+	}
+	if user.Company != "" {
+		trait.Set("company", map[string]string{"name": user.Company})
+	}
+
+	for name, val := range attrs {
+		trait.Set(name, val)
+	}
+
+	return trait
+}
+
 func (c *AttributeSyncer) postUsers(ctx context.Context, users []*users.User) {
 	traits := map[string]analytics.Traits{}
 	var prospects []marketing.Prospect
@@ -193,24 +214,6 @@ func (c *AttributeSyncer) postUsers(ctx context.Context, users []*users.User) {
 				if err := c.marketoClient.BatchUpsertProspect(prospects); err != nil {
 					c.log.WithField("err", err).Errorln("Error sending fields to Marketo")
 				}
-			}
-
-			// Segment
-			for email, traits := range traits {
-				err := c.segmentClient.Enqueue(analytics.Identify{
-					UserId: email,
-					Traits: traits,
-				})
-				if err != nil {
-					c.log.WithFields(logging.Fields{
-						"err":    err,
-						"email":  email,
-						"traits": traits,
-					}).Errorln("Error enqueuing segment message")
-				}
-
-				// Sleep for a while to avoid overloading other services
-				time.Sleep(10 * time.Millisecond)
 			}
 
 			return nil
