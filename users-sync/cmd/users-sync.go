@@ -35,6 +35,8 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
+		segementWriteKeyFile = flag.String("segment-write-key-file", "", "DEPRECATED, will be ignored: File containing segment write key")
+
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
 		marketoCfg marketing.MarketoConfig
@@ -58,6 +60,10 @@ func main() {
 	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 
 	flag.Parse()
+
+	if segementWriteKeyFile != nil {
+		logrus.Warn("Support for -segment-write-key-file has been removed")
+	}
 
 	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		logrus.Fatalf("Error configuring logging: %v", err)
