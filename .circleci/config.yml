@@ -88,6 +88,11 @@ jobs:
             touch kubectl-service/kubectl-service gcp-service/gcp-service notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
             touch kubectl-service/.uptodate gcp-service/.uptodate notification-eventmanager/.uptodate notification-sender/.uptodate
             touch notification-eventmanager/templates/wrapper.html notification-eventmanager/templates/wrapper.text
+            # Set 'latest' tag on current images to override anything cached on host
+            IMAGE_TAG="$(./tools/image-tag)"
+            for image in $(make images); do
+              docker tag "${image}:${IMAGE_TAG}" "${image}:latest"
+            done
 
       - run: docker run -d -p 4222:4222 nats
       - run: make notebooks-integration-test
