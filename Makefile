@@ -1,4 +1,4 @@
-.PHONY: all test \
+.PHONY: all test generated \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
 	notification-integration-test flux-integration-test clean images ui-upload
 .DEFAULT_GOAL := all
@@ -9,7 +9,7 @@ IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
 GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
-GO_TEST_IMAGE := golang:1.12.1
+GO_TEST_IMAGE := golang:1.13.5-stretch
 
 # Building Docker images is now automated. The convention is every directory
 # with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
@@ -223,7 +223,7 @@ $(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
+$(PROTO_GOS) $(MOCK_GOS) generated lint: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -283,6 +283,8 @@ $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 	CGO_ENABLED=0 go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
+generated: $(PROTO_GOS) $(MOCK_GOS)
+
 %.pb.go: build/$(UPTODATE)
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
@@ -290,7 +292,7 @@ lint: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	./tools/lint .
 
 test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
-	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
+	TESTDIRS=${TESTDIRS} NO_SCHEDULER="true" ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
@@ -384,7 +386,6 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	exit $$status
 
 notification-integration-test: notification-eventmanager/$(UPTODATE) notification-sender/$(UPTODATE)
-	docker build -f notification-eventmanager/e2e/Dockerfile.integration -t notification-integrationtest .
 	cd notification-eventmanager/e2e && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 clean:

@@ -58,6 +58,9 @@ services:
     depends_on:
       - eventmanager
       - sender
-    image: notification-integrationtest
-    command: |
-      -log.level=info
+    image: quay.io/weaveworks/build
+    volumes:
+      - ../..:/go/src/github.com/weaveworks/service
+    working_dir: /go/src/github.com/weaveworks/service/notification-eventmanager/e2e
+    entrypoint: /bin/bash
+    command: -c "go test -v"
