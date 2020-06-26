@@ -105,7 +105,7 @@ func (m *metricsJob) Run() {
 	// Note 'user' here means instance in Weave-Cloud-speak.
 	// Note also the '1m' window must match the cron-job run interval
 	m.queryAndEmit(ctx, now, "samples", "", `sum by (user)(increase(cortex_distributor_received_samples_total{job="cortex/distributor"}[1m]))`)
-	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m])) + sum by (user)(increase(cortex_chunk_store_stored_chunk_bytes_total{job="cortex/ingester"}[1m]))`)
+	m.queryAndEmit(ctx, now, "storage-bytes", "-cortex", `sum by (user)(increase(cortex_ingester_chunk_stored_bytes_total{job="cortex/ingester"}[1m])) or sum by (user)(increase(cortex_chunk_store_stored_chunk_bytes_total{job="cortex/ingester"}[1m]))`)
 	m.queryAndEmit(ctx, now, "storage-bytes", "-scope", `sum by (user)(increase(scope_reports_bytes_total{job="scope/collection"}[1m]))`)
 
 	m.instanceQuery(ctx, now, m.k8sInstances, `count(kube_node_status_condition{kubernetes_namespace="weave",condition="Ready",status="true"})`)
