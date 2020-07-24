@@ -76,7 +76,9 @@ func smtpEmailSender(u *url.URL) (func(ctx context.Context, e *email.Email) erro
 		uid := uuid.New().String()
 		id.Add("X-Entity-Ref-ID", uid)
 		e.Headers = id
-		limiter.Wait(context.Background())
+		if err := limiter.Wait(ctx); err != nil {
+			return err
+		}
 
 		span.LogFields(otlog.String("sending now", e.Subject))
 		return e.Send(addr, auth)
