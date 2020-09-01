@@ -51,8 +51,6 @@ spec:
         - mountPath: /config
           name: config-volume
       dnsPolicy: ClusterFirst
-      imagePullSecrets:
-      - name: quay-secret
       restartPolicy: Never
       schedulerName: default-scheduler
       securityContext: {}

@@ -31,7 +31,7 @@ services:
     depends_on:
       - sqslocal
       - config-db
-    image: quay.io/weaveworks/notification-eventmanager
+    image: weaveworks/notification-eventmanager
     command: |
       -log.level=info
       -sqsURL=sqs://user:password@sqslocal.e2e_default:9324/events
@@ -47,7 +47,7 @@ services:
       - sqslocal
       - nats
       - mailcatcher
-    image: quay.io/weaveworks/notification-sender
+    image: weaveworks/notification-sender
     command: |
       -log.level=info
       -nats=nats://nats:4222 
@@ -58,7 +58,7 @@ services:
     depends_on:
       - eventmanager
       - sender
-    image: quay.io/weaveworks/build
+    image: weaveworks/build
     volumes:
       - ../..:/go/src/github.com/weaveworks/service
     working_dir: /go/src/github.com/weaveworks/service/notification-eventmanager/e2e

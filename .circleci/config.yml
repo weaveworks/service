@@ -19,7 +19,7 @@ jobs:
       - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
       - run: |
           cd build
-          ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
+          ../tools/rebuild-image weaveworks/build . build.sh Dockerfile
           touch .uptodate
       - run: make RM=
       - run: make generated
