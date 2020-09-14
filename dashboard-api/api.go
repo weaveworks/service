@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/bluele/gcache"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/weaveworks/service/common"
@@ -15,6 +16,7 @@ import (
 type API struct {
 	cfg        *config
 	prometheus v1.API
+	cache      gcache.Cache
 	handler    http.Handler
 }
 
@@ -42,6 +44,10 @@ func newAPI(cfg *config) (*API, error) {
 		}
 
 		api.prometheus = v1.NewAPI(client)
+	}
+
+	if cfg.cacheSize > 0 {
+		api.cache = gcache.New(cfg.cacheSize).LRU().Expiration(cfg.cacheExpiration).Build()
 	}
 
 	return api, nil
