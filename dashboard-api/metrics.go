@@ -40,7 +40,7 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 
 	log.WithFields(log.Fields{"orgID": orgID, "ns": namespace, "service": service, "from": startTime, "to": endTime}).Debug("get service metrics")
 
-	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
+	metrics, err := api.getServiceMetrics(ctx, orgID, namespace, service, startTime, endTime)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -54,7 +54,7 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 // N.B.:
 //   We should have at least the up{kubernetes_namespace="weave",_weave_service="$service"} metric.
 //   Not having *any* metric is the sign of a non existent (namespace, service), and the "not found" error is returned in this case.
-func (api *API) getServiceMetrics(ctx context.Context, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
+func (api *API) getServiceMetrics(ctx context.Context, orgID, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
 	// Metrics the pods expose
 	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
 	// Metrics cAdvisor exposes about the service containers
