@@ -57,9 +57,11 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 func (api *API) getServiceMetrics(ctx context.Context, orgID, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
 	cacheKey := "S/" + orgID + "/" + namespace + "/" + service
 	if api.cache != nil {
+		inProcessCacheRequests.Inc()
 		// NOTE we are not using startTime and endTime in the cache key,
 		// which is ok for now because getMetrics() doesn't use them.
 		if cached, err := api.cache.GetIFPresent(cacheKey); err == nil {
+			inProcessCacheHits.Inc()
 			return cached.([]string), nil
 		}
 	}
@@ -70,6 +72,7 @@ func (api *API) getServiceMetrics(ctx context.Context, orgID, namespace, service
 	data, err := api.getMetrics(ctx, []string{query, queryCAdvisor}, startTime, endTime)
 	if err == nil && api.cache != nil {
 		api.cache.Set(cacheKey, data)
+		inProcessCacheSize.Set(float64(api.cache.Len())) // Len() is expensive, but should be less so than Prom query
 	}
 	return data, err
 }
