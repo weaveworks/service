@@ -47,12 +47,13 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 }
 
 func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+	orgID, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
 	namespace := mux.Vars(r)["ns"]
 	service := mux.Vars(r)["service"]
-	logger = logger.WithFields(log.Fields{"ns": namespace, "service": service})
+	logger = logger.WithFields(log.Fields{"orgID": orgID, "ns": namespace, "service": service})
 	logger.Debug("get service dashboard")
 
-	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
+	metrics, err := api.getServiceMetrics(ctx, orgID, namespace, service, startTime, endTime)
 	if err != nil {
 		logger.WithField("err", err).Error("failed to get service dashboards' metrics")
 		return nil, err

@@ -4,19 +4,41 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/bluele/gcache"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/weaveworks/service/common"
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // API exposes all the entry points of this service.
 type API struct {
 	cfg        *config
 	prometheus v1.API
+	cache      gcache.Cache
 	handler    http.Handler
 }
+
+var (
+	inProcessCacheSize = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "dashboards",
+		Name:      "prom_cache_entries",
+		Help:      "Count of entries in the in-process cache.",
+	})
+	inProcessCacheRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "dashboards",
+		Name:      "prom_cache_requests_total",
+		Help:      "Total count of requests from the in-process cache.",
+	})
+	inProcessCacheHits = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "dashboards",
+		Name:      "prom_cache_hits_total",
+		Help:      "Total count of requests found in the in-process cache.",
+	})
+)
 
 func newAPI(cfg *config) (*API, error) {
 	api := &API{
@@ -42,6 +64,10 @@ func newAPI(cfg *config) (*API, error) {
 		}
 
 		api.prometheus = v1.NewAPI(client)
+	}
+
+	if cfg.cacheSize > 0 {
+		api.cache = gcache.New(cfg.cacheSize).LRU().Expiration(cfg.cacheExpiration).Build()
 	}
 
 	return api, nil
