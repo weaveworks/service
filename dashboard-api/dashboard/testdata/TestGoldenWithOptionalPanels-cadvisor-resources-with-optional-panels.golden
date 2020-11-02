@@ -14,7 +14,7 @@
                 "format": "numeric",
                 "explanation": "CPU seconds / second"
               },
-              "query": "sum (rate(container_cpu_usage_seconds_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_cpu_usage_seconds_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }
@@ -31,7 +31,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+              "query": "sum (label_replace(container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}, 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }
@@ -60,7 +60,7 @@
                 "format": "numeric",
                 "explanation": "Page faults / second"
               },
-              "query": "sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='default',_weave_pod_name='authfe'}[1m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='default',_weave_pod_name='authfe'}[1m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }
@@ -79,7 +79,7 @@
                 "format": "numeric",
                 "explanation": "GPU seconds / second"
               },
-              "query": "avg (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+              "query": "avg (label_replace(container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}, 'pod', '$0', 'pod_name', '.+')) by (pod)"
             },
             {
               "title": "GPU memory usage",
@@ -88,7 +88,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (container_accelerator_memory_used_bytes{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+              "query": "sum (label_replace(container_accelerator_memory_used_bytes{image!='',namespace='default',_weave_pod_name='authfe'}, 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }
@@ -105,7 +105,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (rate(container_network_receive_bytes_total{image!='',interface='eth0',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_network_receive_bytes_total{image!='',interface='eth0',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             },
             {
               "title": "Outgoing",
@@ -113,7 +113,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (rate(container_network_transmit_bytes_total{image!='',interface='eth0',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_network_transmit_bytes_total{image!='',interface='eth0',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }
@@ -131,7 +131,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             },
             {
               "title": "Bandwidth (write)",
@@ -140,7 +140,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (rate(container_fs_writes_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_fs_writes_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         },
@@ -152,7 +152,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             },
             {
               "title": "Operations per second (write)",
@@ -160,7 +160,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum (rate(container_fs_writes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (label_replace(rate(container_fs_writes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m]), 'pod', '$0', 'pod_name', '.+')) by (pod)"
             }
           ]
         }

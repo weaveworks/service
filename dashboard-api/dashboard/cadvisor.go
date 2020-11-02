@@ -10,7 +10,7 @@ var cadvisorDashboard = Dashboard{
 			Panels: []Panel{{
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric, Explanation: "CPU seconds / second"},
-				Query: `sum (rate(container_cpu_usage_seconds_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (label_replace(rate(container_cpu_usage_seconds_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}, {
@@ -19,7 +19,7 @@ var cadvisorDashboard = Dashboard{
 			Panels: []Panel{{
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (container_memory_working_set_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
+				Query: `sum (label_replace(container_memory_working_set_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}, 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}, {
@@ -38,7 +38,7 @@ var cadvisorDashboard = Dashboard{
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitNumeric, Explanation: "Page faults / second"},
-				Query:    `sum (rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m])) by (pod_name)`,
+				Query:    `sum (label_replace(rate(container_memory_failures_total{scope='container',failure_type='pgmajfault',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[1m]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}, {
@@ -51,13 +51,13 @@ var cadvisorDashboard = Dashboard{
 				Unit:     Unit{Format: UnitNumeric, Explanation: "GPU seconds / second"},
 				// Already a rate: "Percent of time over the past sample period during which the accelerator was actively processing."
 				// See also: https://github.com/google/cadvisor/blob/08f0c239/metrics/prometheus.go#L334-L335
-				Query: `avg (container_accelerator_duty_cycle{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
+				Query: `avg (label_replace(container_accelerator_duty_cycle{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}, 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}, {
 				Title:    "GPU memory usage",
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitBytes},
-				Query:    `sum (container_accelerator_memory_used_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
+				Query:    `sum (label_replace(container_accelerator_memory_used_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}, 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}, {
@@ -67,12 +67,12 @@ var cadvisorDashboard = Dashboard{
 				Title: "Incoming",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_network_receive_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (label_replace(rate(container_network_receive_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}, {
 				Title: "Outgoing",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_network_transmit_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (label_replace(rate(container_network_transmit_bytes_total{image!='',interface='eth0',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}, {
@@ -85,25 +85,25 @@ var cadvisorDashboard = Dashboard{
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitBytes},
-				Query:    `sum (rate(container_fs_reads_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query:    `sum (label_replace(rate(container_fs_reads_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}, {
 				Title:    "Bandwidth (write)",
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitBytes},
-				Query:    `sum (rate(container_fs_writes_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query:    `sum (label_replace(rate(container_fs_writes_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}, {
 			Panels: []Panel{{
 				Title: "Operations per second (read)",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum (rate(container_fs_reads_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (label_replace(rate(container_fs_reads_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}, {
 				Title: "Operations per second (write)",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum (rate(container_fs_writes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (label_replace(rate(container_fs_writes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}]), 'pod', '$0', 'pod_name', '.+')) by (pod)`,
 			}},
 		}},
 	}},
