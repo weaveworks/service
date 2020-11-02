@@ -24,12 +24,12 @@ const (
 // Queries for getting resource consumption data from Prometheus
 const (
 	// For the derivation of this query, see https://frontend.dev.weave.works/proud-wind-05/monitor/notebook/5ea020df-6220-405f-9f01-af0234a6744a
-	promTopMemoryWorkloadsQuery = `sum by (namespace, pod_name) (sum_over_time(container_memory_usage_bytes{image!=""}[1w])) / ignoring(namespace, pod_name) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
+	promTopMemoryWorkloadsQuery = `sum by (namespace, pod) (label_replace(sum_over_time(container_memory_usage_bytes{image!=""}[1w]), 'pod', '$0', 'pod_name', '.+')) / ignoring(namespace, pod) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
 	// CPU query seems to be more stable over longer time periods, so it's probably safe to assume it doesn't need the same kind of tweaking
-	promTopCPUWorkloadsQuery = `sum by (namespace, pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, pod_name) group_left count(node_cpu{mode='idle'})`
+	promTopCPUWorkloadsQuery = `sum by (namespace, pod) (label_replace(rate(container_cpu_usage_seconds_total{image!=''}[1w]), 'pod', '$0', 'pod_name', '.+')) / ignoring(namespace, pod) group_left count(node_cpu{mode='idle'})`
 	// Normalizes the service name labels to work on systems with different setups (adapted from https://github.com/weaveworks/service-ui/blob/19fcaed0ee4a1adc76cb6c9fb721a0b5559e961f/client/src/pages/prom/dashboards/workload-resources/layout.jsx#L11)
 	podsByWorkloadsQuery = `
-		max by (namespace, service, pod_name) (
+		max by (namespace, service, pod) (
 			label_replace(
 				label_replace(kube_pod_labels{label_name!=""}, "service", "$0", "label_name", ".*") or
 				label_replace(kube_pod_labels{label_k8s_app!=""}, "service", "$0", "label_k8s_app", ".*") or
@@ -40,12 +40,12 @@ const (
 					),
 					"service", "$1", "service", "^(kube-.*)-(?:ip|gke)-.*$"
 				),
-			"pod_name", "$0", "pod", ".*")
+			"pod", "$0", "pod_name", ".+")
 		)
 	`
 
 	podOwnersByWorkloadsQuery = `
-		max by (namespace, pod_name, owner_kind) (
+		max by (namespace, pod, owner_kind) (
 			label_replace(
 				label_replace(
 						kube_pod_owner{owner_kind!="ReplicaSet"},
@@ -58,7 +58,7 @@ const (
 						),
 						"owner_kind", "ReplicaSet", "owner_kind", "<none>"
 				),
-				"pod_name", "$0", "pod", ".*"
+				"pod", "$0", "pod_name", ".+"
 			)
 		)
 	`
@@ -68,8 +68,8 @@ func buildWorkloadsResourceConsumptionQuery(resourceQuery string) string {
 	return fmt.Sprintf(`
 		sort_desc(
 			sum by (namespace, service, owner_kind) (
-				%s * on (pod_name) group_left(namespace, service) (%s)
-				* on (namespace, pod_name) group_left(owner_kind) (%s)
+				%s * on (pod) group_left(namespace, service) (%s)
+				* on (namespace, pod) group_left(owner_kind) (%s)
 			)
 		)
 	`, resourceQuery, podsByWorkloadsQuery, podOwnersByWorkloadsQuery)
