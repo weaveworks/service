@@ -68,7 +68,7 @@ func buildWorkloadsResourceConsumptionQuery(resourceQuery string) string {
 	return fmt.Sprintf(`
 		sort_desc(
 			sum by (namespace, service, owner_kind) (
-				%s * on (pod) group_left(namespace, service) (%s)
+				%s * on (namespace, pod) group_left(service) (%s)
 				* on (namespace, pod) group_left(owner_kind) (%s)
 			)
 		)
