@@ -27,20 +27,15 @@ const (
 	promTopMemoryWorkloadsQuery = `sum by (namespace, pod) (label_replace(sum_over_time(container_memory_usage_bytes{image!=""}[1w]), 'pod', '$0', 'pod_name', '.+')) / ignoring(namespace, pod) group_left sum(sum_over_time(node_memory_MemTotal[1w]))`
 	// CPU query seems to be more stable over longer time periods, so it's probably safe to assume it doesn't need the same kind of tweaking
 	promTopCPUWorkloadsQuery = `sum by (namespace, pod) (label_replace(rate(container_cpu_usage_seconds_total{image!=''}[1w]), 'pod', '$0', 'pod_name', '.+')) / ignoring(namespace, pod) group_left count(node_cpu{mode='idle'})`
-	// Normalizes the service name labels to work on systems with different setups (adapted from https://github.com/weaveworks/service-ui/blob/19fcaed0ee4a1adc76cb6c9fb721a0b5559e961f/client/src/pages/prom/dashboards/workload-resources/layout.jsx#L11)
+	// Normalizes the service name labels to work on systems with different setups
 	podsByWorkloadsQuery = `
 		max by (namespace, service, pod) (
 			label_replace(
-				label_replace(kube_pod_labels{label_name!=""}, "service", "$0", "label_name", ".*") or
-				label_replace(kube_pod_labels{label_k8s_app!=""}, "service", "$0", "label_k8s_app", ".*") or
 				label_replace(
-					label_replace(
-						kube_pod_labels{label_name="",label_k8s_app=""},
-						"service", "$1", "pod", "^(.*?)(?:(?:-[0-9]+)?-[0-9a-z]{5})?$"
-					),
-					"service", "$1", "service", "^(kube-.*)-(?:ip|gke)-.*$"
-				),
-			"pod", "$0", "pod_name", ".+")
+					label_join(max_over_time(kube_pod_labels{kubernetes_namespace="weave"}[1w]), "service", "@", "label_name", "label_k8s_app", "pod"),
+					"service", "$1$2$3", "service", "(.+)@.*@.*|@(.+)@.*|@@(.*?)(?:(?:-[0-9bcdf]+)?-[0-9a-z]{5})?"),
+				"service", "$1", "service", "(kube-.*|etcd)-(?:ip|gke)-.*"
+			)
 		)
 	`
 
@@ -48,17 +43,9 @@ const (
 		max by (namespace, pod, owner_kind) (
 			label_replace(
 				label_replace(
-						kube_pod_owner{owner_kind!="ReplicaSet"},
-						"owner_kind", "Pod", "owner_kind", "<none>"
-				) or
-				label_replace(
-						kube_pod_owner{owner_kind="ReplicaSet"} * on (owner_name) group_left(owner_kind) label_replace(
-								kube_replicaset_owner,
-								"owner_name", "$0", "replicaset", ".*"
-						),
-						"owner_kind", "ReplicaSet", "owner_kind", "<none>"
-				),
-				"pod", "$0", "pod_name", ".+"
+					label_join(max_over_time(kube_pod_owner{kubernetes_namespace="weave"}[1w]), "_kind_plus_name", "@", "owner_kind", "owner_name"),
+					"owner_kind", "Deployment", "_kind_plus_name", "ReplicaSet@.+-[0-9bcdf]+"),
+				"owner_kind", "Pod", "owner_kind", "<none>"
 			)
 		)
 	`
