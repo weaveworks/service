@@ -32,7 +32,7 @@ const (
 		max by (namespace, service, pod) (
 			label_replace(
 				label_replace(
-					label_join(max_over_time(kube_pod_labels[1w]), "service", "@", "label_name", "label_k8s_app", "pod"),
+					label_join(max_over_time(kube_pod_labels{kubernetes_namespace="weave"}[1w]), "service", "@", "label_name", "label_k8s_app", "pod"),
 					"service", "$1$2$3", "service", "(.+)@.*@.*|@(.+)@.*|@@(.*?)(?:(?:-[0-9bcdf]+)?-[0-9a-z]{5})?"),
 				"service", "$1", "service", "(kube-.*|etcd)-(?:ip|gke)-.*"
 			)
@@ -43,7 +43,7 @@ const (
 		max by (namespace, pod, owner_kind) (
 			label_replace(
 				label_replace(
-					label_join(max_over_time(kube_pod_owner[1w]), "_kind_plus_name", "@", "owner_kind", "owner_name"),
+					label_join(max_over_time(kube_pod_owner{kubernetes_namespace="weave"}[1w]), "_kind_plus_name", "@", "owner_kind", "owner_name"),
 					"owner_kind", "Deployment", "_kind_plus_name", "ReplicaSet@.+-[0-9bcdf]+"),
 				"owner_kind", "Pod", "owner_kind", "<none>"
 			)
