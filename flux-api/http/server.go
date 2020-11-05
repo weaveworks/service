@@ -1,15 +1,11 @@
 package http
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +13,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/flux"
 
@@ -134,14 +131,23 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		// Webhooks
 		Webhook: s.handleWebhook,
 	} {
-		handler := logging(handlerMethod, log.With(s.logger, "method", method))
+		handler := http.HandlerFunc(handlerMethod)
 		r.Get(method).Handler(handler)
 	}
 
-	return middleware.Instrument{
-		RouteMatcher: r,
-		Duration:     requestDuration,
-	}.Wrap(r)
+	httpMiddleware := []middleware.Interface{
+		middleware.Tracer{
+			RouteMatcher: r,
+		},
+		middleware.Log{
+			Log: logging.GoKit(s.logger),
+		},
+		middleware.Instrument{
+			RouteMatcher: r,
+			Duration:     requestDuration,
+		},
+	}
+	return middleware.Merge(httpMiddleware...).Wrap(r)
 }
 
 func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
@@ -670,29 +676,6 @@ func (s Server) updatePolicies(w http.ResponseWriter, r *http.Request) {
 
 // --- end handlers
 
-func logging(next http.Handler, logger log.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		begin := time.Now()
-		cw := &codeWriter{w, http.StatusOK}
-		tw := &teeWriter{cw, bytes.Buffer{}}
-		inst := r.Header.Get(InstanceIDHeaderKey)
-
-		next.ServeHTTP(tw, r)
-
-		requestLogger := log.With(
-			logger,
-			"instance", inst,
-			"url", mustUnescape(r.URL.String()),
-			"took", time.Since(begin).String(),
-			"status_code", cw.code,
-		)
-		if cw.code != http.StatusOK {
-			requestLogger = log.With(requestLogger, "error", strings.TrimSpace(tw.buf.String()))
-		}
-		requestLogger.Log()
-	})
-}
-
 // Make a context from the request, with the value of the instance ID in it
 func getRequestContext(req *http.Request) context.Context {
 	s := req.Header.Get(InstanceIDHeaderKey)
@@ -706,53 +689,6 @@ func overrideInstanceID(req *http.Request, instID string) {
 	if instID != "" {
 		req.Header.Set(InstanceIDHeaderKey, instID)
 	}
-}
-
-// codeWriter intercepts the HTTP status code. WriteHeader may not be called in
-// case of success, so either prepopulate code with http.StatusOK, or check for
-// zero on the read side.
-type codeWriter struct {
-	http.ResponseWriter
-	code int
-}
-
-func (w *codeWriter) WriteHeader(code int) {
-	w.code = code
-	w.ResponseWriter.WriteHeader(code)
-}
-
-func (w *codeWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hj, ok := w.ResponseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("response does not implement http.Hijacker")
-	}
-	return hj.Hijack()
-}
-
-// teeWriter intercepts and stores the HTTP response.
-type teeWriter struct {
-	http.ResponseWriter
-	buf bytes.Buffer
-}
-
-func (w *teeWriter) Write(p []byte) (int, error) {
-	w.buf.Write(p) // best-effort
-	return w.ResponseWriter.Write(p)
-}
-
-func (w *teeWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hj, ok := w.ResponseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("response does not implement http.Hijacker")
-	}
-	return hj.Hijack()
-}
-
-func mustUnescape(s string) string {
-	if unescaped, err := url.QueryUnescape(s); err == nil {
-		return unescaped
-	}
-	return s
 }
 
 // Use for constructing errors that will marshal to JSON. In general,
