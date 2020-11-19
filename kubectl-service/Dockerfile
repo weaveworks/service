@@ -5,24 +5,18 @@ RUN mkdir kubectl
 WORKDIR /kubectl
 
 RUN apk --no-cache -q add curl && \
-        curl -fsSLo 1.5.8 "http://storage.googleapis.com/kubernetes-release/release/v1.5.8/bin/linux/amd64/kubectl" && \
-        echo -n "647e233fe0b935300a981b61245b29c7dae6af772dc1f2243cfa1970d2e90219  1.5.8" | sha256sum -c && \
-        chmod +x 1.5.8 && \
-        curl -fsSLo 1.6.13 "http://storage.googleapis.com/kubernetes-release/release/v1.6.13/bin/linux/amd64/kubectl" && \
-        echo -n "17e29707dcdaac878178d4b137c798cb37993a8a7f0ae214835af4f8e322bafa  1.6.13" | sha256sum -c && \
-        chmod +x 1.6.13 && \
-        curl -fsSLo 1.7.12 "http://storage.googleapis.com/kubernetes-release/release/v1.7.12/bin/linux/amd64/kubectl" && \
-        echo -n "c073997447db252a2358dc25698d8d82e2bab12b02ec54a9e8af62acab1043df  1.7.12" | sha256sum -c && \
-        chmod +x 1.7.12 && \
-        curl -fsSLo 1.8.6 "http://storage.googleapis.com/kubernetes-release/release/v1.8.6/bin/linux/amd64/kubectl" && \
-        echo -n "2343a549fdfc2d7e6b43da5d7ed5be4e43abc0e7322fdbc3bdd5c0dbd24bc6a6  1.8.6" | sha256sum -c && \
-        chmod +x 1.8.6 && \
-        curl -fsSLo 1.9.1 "http://storage.googleapis.com/kubernetes-release/release/v1.9.1/bin/linux/amd64/kubectl" && \
-        echo -n "ec1abbc1b91fb23e00558c09892d053012c7581afe6e5a36cada3713b0b7c37b  1.9.1" | sha256sum -c && \
-        chmod +x 1.9.1 && \
+        curl -fsSLo 1.15.11 "http://storage.googleapis.com/kubernetes-release/release/v1.15.11/bin/linux/amd64/kubectl" && \
+        echo -n "4b9053d6ffd34c68a16af1d99855e68d27b7578f75382f19648d425f29f0fbc5  1.15.11" | sha256sum -c && \
+        chmod +x 1.15.11 && \
+        curl -fsSLo 1.16.9 "http://storage.googleapis.com/kubernetes-release/release/v1.16.9/bin/linux/amd64/kubectl" && \
+        echo -n "0f3a6618a2e7402b11a1d9b9ffeff3ba0c6765dc361815413ce7441799aecf96  1.16.9" | sha256sum -c && \
+        chmod +x 1.16.9 && \
+        curl -fsSLo 1.17.5 "http://storage.googleapis.com/kubernetes-release/release/v1.17.5/bin/linux/amd64/kubectl" && \
+        echo -n "03cd1fa19f90d38005148793efdb17a9b58d01dedea641a8496b9cf228db3ab4  1.17.5" | sha256sum -c && \
+        chmod +x 1.17.5 && \
         apk del --purge -q curl
 
-RUN ln -s 1.9.1 latest
+RUN ln -s 1.17.5 latest
 
 WORKDIR /
 COPY kubectl-service /
