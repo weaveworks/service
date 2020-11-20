@@ -104,8 +104,8 @@ func TestClient_ReportBadRequest(t *testing.T) {
 
 // mockOauth mocks the oauth2 token request
 func mockOauth() {
-	gock.New("https://accounts.google.com").
-		Post("/o/oauth2/token").
+	gock.New("https://oauth2.googleapis.com").
+		Post("/token").
 		Reply(200).
 		JSON(map[string]interface{}{
 			"access_token":  "ya29.Foo",
