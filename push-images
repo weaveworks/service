@@ -6,17 +6,8 @@ import subprocess
 import sys
 
 
-BUILD_IMAGE_REPO = 'quay.io/weaveworks'
+BUILD_IMAGE_REPO = 'weaveworks'
 SERVICE_REPO = 'github.com/weaveworks/service'
-
-QUAY_IO_WARNING = """
-When pushing to quay.io, you will *not* be prompted to log in. To get your password:
-
-  1. Go to http://quay.io
-  2. Log in with e.g. GitHub
-  3. Go to settings and generate an encrypted password
-  4. Follow instructions
-"""
 
 EXCLUDED_COMPONENTS = [
     'build',
@@ -175,8 +166,6 @@ def get_components():
 
 def main():
     image_repository = os.environ.get('IMAGE_REPOSITORY', BUILD_IMAGE_REPO)
-    if image_repository == BUILD_IMAGE_REPO:
-        print(QUAY_IO_WARNING)
 
     parser = make_parser()
     opts = parser.parse_args()

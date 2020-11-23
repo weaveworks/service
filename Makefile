@@ -5,14 +5,14 @@
 
 # Boiler plate for bulding Docker containers.
 # All this must go at top of file I'm afraid.
-IMAGE_PREFIX := quay.io/weaveworks
+IMAGE_PREFIX := weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
 GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
 GO_TEST_IMAGE := golang:1.13.5-stretch
 
 # Building Docker images is now automated. The convention is every directory
-# with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
+# with a Dockerfile in it builds an image calls weaveworks/<dirname>.
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
