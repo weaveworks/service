@@ -45,7 +45,7 @@ func (j *ReporterJob) sendOutWeeklyReportForAllInstances(ctx context.Context, no
 	}
 	j.log.Infof("WeeklyReports: sending out emails to members of %d instances", len(resp.Organizations))
 
-	limiter := rate.NewLimiter(5, 1)
+	limiter := rate.NewLimiter(0.1, 1)
 
 	for _, organization := range resp.Organizations {
 		limiter.Wait(ctx)
