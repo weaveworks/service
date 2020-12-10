@@ -101,6 +101,7 @@
           "panels": [
             {
               "title": "Incoming",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -109,6 +110,7 @@
             },
             {
               "title": "Outgoing",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -148,6 +150,7 @@
           "panels": [
             {
               "title": "Operations per second (read)",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -156,6 +159,7 @@
             },
             {
               "title": "Operations per second (write)",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "numeric"
