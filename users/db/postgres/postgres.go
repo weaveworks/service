@@ -11,10 +11,12 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
 
+	"github.com/dlmiddlecote/sqlstats"
 	"github.com/weaveworks/service/common/dbwait"
 )
 
@@ -81,6 +83,15 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 
 	db.SetMaxOpenConns(intOptions["max_open_conns"])
 	db.SetMaxIdleConns(intOptions["max_idle_conns"])
+
+	collector := sqlstats.NewStatsCollector("users_db", db)
+
+	if err := prometheus.Register(collector); err != nil {
+		// The New() function may get called several times in automated tests.
+		// This can lead to "duplicate collector" errors.
+		// To avoid a panic (ie prometheus.MustRegister), ignore the error and continue.
+		log.Warnf("sqlstats metrics collector failed to register: %s", err)
+	}
 
 	return DB{
 		dbProxy:              db,
