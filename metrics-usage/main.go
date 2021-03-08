@@ -22,6 +22,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 )
@@ -50,6 +51,9 @@ func main() {
 	billingConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 	serverConfig.MetricsNamespace = "usage"
+
+	traceCloser := tracing.NewFromEnv("billing-usage")
+	defer traceCloser.Close()
 
 	server, err := server.New(serverConfig)
 	checkFatal(err)
