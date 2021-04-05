@@ -12,6 +12,8 @@ RUN buildDeps="sudo make gcc g++ libc-dev autoconf automake libtool libltdl-dev"
          fluent-plugin-fields-parser:0.1.2 \
          fluent-plugin-rewrite-tag-filter:2.3.0 \
          fluent-plugin-elasticsearch:4.2.2 \
+         prometheus-client:2.1.0 \
+         fluent-plugin-prometheus:2.0.0 \
  && sudo gem sources --clear-all \
  && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
@@ -19,6 +21,9 @@ RUN buildDeps="sudo make gcc g++ libc-dev autoconf automake libtool libltdl-dev"
                   $buildDeps \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem
+
+# Port for Prometheus metrics
+EXPOSE 24231
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
