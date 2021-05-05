@@ -139,14 +139,16 @@ func populateError(err httperror.APIError, resp *gh.Response) *httperror.APIErro
 }
 
 func parseError(resp *gh.Response, err error) error {
-	switch resp.StatusCode {
-	case http.StatusUnauthorized:
+	switch {
+	case resp != nil && resp.StatusCode == http.StatusUnauthorized:
 		return populateError(errUnauthorized, resp)
-	case http.StatusNotFound:
+	case resp != nil && resp.StatusCode == http.StatusNotFound:
 		return populateError(errNotFound, resp)
-	default:
+	case resp != nil:
 		e := populateError(errGeneric, resp)
 		e.Body = fmt.Sprintf("%s - %s", e.Body, err.Error())
 		return e
+	default:
+		return err
 	}
 }
