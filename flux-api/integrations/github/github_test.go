@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -75,7 +76,7 @@ func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 		client: client,
 	}
 
-	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA", "test-deploy-key")
+	err := g.InsertDeployKey(context.Background(), "o", "r", "ssh-rsa AAA", "test-deploy-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +100,7 @@ func TestInsertDeployKey_KeyDoesExist(t *testing.T) {
 		client: client,
 	}
 
-	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA", "test-deploy-key")
+	err := g.InsertDeployKey(context.Background(), "o", "r", "ssh-rsa AAA", "test-deploy-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +173,7 @@ func TestGetRepos(t *testing.T) {
 		client: client,
 	}
 
-	repos, err := g.GetRepos()
+	repos, err := g.GetRepos(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
