@@ -126,6 +126,7 @@ func TestWebhooksMiddleware(t *testing.T) {
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", strings.NewReader("payload"))
 		req = mux.SetURLVars(req, map[string]string{"secretID": "secret-abc"})
 		req.Header.Set("X-Hub-Signature", genGithubMAC([]byte("payload"), []byte("signing-key-123")))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		assertResponse(t, m, req, err, http.StatusOK, "")
 
 		// Invalid signing key
