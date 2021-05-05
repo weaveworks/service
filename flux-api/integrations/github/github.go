@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 
 	gh "github.com/google/go-github/github"
@@ -45,19 +46,19 @@ func NewGithubClient(token string) *Github {
 // (or defaultDeployKeyName if that argument is empty) for the given
 // owner, repo, token, containing the public key `deployKey`.  If a
 // key already exists with that title it will be deleted first.
-func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey, deployKeyName string) error {
+func (g *Github) InsertDeployKey(ctx context.Context, ownerName string, repoName string, deployKey, deployKeyName string) error {
 	if deployKeyName == "" {
 		deployKeyName = defaultDeployKeyName
 	}
 	// Get list of keys
-	keys, resp, err := g.client.Repositories.ListKeys(ownerName, repoName, nil)
+	keys, resp, err := g.client.Repositories.ListKeys(ctx, ownerName, repoName, nil)
 	if err != nil {
 		return parseError(resp, err)
 	}
 	for _, k := range keys {
 		// If key already exists, delete
 		if *k.Title == deployKeyName {
-			resp, err := g.client.Repositories.DeleteKey(ownerName, repoName, *k.ID)
+			resp, err := g.client.Repositories.DeleteKey(ctx, ownerName, repoName, *k.ID)
 			if err != nil {
 				return parseError(resp, err)
 			}
@@ -70,7 +71,7 @@ func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey, d
 		Title: &deployKeyName,
 		Key:   &deployKey,
 	}
-	_, resp, err = g.client.Repositories.CreateKey(ownerName, repoName, &key)
+	_, resp, err = g.client.Repositories.CreateKey(ctx, ownerName, repoName, &key)
 	if err != nil {
 		return parseError(resp, err)
 	}
@@ -79,13 +80,13 @@ func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey, d
 
 // User describes a GitHub User with minimal information
 type User struct {
-	ID    *int    `json:"id,omitempty"`
+	ID    *int64  `json:"id,omitempty"`
 	Login *string `json:"login,omitempty"`
 }
 
 // Repository describes a GitHub Repository with minimal information
 type Repository struct {
-	ID          *int    `json:"id,omitempty"`
+	ID          *int64  `json:"id,omitempty"`
 	Owner       *User   `json:"owner,omitempty"`
 	Name        *string `json:"name,omitempty"`
 	FullName    *string `json:"full_name,omitempty"`
@@ -94,11 +95,11 @@ type Repository struct {
 }
 
 // GetRepos will fetch the GitHub repos for a user
-func (g *Github) GetRepos() ([]*Repository, error) {
+func (g *Github) GetRepos(ctx context.Context) ([]*Repository, error) {
 	var result []*Repository
 	page := 1
 	for {
-		repos, resp, err := g.client.Repositories.List("", &gh.RepositoryListOptions{
+		repos, resp, err := g.client.Repositories.List(ctx, "", &gh.RepositoryListOptions{
 			ListOptions: gh.ListOptions{
 				PerPage: 100,
 				Page:    page,

@@ -20,12 +20,6 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   name = "github.com/armon/go-proxyproto"
   source = "github.com/weaveworks/go-proxyproto"
 
-# google/go-github have added contexts to their API.  Pin version until we
-# can update.
-[[override]]
-  name = "github.com/google/go-github"
-  revision = "59aa6eea1c58ba063a0c3b90a16499cb39e6332a"
-
 # This was the newest commit at the time the dependency was added
 [[constraint]]
   name = "github.com/justinas/nosurf"

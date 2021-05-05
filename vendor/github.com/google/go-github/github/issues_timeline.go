@@ -6,16 +6,18 @@
 package github
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
 // Timeline represents an event that occurred around an Issue or Pull Request.
 //
 // It is similar to an IssueEvent but may contain more information.
-// GitHub API docs: https://developer.github.com/v3/issues/timeline/
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/issues/timeline/
 type Timeline struct {
-	ID        *int    `json:"id,omitempty"`
+	ID        *int64  `json:"id,omitempty"`
 	URL       *string `json:"url,omitempty"`
 	CommitURL *string `json:"commit_url,omitempty"`
 
@@ -114,22 +116,25 @@ type Timeline struct {
 	Source *Source `json:"source,omitempty"`
 	// An object containing rename details including 'from' and 'to' attributes.
 	// Only provided for 'renamed' events.
-	Rename *Rename `json:"rename,omitempty"`
+	Rename      *Rename      `json:"rename,omitempty"`
+	ProjectCard *ProjectCard `json:"project_card,omitempty"`
 }
 
 // Source represents a reference's source.
 type Source struct {
-	ID    *int    `json:"id,omitempty"`
+	ID    *int64  `json:"id,omitempty"`
 	URL   *string `json:"url,omitempty"`
 	Actor *User   `json:"actor,omitempty"`
+	Type  *string `json:"type,omitempty"`
+	Issue *Issue  `json:"issue,omitempty"`
 }
 
 // ListIssueTimeline lists events for the specified issue.
 //
-// GitHub API docs: https://developer.github.com/v3/issues/timeline/#list-events-for-an-issue
-func (s *IssuesService) ListIssueTimeline(owner, repo string, number int, opt *ListOptions) ([]*Timeline, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/issues/#list-timeline-events-for-an-issue
+func (s *IssuesService) ListIssueTimeline(ctx context.Context, owner, repo string, number int, opts *ListOptions) ([]*Timeline, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/issues/%v/timeline", owner, repo, number)
-	u, err := addOptions(u, opt)
+	u, err := addOptions(u, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,9 +145,10 @@ func (s *IssuesService) ListIssueTimeline(owner, repo string, number int, opt *L
 	}
 
 	// TODO: remove custom Accept header when this API fully launches.
-	req.Header.Set("Accept", mediaTypeTimelinePreview)
+	acceptHeaders := []string{mediaTypeTimelinePreview, mediaTypeProjectCardDetailsPreview}
+	req.Header.Set("Accept", strings.Join(acceptHeaders, ", "))
 
 	var events []*Timeline
-	resp, err := s.client.Do(req, &events)
+	resp, err := s.client.Do(ctx, req, &events)
 	return events, resp, err
 }

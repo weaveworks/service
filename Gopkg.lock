@@ -355,11 +355,12 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:f1f04fa88cfeed14f78c4ad8837c23e1b795db142fb6bd674c570fd114920d72"
+  digest = "1:372f5ac4cdafc3cc5a71510828fe094b517da53d711990b9e580a3598ada88e0"
   name = "github.com/google/go-github"
   packages = ["github"]
   pruneopts = "NUT"
-  revision = "59aa6eea1c58ba063a0c3b90a16499cb39e6332a"
+  revision = "cceb4d4573ea092c2396c038ff545cf8334dc498"
+  version = "v35.1.0"
 
 [[projects]]
   branch = "master"
@@ -1188,13 +1189,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f006d0b1a564169d9c5b731486286a26ba8a4ed0b5aa8830599a668e3cb67953"
+  digest = "1:69752bf2e6d57eba34713b95f36cfc9f6c4e98c3bffeddf372c00e95f5ac2657"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
     "blowfish",
+    "cast5",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
     "ssh/terminal",
   ]
   pruneopts = "NUT"

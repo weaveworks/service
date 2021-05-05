@@ -56,11 +56,11 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[st
 
 	oauthClient := g.Config.Client(context.TODO(), tok)
 	client := gClient.NewClient(oauthClient)
-	user, _, err := client.Users.Get("")
+	user, _, err := client.Users.Get(r.Context(), "")
 	if err != nil {
 		return "", "", nil, nil, err
 	}
-	emails, _, err := client.Users.ListEmails(nil)
+	emails, _, err := client.Users.ListEmails(r.Context(), nil)
 	if err != nil {
 		return "", "", nil, nil, err
 	}
@@ -79,14 +79,14 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[st
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
-func (g *github) Username(session json.RawMessage) (string, error) {
+func (g *github) Username(ctx context.Context, session json.RawMessage) (string, error) {
 	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return "", err
 	}
 	oauthClient := g.Config.Client(context.TODO(), s.Token)
 	client := gClient.NewClient(oauthClient)
-	user, _, err := client.Users.Get("")
+	user, _, err := client.Users.Get(ctx, "")
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +95,7 @@ func (g *github) Username(session json.RawMessage) (string, error) {
 
 // Logout handles a user logout request with this provider. It should revoke
 // the remote user session, requiring the user to re-authenticate next time.
-func (g *github) Logout(session json.RawMessage) error {
+func (g *github) Logout(ctx context.Context, session json.RawMessage) error {
 	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return err
@@ -106,7 +106,7 @@ func (g *github) Logout(session json.RawMessage) error {
 			password: g.Config.ClientSecret,
 		},
 	})
-	response, err := client.Authorizations.Revoke(g.Config.ClientID, s.Token.AccessToken)
+	response, err := client.Authorizations.Revoke(ctx, g.Config.ClientID, s.Token.AccessToken)
 	if response != nil {
 		defer response.Body.Close()
 	}
