@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -47,7 +48,7 @@ func (a MockLoginProvider) Login(r *http.Request) (id, email string, session jso
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
-func (a MockLoginProvider) Username(session json.RawMessage) (string, error) {
+func (a MockLoginProvider) Username(_ context.Context, session json.RawMessage) (string, error) {
 	var id string
 	if err := json.Unmarshal(session, &id); err != nil {
 		return "", err
@@ -63,7 +64,7 @@ func (a MockLoginProvider) Username(session json.RawMessage) (string, error) {
 
 // Logout handles a user logout request with this provider. It should revoke
 // the remote user session, requiring the user to re-authenticate next time.
-func (a MockLoginProvider) Logout(session json.RawMessage) error {
+func (a MockLoginProvider) Logout(_ context.Context, session json.RawMessage) error {
 	var id string
 	if err := json.Unmarshal(session, &id); err != nil {
 		return fmt.Errorf("Error logging out: %s, Session: %q", err.Error(), string(session))

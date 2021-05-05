@@ -56,12 +56,12 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 	// NewTransportWithCode will do the handshake to retrieve
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
-	tok, err := g.Config.Exchange(context.TODO(), r.FormValue("code"))
+	tok, err := g.Config.Exchange(r.Context(), r.FormValue("code"))
 	if err != nil {
 		return "", "", nil, nil, err
 	}
 
-	person, err := g.person(tok)
+	person, err := g.person(r.Context(), tok)
 	if err != nil {
 		return "", "", nil, nil, err
 	}
@@ -76,20 +76,20 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
-func (g *google) Username(session json.RawMessage) (string, error) {
+func (g *google) Username(ctx context.Context, session json.RawMessage) (string, error) {
 	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return "", err
 	}
-	person, err := g.person(s.Token)
+	person, err := g.person(ctx, s.Token)
 	if err != nil {
 		return "", err
 	}
 	return g.personEmail(person)
 }
 
-func (g *google) person(token *oauth2.Token) (*plus.Person, error) {
-	oauthClient := g.Config.Client(oauth2.NoContext, token)
+func (g *google) person(ctx context.Context, token *oauth2.Token) (*plus.Person, error) {
+	oauthClient := g.Config.Client(ctx, token)
 	plusService, err := plus.New(oauthClient)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (g *google) personEmail(p *plus.Person) (string, error) {
 
 // Logout handles a user logout request with this provider. It should revoke
 // the remote user session, requiring the user to re-authenticate next time.
-func (g *google) Logout(session json.RawMessage) error {
+func (g *google) Logout(ctx context.Context, session json.RawMessage) error {
 	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return err

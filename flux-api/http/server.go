@@ -396,7 +396,7 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 	// clean way of injecting without significantly altering
 	// the initialisation (at the top)
 	gh := github.NewGithubClient(tok)
-	err = gh.InsertDeployKey(owner, repo, repoConfig.PublicSSHKey.Key, keyname)
+	err = gh.InsertDeployKey(r.Context(), owner, repo, repoConfig.PublicSSHKey.Key, keyname)
 	if err != nil {
 		httpErr, isHTTPErr := err.(*httperror.APIError)
 		code := http.StatusInternalServerError
@@ -419,7 +419,7 @@ func (s Server) getGithubRepos(w http.ResponseWriter, r *http.Request) {
 
 	// Use the Github API to fetch the user's GitHub repos
 	gh := github.NewGithubClient(tok)
-	repos, err := gh.GetRepos()
+	repos, err := gh.GetRepos(r.Context())
 	if err != nil {
 		httpErr, isHTTPErr := err.(*httperror.APIError)
 		code := http.StatusInternalServerError

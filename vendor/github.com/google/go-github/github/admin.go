@@ -5,18 +5,21 @@
 
 package github
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // AdminService handles communication with the admin related methods of the
 // GitHub API. These API routes are normally only accessible for GitHub
 // Enterprise installations.
 //
-// GitHub API docs: https://developer.github.com/v3/enterprise/
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/enterprise/
 type AdminService service
 
 // TeamLDAPMapping represents the mapping between a GitHub team and an LDAP group.
 type TeamLDAPMapping struct {
-	ID          *int    `json:"id,omitempty"`
+	ID          *int64  `json:"id,omitempty"`
 	LDAPDN      *string `json:"ldap_dn,omitempty"`
 	URL         *string `json:"url,omitempty"`
 	Name        *string `json:"name,omitempty"`
@@ -35,7 +38,7 @@ func (m TeamLDAPMapping) String() string {
 
 // UserLDAPMapping represents the mapping between a GitHub user and an LDAP user.
 type UserLDAPMapping struct {
-	ID         *int    `json:"id,omitempty"`
+	ID         *int64  `json:"id,omitempty"`
 	LDAPDN     *string `json:"ldap_dn,omitempty"`
 	Login      *string `json:"login,omitempty"`
 	AvatarURL  *string `json:"avatar_url,omitempty"`
@@ -59,10 +62,28 @@ func (m UserLDAPMapping) String() string {
 	return Stringify(m)
 }
 
+// Enterprise represents the GitHub enterprise profile.
+type Enterprise struct {
+	ID          *int       `json:"id,omitempty"`
+	Slug        *string    `json:"slug,omitempty"`
+	Name        *string    `json:"name,omitempty"`
+	NodeID      *string    `json:"node_id,omitempty"`
+	AvatarURL   *string    `json:"avatar_url,omitempty"`
+	Description *string    `json:"description,omitempty"`
+	WebsiteURL  *string    `json:"website_url,omitempty"`
+	HTMLURL     *string    `json:"html_url,omitempty"`
+	CreatedAt   *Timestamp `json:"created_at,omitempty"`
+	UpdatedAt   *Timestamp `json:"updated_at,omitempty"`
+}
+
+func (m Enterprise) String() string {
+	return Stringify(m)
+}
+
 // UpdateUserLDAPMapping updates the mapping between a GitHub user and an LDAP user.
 //
-// GitHub API docs: https://developer.github.com/v3/enterprise/ldap/#update-ldap-mapping-for-a-user
-func (s *AdminService) UpdateUserLDAPMapping(user string, mapping *UserLDAPMapping) (*UserLDAPMapping, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/enterprise/ldap/#update-ldap-mapping-for-a-user
+func (s *AdminService) UpdateUserLDAPMapping(ctx context.Context, user string, mapping *UserLDAPMapping) (*UserLDAPMapping, *Response, error) {
 	u := fmt.Sprintf("admin/ldap/users/%v/mapping", user)
 	req, err := s.client.NewRequest("PATCH", u, mapping)
 	if err != nil {
@@ -70,18 +91,18 @@ func (s *AdminService) UpdateUserLDAPMapping(user string, mapping *UserLDAPMappi
 	}
 
 	m := new(UserLDAPMapping)
-	resp, err := s.client.Do(req, m)
+	resp, err := s.client.Do(ctx, req, m)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return m, resp, err
+	return m, resp, nil
 }
 
 // UpdateTeamLDAPMapping updates the mapping between a GitHub team and an LDAP group.
 //
-// GitHub API docs: https://developer.github.com/v3/enterprise/ldap/#update-ldap-mapping-for-a-team
-func (s *AdminService) UpdateTeamLDAPMapping(team int, mapping *TeamLDAPMapping) (*TeamLDAPMapping, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/enterprise/ldap/#update-ldap-mapping-for-a-team
+func (s *AdminService) UpdateTeamLDAPMapping(ctx context.Context, team int64, mapping *TeamLDAPMapping) (*TeamLDAPMapping, *Response, error) {
 	u := fmt.Sprintf("admin/ldap/teams/%v/mapping", team)
 	req, err := s.client.NewRequest("PATCH", u, mapping)
 	if err != nil {
@@ -89,10 +110,10 @@ func (s *AdminService) UpdateTeamLDAPMapping(team int, mapping *TeamLDAPMapping)
 	}
 
 	m := new(TeamLDAPMapping)
-	resp, err := s.client.Do(req, m)
+	resp, err := s.client.Do(ctx, req, m)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return m, resp, err
+	return m, resp, nil
 }

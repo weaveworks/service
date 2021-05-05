@@ -81,7 +81,7 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 			LoginID: l.ProviderID,
 		}
 		var err error
-		v.Username, err = p.Username(l.Session)
+		v.Username, err = p.Username(ctx, l.Session)
 		if err != nil {
 			commonuser.LogWith(ctx, logging.Global()).Warnf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
 		}
@@ -254,7 +254,7 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 		if login.Provider != providerID {
 			continue
 		}
-		if err := provider.Logout(login.Session); err != nil {
+		if err := provider.Logout(r.Context(), login.Session); err != nil {
 			renderError(w, r, err)
 			return
 		}

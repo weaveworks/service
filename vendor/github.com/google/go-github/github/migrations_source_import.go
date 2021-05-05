@@ -5,7 +5,10 @@
 
 package github
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // Import represents a repository import request.
 type Import struct {
@@ -39,7 +42,7 @@ type Import struct {
 	// repository. To see a list of these files, call LargeFiles.
 	LargeFilesCount *int `json:"large_files_count,omitempty"`
 
-	// Identifies the current status of an import.  An import that does not
+	// Identifies the current status of an import. An import that does not
 	// have errors will progress through these steps:
 	//
 	//     detecting - the "detection" step of the import is in progress
@@ -101,9 +104,9 @@ type Import struct {
 	HumanName *string `json:"human_name,omitempty"`
 
 	// When the importer finds several projects or repositories at the
-	// provided URLs, this will identify the available choices.  Call
+	// provided URLs, this will identify the available choices. Call
 	// UpdateImport with the selected Import value.
-	ProjectChoices []Import `json:"project_choices,omitempty"`
+	ProjectChoices []*Import `json:"project_choices,omitempty"`
 }
 
 func (i Import) String() string {
@@ -112,9 +115,9 @@ func (i Import) String() string {
 
 // SourceImportAuthor identifies an author imported from a source repository.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#get-commit-authors
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migration/source_imports/#get-commit-authors
 type SourceImportAuthor struct {
-	ID         *int    `json:"id,omitempty"`
+	ID         *int64  `json:"id,omitempty"`
 	RemoteID   *string `json:"remote_id,omitempty"`
 	RemoteName *string `json:"remote_name,omitempty"`
 	Email      *string `json:"email,omitempty"`
@@ -129,7 +132,7 @@ func (a SourceImportAuthor) String() string {
 
 // LargeFile identifies a file larger than 100MB found during a repository import.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#get-large-files
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migration/source_imports/#get-large-files
 type LargeFile struct {
 	RefName *string `json:"ref_name,omitempty"`
 	Path    *string `json:"path,omitempty"`
@@ -143,68 +146,59 @@ func (f LargeFile) String() string {
 
 // StartImport initiates a repository import.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#start-an-import
-func (s *MigrationService) StartImport(owner, repo string, in *Import) (*Import, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#start-an-import
+func (s *MigrationService) StartImport(ctx context.Context, owner, repo string, in *Import) (*Import, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import", owner, repo)
 	req, err := s.client.NewRequest("PUT", u, in)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	out := new(Import)
-	resp, err := s.client.Do(req, out)
+	resp, err := s.client.Do(ctx, req, out)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return out, resp, err
+	return out, resp, nil
 }
 
 // ImportProgress queries for the status and progress of an ongoing repository import.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#get-import-progress
-func (s *MigrationService) ImportProgress(owner, repo string) (*Import, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#get-an-import-status
+func (s *MigrationService) ImportProgress(ctx context.Context, owner, repo string) (*Import, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	out := new(Import)
-	resp, err := s.client.Do(req, out)
+	resp, err := s.client.Do(ctx, req, out)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return out, resp, err
+	return out, resp, nil
 }
 
 // UpdateImport initiates a repository import.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#update-existing-import
-func (s *MigrationService) UpdateImport(owner, repo string, in *Import) (*Import, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#update-an-import
+func (s *MigrationService) UpdateImport(ctx context.Context, owner, repo string, in *Import) (*Import, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import", owner, repo)
 	req, err := s.client.NewRequest("PATCH", u, in)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	out := new(Import)
-	resp, err := s.client.Do(req, out)
+	resp, err := s.client.Do(ctx, req, out)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return out, resp, err
+	return out, resp, nil
 }
 
 // CommitAuthors gets the authors mapped from the original repository.
@@ -219,19 +213,16 @@ func (s *MigrationService) UpdateImport(owner, repo string, in *Import) (*Import
 // This method and MapCommitAuthor allow you to provide correct Git author
 // information.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#get-commit-authors
-func (s *MigrationService) CommitAuthors(owner, repo string) ([]*SourceImportAuthor, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#get-commit-authors
+func (s *MigrationService) CommitAuthors(ctx context.Context, owner, repo string) ([]*SourceImportAuthor, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import/authors", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	var authors []*SourceImportAuthor
-	resp, err := s.client.Do(req, &authors)
+	resp, err := s.client.Do(ctx, req, &authors)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -243,65 +234,56 @@ func (s *MigrationService) CommitAuthors(owner, repo string) ([]*SourceImportAut
 // application can continue updating authors any time before you push new
 // commits to the repository.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#map-a-commit-author
-func (s *MigrationService) MapCommitAuthor(owner, repo string, id int, author *SourceImportAuthor) (*SourceImportAuthor, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#map-a-commit-author
+func (s *MigrationService) MapCommitAuthor(ctx context.Context, owner, repo string, id int64, author *SourceImportAuthor) (*SourceImportAuthor, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import/authors/%v", owner, repo, id)
 	req, err := s.client.NewRequest("PATCH", u, author)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	out := new(SourceImportAuthor)
-	resp, err := s.client.Do(req, out)
+	resp, err := s.client.Do(ctx, req, out)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return out, resp, err
+	return out, resp, nil
 }
 
 // SetLFSPreference sets whether imported repositories should use Git LFS for
-// files larger than 100MB.  Only the UseLFS field on the provided Import is
+// files larger than 100MB. Only the UseLFS field on the provided Import is
 // used.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#set-git-lfs-preference
-func (s *MigrationService) SetLFSPreference(owner, repo string, in *Import) (*Import, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#update-git-lfs-preference
+func (s *MigrationService) SetLFSPreference(ctx context.Context, owner, repo string, in *Import) (*Import, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import/lfs", owner, repo)
 	req, err := s.client.NewRequest("PATCH", u, in)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	out := new(Import)
-	resp, err := s.client.Do(req, out)
+	resp, err := s.client.Do(ctx, req, out)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return out, resp, err
+	return out, resp, nil
 }
 
 // LargeFiles lists files larger than 100MB found during the import.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#get-large-files
-func (s *MigrationService) LargeFiles(owner, repo string) ([]*LargeFile, *Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#get-large-files
+func (s *MigrationService) LargeFiles(ctx context.Context, owner, repo string) ([]*LargeFile, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import/large_files", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
 	var files []*LargeFile
-	resp, err := s.client.Do(req, &files)
+	resp, err := s.client.Do(ctx, req, &files)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -311,16 +293,13 @@ func (s *MigrationService) LargeFiles(owner, repo string) ([]*LargeFile, *Respon
 
 // CancelImport stops an import for a repository.
 //
-// GitHub API docs: https://developer.github.com/v3/migration/source_imports/#cancel-an-import
-func (s *MigrationService) CancelImport(owner, repo string) (*Response, error) {
+// GitHub API docs: https://docs.github.com/en/free-pro-team@latest/rest/reference/migrations/#cancel-an-import
+func (s *MigrationService) CancelImport(ctx context.Context, owner, repo string) (*Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/import", owner, repo)
 	req, err := s.client.NewRequest("DELETE", u, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches
-	req.Header.Set("Accept", mediaTypeImportPreview)
-
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }
