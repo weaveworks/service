@@ -185,6 +185,14 @@
   version = "v3.2.0"
 
 [[projects]]
+  digest = "1:0011827e1309d2549ecd5ab723b27e785eb5a7700cb853cc39af247db3288baa"
+  name = "github.com/dlmiddlecote/sqlstats"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "1c82b80cc2ff209e855279ffe6e22e8a282813f3"
+  version = "v1.0.2"
+
+[[projects]]
   branch = "master"
   digest = "1:7a4e746e7cf5bc0e0e9c36ae2d805bff239ba7ed24cbf77538e45312f9771e0a"
   name = "github.com/docker/distribution"
@@ -1495,6 +1503,7 @@
     "github.com/bluele/gcache",
     "github.com/certifi/gocertifi",
     "github.com/dgrijalva/jwt-go",
+    "github.com/dlmiddlecote/sqlstats",
     "github.com/dukex/mixpanel",
     "github.com/fluent/fluent-logger-golang/fluent",
     "github.com/go-kit/kit/endpoint",
