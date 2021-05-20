@@ -231,7 +231,11 @@ func main() {
 	// Read the records once to count how many deletions we expect
 	records := bufio.NewScanner(recordsReader)
 	for records.Scan() {
-		_, org, hour, count, err := parseRecord(records.Text())
+		line := records.Text()
+		if line == "" || line[1] == '#' {
+			continue
+		}
+		_, org, hour, count, err := parseRecord(line)
 		checkFatal(err)
 		if !scanner.ignoreRecord(org, hour) {
 			deletesExpected.Add(float64(count))
