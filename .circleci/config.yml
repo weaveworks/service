@@ -46,18 +46,18 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-           - build-images
-           - gcp-service/grpc/gcp-service.pb.go
-           - users/users.pb.go
-           - users-sync/api/users-sync.pb.go
-           - common/billing/grpc/billing.pb.go
-           - kubectl-service/grpc/kubectl-service.pb.go
-           - users/mock_users/mock_usersclient.go
-           - billing-api/db/mock_db/mock_db.go
-           - common/billing/grpc/mock_grpc.go
-           - common/gcp/procurement/mock_procurement/mock_client.go
-           - notification-eventmanager/templates/wrapper.html
-           - notification-eventmanager/templates/wrapper.text
+            - build-images
+            - gcp-service/grpc/gcp-service.pb.go
+            - users/users.pb.go
+            - users-sync/api/users-sync.pb.go
+            - common/billing/grpc/billing.pb.go
+            - kubectl-service/grpc/kubectl-service.pb.go
+            - users/mock_users/mock_usersclient.go
+            - billing-api/db/mock_db/mock_db.go
+            - common/billing/grpc/mock_grpc.go
+            - common/gcp/procurement/mock_procurement/mock_client.go
+            - notification-eventmanager/templates/wrapper.html
+            - notification-eventmanager/templates/wrapper.text
   test:
     <<: *defaults
     steps:
@@ -147,20 +147,22 @@ workflows:
       - lint
       - test
       - build
-      - integration-test:
-          requires:
-            - build
-            - lint
-            - test
+      # - integration-test:
+      #     requires:
+      #       - build
+      #       - lint
+      #       - test
       - upload:
           requires:
-            - integration-test
+            - build
           filters:
             branches:
-              only: master
-      - dry-run-upload:
-          requires:
-            - integration-test
-          filters:
-            branches:
-              ignore: master
+              only:
+                - master
+                - jp-authfe-handle-400s
+      # - dry-run-upload:
+      #     requires:
+      #       - integration-test
+      #     filters:
+      #       branches:
+      #         ignore: master
