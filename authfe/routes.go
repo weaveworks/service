@@ -62,6 +62,15 @@ var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 })
 
+type statusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.Status = status
+}
+
 func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
 	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger, webhooksLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
 	if eventLogger != nil {
@@ -150,12 +159,46 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 	r := newRouter()
 
+	// @jpellizzari
+	// https://github.com/weaveworks/service-conf/issues/4031
+	// Trick the prometheus agents into thinking their out of date metrics were accepted
+	// so they stop trying to resend them.
+	pc := proxyConfig{
+		name:           c.promDistributorHost.name,
+		allowKeepAlive: c.promDistributorHost.allowKeepAlive,
+		hostAndPort:    c.promDistributorHost.hostAndPort,
+		protocol:       c.promDistributorHost.protocol,
+		readOnly:       c.promDistributorHost.readOnly,
+		loadFactor:     c.promDistributorHost.loadFactor,
+		balancer:       c.promDistributorHost.balancer,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			recorder := &statusRecorder{
+				ResponseWriter: w,
+				Status:         http.StatusOK,
+			}
+
+			// Do the normal request
+			c.promDistributorHost.ServeHTTP(recorder, r)
+
+			// If its a bad request, send an ok anyway.
+			// Hopefully prom will stop trying to resend.
+			if recorder.Status == http.StatusBadRequest {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			// We have intercepted the WriteHeader method,
+			// so pass through the recorded status to the original response writer.
+			w.WriteHeader(recorder.Status)
+
+		}),
+	}
+
 	// Routes authenticated using header credentials
 	dataUploadRoutes := MiddlewarePrefix{
 		"/api",
 		[]PrefixRoutable{
 			Prefix{"/report", c.collectionHost},
-			Prefix{"/prom/push", c.promDistributorHost},
+			Prefix{"/prom/push", pc},
 			Prefix{"/net/peer", c.peerDiscoveryHost},
 			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxHost},
 			PrefixMethods{"/prom/alertmanager/alerts", []string{"POST"}, c.promAlertmanagerHost},
