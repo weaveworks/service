@@ -313,7 +313,8 @@ func verifyTeamParams(teamExternalID, teamName string) error {
 // refreshOrganizationRestrictions updates restrictions of an organization with regard to billing.
 // It makes sure the proper feature flags are set and also the data access/upload restrictions are in place.
 func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
-	var addFlag, otherFlag string
+	var addFlags map[string]bool
+	var clearFlags map[string]bool
 
 	if org.TeamID != "" {
 		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
@@ -324,8 +325,8 @@ func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *
 		}
 		if account.Provider == provider.External {
 			// No billing for instances billed externally.
-			addFlag = featureflag.NoBilling
-			otherFlag = featureflag.Billing
+			addFlags = map[string]bool{featureflag.NoBilling: true}
+			clearFlags = map[string]bool{featureflag.Billing: true}
 			log.Infof("Disabling billing for %v/%v/%v as team %v is billed externally.", org.ID, org.ExternalID, org.Name, org.TeamID)
 
 			// Never refuse data for externally billed instances.
@@ -341,27 +342,29 @@ func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *
 			}
 		}
 	}
-	if addFlag == "" && a.billingEnabler.IsEnabled() {
-		addFlag = featureflag.Billing
-		otherFlag = featureflag.NoBilling
+	if len(addFlags) == 0 && a.billingEnabler.IsEnabled() {
+		addFlags = map[string]bool{featureflag.Billing: true}
+		clearFlags = map[string]bool{featureflag.NoBilling: true}
 		log.Infof("Enabling billing for %v/%v/%v.", org.ID, org.ExternalID, org.Name)
 	}
 
 	if strings.HasSuffix(currentUser.Email, "@weave.works") {
 		// No billing for instances created by Weaveworks people.
-		addFlag = featureflag.NoBilling
-		otherFlag = featureflag.Billing
+		addFlags = map[string]bool{featureflag.NoBilling: true, featureflag.WeaveworksInternal: true}
+		clearFlags = map[string]bool{featureflag.Billing: true}
 		log.Infof("Disabling billing for %v/%v/%v as %v is a Weaver.", org.ID, org.ExternalID, org.Name, currentUser.Email)
 	}
 
-	if addFlag != "" {
+	if len(addFlags) > 0 {
 		var ff []string
 		for _, f := range org.FeatureFlags {
-			if otherFlag != f && addFlag != f {
+			if !clearFlags[f] && !addFlags[f] {
 				ff = append(ff, f)
 			}
 		}
-		ff = append(ff, addFlag)
+		for k := range addFlags {
+			ff = append(ff, k)
+		}
 		if err := a.db.SetFeatureFlags(ctx, org.ExternalID, ff); err != nil {
 			return err
 		}

@@ -618,6 +618,7 @@ func Test_Organization_CreateOrg_never_delinquent_for_weaver(t *testing.T) {
 	org, err := database.FindOrganizationByID(context.TODO(), eid)
 	assert.NoError(t, err)
 	assert.Contains(t, org.FeatureFlags, featureflag.NoBilling)
+	assert.Contains(t, org.FeatureFlags, featureflag.WeaveworksInternal)
 	assert.False(t, org.RefuseDataAccess)
 	assert.False(t, org.RefuseDataUpload)
 }
