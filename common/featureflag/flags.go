@@ -11,5 +11,9 @@ const Billing = "billing"
 // the "billing" flag, in the admin UI.
 const NoBilling = "no-billing"
 
+// WeaveworksInternal feature flag is used to mark our staff's accounts.
+// This is intended as documentation for why the NoBilling flag has been set for a certain accounts.
+const WeaveworksInternal = "weaveworks-internal"
+
 // WeeklyReportable feature flag enables weekly reports to be sent to the members of an organization
 const WeeklyReportable = "weekly-reportable"
