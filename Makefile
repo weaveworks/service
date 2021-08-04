@@ -225,7 +225,7 @@ $(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/
 
 $(PROTO_GOS) $(MOCK_GOS) generated lint: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
-	$(SUDO) docker run $(RM) -ti \
+	$(SUDO) docker run $(RM) -i \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
@@ -233,7 +233,7 @@ $(PROTO_GOS) $(MOCK_GOS) generated lint: build/$(UPTODATE)
 
 $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 	@mkdir -p $(shell pwd)/.pkg
-	$(SUDO) docker run $(RM) -ti \
+	$(SUDO) docker run $(RM) -i \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
