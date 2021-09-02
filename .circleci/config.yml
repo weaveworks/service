@@ -153,12 +153,16 @@ workflows:
             - lint
             - test
       - upload:
+          context:
+            - ecr_upload
           requires:
             - integration-test
           filters:
             branches:
               only: master
       - dry-run-upload:
+          context:
+            - ecr_upload
           requires:
             - integration-test
           filters:
