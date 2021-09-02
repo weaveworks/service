@@ -190,7 +190,7 @@ billing-uploader/$(UPTODATE): $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): $(call billing-migrations-deps,billing-aggregator)
 
 $(foreach nexe,$(NOTIFICATION_EXES),$(eval $(call IMAGEDEP_template,$(nexe))))
-notification-eventmanager/$(UPTODATE): $(wildcard notification-eventmanager/migrations/*) $(call common-templates-deps,notification-eventmanager) notification-eventmanager/templates/*
+notification-eventmanager/$(UPTODATE): $(NOTIFICATION_EXES) $(wildcard notification-eventmanager/migrations/*) $(call common-templates-deps,notification-eventmanager) notification-eventmanager/templates/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
