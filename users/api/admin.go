@@ -313,7 +313,7 @@ func getSortableColumns() map[string]string {
 		"LastSentWeeklyReportAt": "organizations.last_sent_weekly_report_at",
 		"DeletedAt":              "organizations.deleted_at",
 		"Platform":               "organizations.platform",
-		"PlatformVersion":        "nullif(string_to_array(regexp_replace(organizations.platform_version, '[^0-9.]', '', 'g'), '.')::int[],'{}')",
+		"PlatformVersion":        "(nullif(string_to_array(substring(organizations.platform_version from '^(?:v)([0-9.]+)'), '.')::int[],'{}'), organizations.platform_version)",
 		"TrialRemaining":         "organizations.trial_expires_at",
 	}
 }
