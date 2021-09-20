@@ -59,4 +59,9 @@ func TestEndpointUpdates(t *testing.T) {
 	assert.Equal(t, 0, cw.c.totalLoad)
 	cw.Put(endpoint2)
 	cw.Put(endpoint4)
+
+	// Replace with previously removed endpoint (i.e. temporary failed health
+	// check). This should reflect into the algo
+	cw.update(event("4"))
+	assert.Equal(t, 1, cw.c.numEndpoints)
 }
