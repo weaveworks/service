@@ -76,6 +76,7 @@ cacheLoop:
 		}
 		logging.Global().Debugf("removing instance %s", key)
 		removals = append(removals, endpoint)
+		delete(c.cache, key)
 	}
 	c.c.RemoveEndpoints(removals...)
 
