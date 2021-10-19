@@ -1,6 +1,7 @@
 // This file does end to end testing by accessing the staging
 // environment (sandbox) of Zuora.
 
+//go:build integration
 // +build integration
 
 package routes
