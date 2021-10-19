@@ -96,7 +96,7 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 	}
 
 	zuoraAccountNumber := resp.Organization.ZuoraAccountNumber
-	invoices, usages, err := getInvoicesAndCorrespondingUsage(ctx, a.Zuora, zuoraAccountNumber, string(numInvoices))
+	invoices, usages, err := getInvoicesAndCorrespondingUsage(ctx, a.Zuora, zuoraAccountNumber, fmt.Sprintf("%d", numInvoices))
 	if err != nil {
 		return err
 	}
