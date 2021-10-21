@@ -115,7 +115,7 @@ func (db *pgDB) AllEvents(inst service.InstanceID, before time.Time, limit int64
 }
 
 func (db *pgDB) GetEvent(id event.EventID) (event.Event, error) {
-	es, err := db.scanEvents(db.eventsQuery().Where("id = ?", string(id)))
+	es, err := db.scanEvents(db.eventsQuery().Where("id = ?", id))
 	if err != nil {
 		return event.Event{}, err
 	}
