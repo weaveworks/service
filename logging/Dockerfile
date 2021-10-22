@@ -22,6 +22,6 @@ EXPOSE 24231
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="logging" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/logging" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/logging" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

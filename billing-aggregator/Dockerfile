@@ -10,6 +10,6 @@ ADD aggregator /
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="billing-aggregator" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-aggregator" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/billing-aggregator" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

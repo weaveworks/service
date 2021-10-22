@@ -1,7 +1,7 @@
 FROM python:3.7-alpine
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="billing-exporter" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-exporter" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/billing-exporter" \
       org.opencontainers.image.vendor="Weaveworks"
 
 RUN pip install pipenv && apk add --no-cache libpq

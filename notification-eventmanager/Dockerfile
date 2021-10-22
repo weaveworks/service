@@ -10,6 +10,6 @@ ENTRYPOINT ["/eventmanager"]
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="notification-eventmanager" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/notification-eventmanager" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/notification-eventmanager" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

@@ -6,6 +6,6 @@ ADD metrics-usage /
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="metrics-usage" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/metrics-usage" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/metrics-usage" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"
