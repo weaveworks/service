@@ -8,6 +8,6 @@ ENTRYPOINT ["/notebooks"]
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="notebooks" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/notebooks" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/notebooks" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

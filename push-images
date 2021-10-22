@@ -70,7 +70,7 @@ def common_dependencies():
     # If this script changes, push all images (should be rare).
     # This is required because of the following case:
     # 1. someone forgets to add their component to `push-images`
-    # 2. pushes their work to master
+    # 2. pushes their work to main
     # 3. realises CI hasn't pushed the image
     # 4. Edits `push-images` accordingly, but the image, again, isn't pushed
     #    because the code was not changed.

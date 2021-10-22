@@ -1,6 +1,6 @@
 # Weave Cloud
 
-[![Circle CI](https://circleci.com/gh/weaveworks/service/tree/master.svg?style=shield)](https://circleci.com/gh/weaveworks/service/tree/master) [![Coverage Status](https://coveralls.io/repos/weaveworks/service/badge.svg?branch=coverage&service=github&t=6Kr25T)](https://coveralls.io/github/weaveworks/service?branch=coverage)
+[![Circle CI](https://circleci.com/gh/weaveworks/service/tree/main.svg?style=shield)](https://circleci.com/gh/weaveworks/service/tree/main) [![Coverage Status](https://coveralls.io/repos/weaveworks/service/badge.svg?branch=coverage&service=github&t=6Kr25T)](https://coveralls.io/github/weaveworks/service?branch=coverage)
 
 ```
   Internet
@@ -100,4 +100,4 @@ by not mentioning any).
 
 ## Billing
 
-For information about billing, see [BILLING.md](https://github.com/weaveworks/service/blob/master/BILLING.md)
+For information about billing, see [BILLING.md](https://github.com/weaveworks/service/blob/main/BILLING.md)

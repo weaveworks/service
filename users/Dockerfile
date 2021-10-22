@@ -11,6 +11,6 @@ ENTRYPOINT ["/users"]
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="users" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/users" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/users" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

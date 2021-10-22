@@ -317,7 +317,7 @@ func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 
 // status indicates the account's billing status. Values of this string must align with values in service-ui.
 // See `renderAccountStatus` in
-// https://github.com/weaveworks/service-ui/blob/master/client/src/pages/organization/billing/page-zuora.jsx
+// https://github.com/weaveworks/service-ui/blob/main/client/src/pages/organization/billing/page-zuora.jsx
 type status string
 
 const (

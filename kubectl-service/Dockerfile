@@ -28,6 +28,6 @@ ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="kubectl-service" \
       org.opencontainers.image.description="multi-version kubectl-as-a-service" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/kubectl-service" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/kubectl-service" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

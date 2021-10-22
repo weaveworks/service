@@ -9,6 +9,6 @@ ENTRYPOINT ["/sender"]
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="notification-sender" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/notification-sender" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/notification-sender" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

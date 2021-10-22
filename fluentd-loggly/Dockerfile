@@ -28,6 +28,6 @@ EXPOSE 24231
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="fluentd-loggly" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/fluentd-loggly" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/fluentd-loggly" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

@@ -9,6 +9,6 @@ ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="dashboard-api" \
       org.opencontainers.image.description="serve service dashboards" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/dashboard-api" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/dashboard-api" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

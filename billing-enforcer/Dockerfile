@@ -9,6 +9,6 @@ ADD enforcer /
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="billing-enforcer" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-enforcer" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/billing-enforcer" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

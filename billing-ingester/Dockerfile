@@ -22,6 +22,6 @@ EXPOSE 24231
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="billing-ingester" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-ingester" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/billing-ingester" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"

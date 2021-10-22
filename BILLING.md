@@ -1,6 +1,6 @@
 # Weave Cloud Billing Services
 
-[![CircleCI](https://circleci.com/gh/weaveworks/billing.svg?style=svg&circle-token=8206ec47a902f64486a24bf1fa534b5988b26f46)](https://circleci.com/gh/weaveworks/billing) [![Coverage Status](https://coveralls.io/repos/github/weaveworks/billing/badge.svg?branch=master&t=rv4UJc)](https://coveralls.io/github/weaveworks/billing?branch=master)
+[![CircleCI](https://circleci.com/gh/weaveworks/billing.svg?style=svg&circle-token=8206ec47a902f64486a24bf1fa534b5988b26f46)](https://circleci.com/gh/weaveworks/billing) [![Coverage Status](https://coveralls.io/repos/github/weaveworks/billing/badge.svg?branch=main&t=rv4UJc)](https://coveralls.io/github/weaveworks/billing?branch=main)
 
 Billing in Weave Cloud consists of the following components:
 
