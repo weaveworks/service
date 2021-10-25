@@ -3,9 +3,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    job-name: bryan-scope-scanner
-    name: bryan-scope-scanner
-  name: bryan-scope-scanner
+    job-name: robin-scope-scanner
+    name: robin-scope-scanner
+  name: robin-scope-scanner
   namespace: scope
 spec:
   backoffLimit: 0
@@ -14,8 +14,8 @@ spec:
   template:
     metadata:
       labels:
-        job-name: bryan-scope-scanner
-        name: bryan-scope-scanner
+        job-name: robin-scope-scanner
+        name: robin-scope-scanner
       annotations:
         iam.amazonaws.com/role: scope-report-deleter
     spec:
@@ -26,7 +26,7 @@ spec:
         - -segments=8
         - -big-scan
         # - -log-level=debug
-        image: weaveworks/scope-deleter:latest
+        image: 664268111851.dkr.ecr.us-east-1.amazonaws.com/scope-data-cleaning:master-30d42d80
         imagePullPolicy: Always
         name: scanner
         env:
