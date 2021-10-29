@@ -2,7 +2,7 @@
 
 ## What?
 
-See: https://github.com/weaveworks/service-conf/blob/master/docs/PLAYBOOK.md#gcp-service
+See: https://github.com/weaveworks/service-conf/blob/main/docs/05-CORESERVICES.md#gcp-service
 
 ## Why?
 
