@@ -10,6 +10,6 @@ ENTRYPOINT ["/service-ui-kicker"]
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="service-ui-kicker" \
-      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/service-ui-kicker" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/main/service-ui-kicker" \
       org.opencontainers.image.revision="${revision}" \
       org.opencontainers.image.vendor="Weaveworks"
