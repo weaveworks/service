@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	commonuser "github.com/weaveworks/common/user"
@@ -348,8 +350,17 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 	resp := SignupResponse{
 		Email: email,
 	}
-	if a.directLogin {
+	if a.createAdminUsers {
 		// This path is enabled for local development only
+		makeLocalTestUser(
+			ctx,
+			a,
+			user,
+			"local-test",
+			"Local Test Instance",
+			"local-test-token",
+			"Local Team",
+		)
 		resp.Token = token
 		resp.QueryParams = req.QueryParams
 	}
@@ -513,4 +524,31 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		view.Organizations = append(view.Organizations, a.createOrgView(r.Context(), currentUser, org))
 	}
 	render.JSON(w, http.StatusOK, view)
+}
+
+func makeLocalTestUser(ctx context.Context, a *API, user *users.User, instanceID, instanceName, token, teamName string) {
+	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
+		log.Errorf("Error updating user first login at: %v", err)
+		return
+	}
+
+	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
+		log.Errorf("Error making user an admin: %v", err)
+		return
+	}
+
+	now := time.Now()
+	if err := a.CreateOrg(ctx, user, OrgView{
+		ExternalID:     instanceID,
+		Name:           instanceName,
+		ProbeToken:     token,
+		TrialExpiresAt: user.TrialExpiresAt(),
+		TeamName:       teamName,
+	}, now); err != nil {
+		log.Errorf("Error creating local test instance: %v", err)
+	}
+
+	if err := a.SetOrganizationFirstSeenConnectedAt(ctx, instanceID, &now); err != nil {
+		log.Errorf("Error onboarding local test instance: %v", err)
+	}
 }

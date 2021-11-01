@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/FrenchBen/goketo"
@@ -51,12 +50,12 @@ func main() {
 	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
 	flag.CommandLine.IntVar(&serverConfig.GRPCListenPort, "grpc-port", 4772, "gRPC port to listen on")
 	var (
-		domain        = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
-		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
-		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
-		directLogin   = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
-		secureCookie  = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
-		cookieDomain  = flag.String("cookie-domain", "", "The domain to which the authentication cookie will be scoped.")
+		domain           = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
+		emailURI         = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
+		sessionSecret    = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		createAdminUsers = flag.Bool("create-admin-users-on-demand", false, "When a user tries to sign up with their email, create an admin account of that user (DEV only)")
+		secureCookie     = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
+		cookieDomain     = flag.String("cookie-domain", "", "The domain to which the authentication cookie will be scoped.")
 
 		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
 		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
@@ -69,14 +68,6 @@ func main() {
 		mixpanelToken      = flag.String("mixpanel-token", "", "Mixpanel project API token")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
-
-		localTestUserCreate               = flag.Bool("local-test-user.create", false, "Create a test user (for local deployments only.)")
-		localTestUserEmail                = flag.String("local-test-user.email", "test@test.test", "Email for test user (for local deployments only.)")
-		localTestUserInstanceID           = flag.String("local-test-user.instance-id", "local-test", "Instance ID for test user (for local deployments only.)")
-		localTestUserInstanceName         = flag.String("local-test-user.instance-name", "Local Test Instance", "Instance name for test user (for local deployments only.)")
-		localTestUserInstanceToken        = flag.String("local-test-user.instance-token", "local-test-token", "Instance token for test user (for local deployments only.)")
-		localTestUserTeamName             = flag.String("local-test-user.team-name", "Local Team", "Team name for test user (for local deployments only.)")
-		localTestUserInstanceFeatureFlags = flag.String("local-test-user.instance-feature-flags", "", "Comma-separated feature flags for the test user (for local deployments only.)")
 
 		forceFeatureFlags common.ArrayFlags
 		webhookTokens     common.ArrayFlags
@@ -177,7 +168,7 @@ func main() {
 
 	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues, forceFeatureFlags)
 	app := api.New(
-		*directLogin,
+		*createAdminUsers,
 		emailer,
 		sessions,
 		db,
@@ -202,12 +193,6 @@ func main() {
 		usersSyncClient,
 	)
 
-	if *localTestUserCreate {
-		makeLocalTestUser(app, *localTestUserEmail, *localTestUserInstanceID,
-			*localTestUserInstanceName, *localTestUserInstanceToken, *localTestUserTeamName,
-			strings.Split(*localTestUserInstanceFeatureFlags, ","))
-	}
-
 	log.Infof("Listening on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)
 	s, err := server.New(serverConfig)
 	if err != nil {
@@ -219,44 +204,4 @@ func main() {
 	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
 	s.Run()
-}
-
-func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamName string, featureFlags []string) {
-	ctx := context.Background()
-	_, user, err := a.Signup(ctx, api.SignupRequest{
-		Email:       email,
-		FirstName:   "Testy",
-		LastName:    "McTestFace",
-		Company:     "Acme Inc.",
-		QueryParams: make(map[string]string)})
-	if err != nil {
-		log.Errorf("Error creating local test user: %v", err)
-		return
-	}
-
-	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
-		log.Errorf("Error updating user first login at: %v", err)
-		return
-	}
-
-	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
-		log.Errorf("Error making user an admin: %v", err)
-		return
-	}
-
-	now := time.Now()
-	if err := a.CreateOrg(ctx, user, api.OrgView{
-		ExternalID:     instanceID,
-		Name:           instanceName,
-		ProbeToken:     token,
-		FeatureFlags:   featureFlags,
-		TrialExpiresAt: user.TrialExpiresAt(),
-		TeamName:       teamName,
-	}, now); err != nil {
-		log.Errorf("Error creating local test instance: %v", err)
-	}
-
-	if err := a.SetOrganizationFirstSeenConnectedAt(ctx, instanceID, &now); err != nil {
-		log.Errorf("Error onboarding local test instance: %v", err)
-	}
 }
