@@ -124,7 +124,7 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (*users.User, e
 	//   moving the refresh to the client.
 	if time.Now().Sub(session.CreatedAt) > minSessionAgeForRefresh {
 		// Carry forward ImpersonatingUserID from old to new Session (including when blank)
-		if err := a.sessions.Set(w, r, session.UserID, session.ImpersonatingUserID); err != nil {
+		if err := a.sessions.Set(w, r, session.Provider, session.LoginID, session.UserID, session.ImpersonatingUserID); err != nil {
 			return nil, err
 		}
 	}

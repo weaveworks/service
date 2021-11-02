@@ -42,7 +42,13 @@ type Store struct {
 
 // Session is the decoded representation of a session cookie
 type Session struct {
-	UserID    string
+	// The provider used to authorize the session (e.g. "google", "email")
+	Provider string
+	// The provider's ID for our login
+	LoginID string
+	// The user's weave cloud user ID
+	UserID string
+	// Login time
 	CreatedAt time.Time
 
 	// User ID for whoever is doing the impersonating.
@@ -100,8 +106,8 @@ func (s Store) Decode(encoded string) (Session, error) {
 }
 
 // Set stores the session with the given userID for the user.
-func (s Store) Set(w http.ResponseWriter, r *http.Request, userID string, impersonatingUserID string) error {
-	cookie, err := s.Cookie(userID, impersonatingUserID)
+func (s Store) Set(w http.ResponseWriter, r *http.Request, provider string, loginID string, userID string, impersonatingUserID string) error {
+	cookie, err := s.Cookie(provider, loginID, userID, impersonatingUserID)
 	impersonationCookieShouldExist := false
 	if err == nil {
 		http.SetCookie(w, cookie)
@@ -155,8 +161,8 @@ func (s Store) applyImpersonationCookie(w http.ResponseWriter, r *http.Request, 
 }
 
 // Cookie creates the http cookie to set for this user's session.
-func (s Store) Cookie(userID, impersonatingUserID string) (*http.Cookie, error) {
-	value, err := s.Encode(userID, impersonatingUserID)
+func (s Store) Cookie(provider string, loginID string, userID string, impersonatingUserID string) (*http.Cookie, error) {
+	value, err := s.Encode(provider, loginID, userID, impersonatingUserID)
 	return &http.Cookie{
 		Name:     client.AuthCookieName,
 		Value:    value,
@@ -170,8 +176,10 @@ func (s Store) Cookie(userID, impersonatingUserID string) (*http.Cookie, error) 
 }
 
 // Encode converts the session data into a session string
-func (s Store) Encode(userID string, impersonatingUserID string) (string, error) {
+func (s Store) Encode(provider string, loginID string, userID string, impersonatingUserID string) (string, error) {
 	return s.encoder.Encode(client.AuthCookieName, Session{
+		Provider:            provider,
+		LoginID:             loginID,
 		UserID:              userID,
 		CreatedAt:           time.Now().UTC(),
 		ImpersonatingUserID: impersonatingUserID,
