@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -394,6 +395,30 @@ type loginResponse struct {
 	Email        string            `json:"email"`
 	MunchkinHash string            `json:"munchkinHash"`
 	QueryParams  map[string]string `json:"queryParams,omitempty"`
+}
+
+// verify ensures that we're logged in, redirecting us to the login page if not,
+// and redirecting us back to whence we came if we are
+func (a *API) verify(w http.ResponseWriter, r *http.Request) {
+	loginURL := "/login"
+	returnURL := r.FormValue("next")
+	if returnURL != "" {
+		loginURL = loginURL + "?next=" + url.QueryEscape(returnURL)
+	} else {
+		returnURL = "/" // the js can redirect us further
+	}
+
+	var finalURL string
+	session, err := a.sessions.Get(r)
+	if err != nil {
+		finalURL = loginURL
+	} else if session.UserID == "" {
+		finalURL = loginURL
+	} else {
+		finalURL = returnURL
+	}
+
+	http.Redirect(w, r, finalURL, http.StatusSeeOther)
 }
 
 // login validates a login request from a link we sent the user by email

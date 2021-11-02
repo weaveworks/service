@@ -54,6 +54,10 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// This is the first endpoint the UI hits to see if the user is logged in.
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
+		// Verify that the user is logged in, and redirect back to whatever is in the `next` query param
+		// Users are sent here by the frontend if it can't find a session cookie
+		{"api_users_verify", "GET", "/api/users/verify", a.verify},
+
 		// Team and permissions management
 		{"api_users_roles", "GET", "/api/users/roles", a.authenticateUser(a.listRoles)},
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
