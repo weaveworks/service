@@ -103,3 +103,58 @@ func Test_Login_Unauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"invalid authentication data"}]}`)
 }
+
+func Test_Verify(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	type TestCase struct {
+		requestURL        string
+		redirectURL       string
+		sessionParameters *[4]string
+	}
+
+	for _, testCase := range []TestCase{
+		{
+			"/api/users/verify",
+			"/login",
+			nil,
+		},
+		{
+			"/api/users/verify?next=/instances",
+			"/login?next=%2Finstances",
+			nil,
+		},
+		{
+			"/api/users/verify?next=/instances&unknown_parameter=ignored",
+			"/login?next=%2Finstances",
+			nil,
+		},
+		{
+			"/api/users/verify",
+			"/",
+			&[4]string{"email", "test@test.test", "1", ""},
+		},
+		{
+			"/api/users/verify?next=/instances",
+			"/instances",
+			&[4]string{"email", "test@test.test", "1", ""},
+		},
+	} {
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("GET", testCase.requestURL, nil)
+		if testCase.sessionParameters != nil {
+			s, _ := sessionStore.Cookie(
+				testCase.sessionParameters[0],
+				testCase.sessionParameters[1],
+				testCase.sessionParameters[2],
+				testCase.sessionParameters[3],
+			)
+			r.AddCookie(s)
+		}
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		loc, _ := w.Result().Location()
+		assert.Equal(t, loc.String(), testCase.redirectURL)
+	}
+}

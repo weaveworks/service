@@ -621,7 +621,7 @@ func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
 	// If we are already impersonating we will get the impersonating id
 	// here which we then keep as impersonator for the new user.
 	userID := session.GetActingUserID()
-	if err := a.sessions.Set(w, r, u.ID, userID); err != nil {
+	if err := a.sessions.Set(w, r, session.Provider, session.LoginID, u.ID, userID); err != nil {
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}

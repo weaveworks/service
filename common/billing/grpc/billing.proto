@@ -35,7 +35,7 @@ message InstanceBillingStatusRequest {
 
 enum BillingStatus {
   // Values of this string must align with values in service-ui. See `renderAccountStatus` in
-  // https://github.com/weaveworks/service-ui/blob/master/client/src/pages/organization/billing/page-zuora.jsx
+  // https://github.com/weaveworks/service-ui/blob/main/client/src/pages/organization/billing/page-zuora.jsx
   UNKNOWN = 0;
   TRIAL_ACTIVE = 1;
   TRIAL_EXPIRED = 2;

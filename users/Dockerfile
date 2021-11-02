@@ -1,9 +1,8 @@
-FROM alpine:3.6
+FROM alpine:3.14
 WORKDIR /
 COPY templates/*.html /templates/
 COPY templates/*.text /templates/
 COPY db/migrations /migrations/
-COPY ca-certificates.crt /etc/ssl/certs/
 COPY cmd/users/users /
 EXPOSE 80
 ENTRYPOINT ["/users"]

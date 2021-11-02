@@ -5,12 +5,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/tokens"
-)
-
-const (
-	minSessionAgeForRefresh = sessions.SessionDuration * 2 / 3 // only refresh if the session reached the last 1/3 of its life
 )
 
 // Credentials are what gets parsed from ParseAuthorizationHeader
@@ -115,18 +110,6 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (*users.User, e
 	u, err := a.db.FindUserByID(r.Context(), session.UserID)
 	if err != nil {
 		return nil, err
-	}
-	// Refresh the session cookie expiration:
-	// * Only after certain session age, to minimize cookie race conditions. See
-	//   https://github.com/weaveworks/service/issues/1064 for details.
-	// * Only for uncached-requests. This is fine for low
-	//   authentication-cache expiration values. Doing otherwise requires
-	//   moving the refresh to the client.
-	if time.Now().Sub(session.CreatedAt) > minSessionAgeForRefresh {
-		// Carry forward ImpersonatingUserID from old to new Session (including when blank)
-		if err := a.sessions.Set(w, r, session.UserID, session.ImpersonatingUserID); err != nil {
-			return nil, err
-		}
 	}
 	return u, nil
 }

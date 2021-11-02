@@ -9,9 +9,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	commonuser "github.com/weaveworks/common/user"
@@ -228,7 +231,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	impersonatingUserID := "" // Logging in via provider credentials => cannot be impersonating
-	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
+	if err := a.sessions.Set(w, r, providerID, id, u.ID, impersonatingUserID); err != nil {
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -348,8 +351,17 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 	resp := SignupResponse{
 		Email: email,
 	}
-	if a.directLogin {
+	if a.createAdminUsers {
 		// This path is enabled for local development only
+		makeLocalTestUser(
+			ctx,
+			a,
+			user,
+			"local-test",
+			"Local Test Instance",
+			"local-test-token",
+			"Local Team",
+		)
 		resp.Token = token
 		resp.QueryParams = req.QueryParams
 	}
@@ -383,6 +395,30 @@ type loginResponse struct {
 	Email        string            `json:"email"`
 	MunchkinHash string            `json:"munchkinHash"`
 	QueryParams  map[string]string `json:"queryParams,omitempty"`
+}
+
+// verify ensures that we're logged in, redirecting us to the login page if not,
+// and redirecting us back to whence we came if we are
+func (a *API) verify(w http.ResponseWriter, r *http.Request) {
+	loginURL := "/login"
+	returnURL := r.FormValue("next")
+	if returnURL != "" {
+		loginURL = loginURL + "?next=" + url.QueryEscape(returnURL)
+	} else {
+		returnURL = "/" // the js can redirect us further
+	}
+
+	var finalURL string
+	session, err := a.sessions.Get(r)
+	if err != nil {
+		finalURL = loginURL
+	} else if session.UserID == "" {
+		finalURL = loginURL
+	} else {
+		finalURL = returnURL
+	}
+
+	http.Redirect(w, r, finalURL, http.StatusSeeOther)
 }
 
 // login validates a login request from a link we sent the user by email
@@ -428,7 +464,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	impersonatingUserID := "" // Direct login => cannot be impersonating
-	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
+	if err := a.sessions.Set(w, r, "email", u.Email, u.ID, impersonatingUserID); err != nil {
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -513,4 +549,31 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		view.Organizations = append(view.Organizations, a.createOrgView(r.Context(), currentUser, org))
 	}
 	render.JSON(w, http.StatusOK, view)
+}
+
+func makeLocalTestUser(ctx context.Context, a *API, user *users.User, instanceID, instanceName, token, teamName string) {
+	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
+		log.Errorf("Error updating user first login at: %v", err)
+		return
+	}
+
+	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
+		log.Errorf("Error making user an admin: %v", err)
+		return
+	}
+
+	now := time.Now()
+	if err := a.CreateOrg(ctx, user, OrgView{
+		ExternalID:     instanceID,
+		Name:           instanceName,
+		ProbeToken:     token,
+		TrialExpiresAt: user.TrialExpiresAt(),
+		TeamName:       teamName,
+	}, now); err != nil {
+		log.Errorf("Error creating local test instance: %v", err)
+	}
+
+	if err := a.SetOrganizationFirstSeenConnectedAt(ctx, instanceID, &now); err != nil {
+		log.Errorf("Error onboarding local test instance: %v", err)
+	}
 }

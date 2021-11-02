@@ -17,13 +17,15 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	user := getUser(t)
 
 	impersonatingUserID := "" // this test doesn't involve impersonation
-	encoded, err := sessionStore.Encode(user.ID, impersonatingUserID)
+	encoded, err := sessionStore.Encode("google", "1234", user.ID, impersonatingUserID)
 	require.NoError(t, err)
 
 	foundSession, err := sessionStore.Decode(encoded)
 	require.NoError(t, err)
 
 	assert.Equal(t, user.ID, foundSession.UserID)
+	assert.Equal(t, "google", foundSession.Provider)
+	assert.Equal(t, "1234", foundSession.LoginID)
 }
 
 func Test_Sessions_Get_NoCookie(t *testing.T) {

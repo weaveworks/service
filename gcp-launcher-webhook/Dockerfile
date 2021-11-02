@@ -1,6 +1,5 @@
-FROM alpine:3.6
+FROM alpine:3.14
 WORKDIR /
-COPY ca-certificates.crt /etc/ssl/certs/
 COPY gcp-launcher-webhook /
 EXPOSE 80
 ENTRYPOINT ["/gcp-launcher-webhook"]

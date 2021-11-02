@@ -20,7 +20,7 @@ import (
 
 // API implements the users api.
 type API struct {
-	directLogin              bool // Whether login without email confirmation is allowed. Development only!
+	createAdminUsers         bool // Whether login without email confirmation is allowed. Development only!
 	sessions                 sessions.Store
 	db                       db.DB
 	logins                   *login.Providers
@@ -48,7 +48,7 @@ type API struct {
 
 // New creates a new API
 func New(
-	directLogin bool,
+	createAdminUsers bool,
 	emailer emailer.Emailer,
 	sessions sessions.Store,
 	db db.DB,
@@ -73,7 +73,7 @@ func New(
 	usersSyncClient users_sync.UsersSyncClient,
 ) *API {
 	a := &API{
-		directLogin:              directLogin,
+		createAdminUsers:         createAdminUsers,
 		sessions:                 sessions,
 		db:                       db,
 		logins:                   logins,
