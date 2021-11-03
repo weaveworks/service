@@ -128,6 +128,16 @@ func (d *DB) AddLoginToUser(_ context.Context, userID, provider, providerID stri
 	return nil
 }
 
+// GetLogin takes a login provider name and id, and returns that login object
+func (d *DB) GetLogin(_ context.Context, provider, providerID string) (*login.Login, error) {
+	for _, l := range d.logins {
+		if l.Provider == provider && l.ProviderID == providerID {
+			return l, nil
+		}
+	}
+	return nil, users.ErrNotFound
+}
+
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
 func (d *DB) DetachLoginFromUser(_ context.Context, userID, provider string) error {
