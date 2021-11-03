@@ -265,7 +265,11 @@ func main() {
 	// Now start feeding the queue
 	records = bufio.NewScanner(recordsReader)
 	for records.Scan() {
-		queue <- records.Text()
+		line := records.Text()
+		if line == "" || line[1] == '#' {
+			continue
+		}
+		queue <- line
 	}
 	checkFatal(records.Err())
 	close(queue)
