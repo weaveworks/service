@@ -64,6 +64,11 @@ func (t traced) AddLoginToUser(ctx context.Context, userID, provider, id string,
 	return t.d.AddLoginToUser(ctx, userID, provider, id, session)
 }
 
+func (t traced) GetLogin(ctx context.Context, provider, id string) (l *login.Login, err error) {
+	defer t.trace("GetLogin", provider, id, l, err)
+	return t.d.GetLogin(ctx, provider, id)
+}
+
 func (t traced) DetachLoginFromUser(ctx context.Context, userID, provider string) (err error) {
 	defer t.trace("DetachLoginFromUser", userID, provider, err)
 	return t.d.DetachLoginFromUser(ctx, userID, provider)

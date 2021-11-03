@@ -208,6 +208,51 @@ func (d DB) AddLoginToUser(ctx context.Context, userID, provider, providerID str
 	})
 }
 
+func (d DB) scanLogin(row squirrel.RowScanner) (*login.Login, error) {
+	var userID, provider, providerID sql.NullString
+	var session []byte
+	var createdAt pq.NullTime
+	if err := row.Scan(&userID, &provider, &providerID, &session, &createdAt); err != nil {
+		return nil, err
+	}
+
+	l := &login.Login{}
+	l.UserID = userID.String
+	l.Provider = provider.String
+	l.ProviderID = providerID.String
+	l.CreatedAt = createdAt.Time
+	l.Session = session
+
+	return l, nil
+}
+
+// GetLogin takes a login provider name and id, and returns that login object
+func (d DB) GetLogin(ctx context.Context, provider, providerID string) (*login.Login, error) {
+	login, err := d.scanLogin(
+		d.Select(
+			"logins.user_id",
+			"logins.provider",
+			"logins.provider_id",
+			"logins.session",
+			"logins.created_at",
+		).
+			From("logins").
+			Where(squirrel.Eq{"logins.provider": provider}).
+			Where(squirrel.Eq{"logins.provider_id": providerID}).
+			Where("logins.deleted_at is null").
+			OrderBy("logins.provider").
+			QueryRowContext(ctx),
+	)
+
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return login, nil
+}
+
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
 func (d DB) DetachLoginFromUser(ctx context.Context, userID, provider string) error {
@@ -401,18 +446,10 @@ func (d DB) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*log
 	}
 	ls := []*login.Login{}
 	for rows.Next() {
-		l := &login.Login{}
-		var userID, provider, providerID sql.NullString
-		var session []byte
-		var createdAt pq.NullTime
-		if err := rows.Scan(&userID, &provider, &providerID, &session, &createdAt); err != nil {
+		l, err := d.scanLogin(rows)
+		if err != nil {
 			return nil, err
 		}
-		l.UserID = userID.String
-		l.Provider = provider.String
-		l.ProviderID = providerID.String
-		l.CreatedAt = createdAt.Time
-		l.Session = session
 		ls = append(ls, l)
 	}
 	if rows.Err() != nil {
