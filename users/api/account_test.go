@@ -181,63 +181,6 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	}
 }
 
-func Test_Account_ListAttachedLoginProviders(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-
-	logins.Register("mock", MockLoginProvider{
-		// Different remote email, to prevent auto-matching
-		"joe": {ID: "joe", Email: user.Email},
-	})
-
-	// Listing when none attached
-	{
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-		var body struct {
-			Logins []struct {
-				ID       string `json:"id"`
-				Name     string `json:"name"`
-				LoginID  string `json:"loginID,omitempty"`
-				Username string `json:"username,omitempty"`
-			} `json:"logins"`
-		}
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.Len(t, body.Logins, 0)
-	}
-
-	// Listing when one attached
-	{
-		assert.NoError(t, database.AddLoginToUser(context.Background(), user.ID, "mock", "joe", json.RawMessage(`"joe"`)))
-		logins, err := database.ListLoginsForUserIDs(context.Background(), user.ID)
-		assert.NoError(t, err)
-		assert.Len(t, logins, 1)
-
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-		var body struct {
-			Logins []struct {
-				ID       string `json:"id"`
-				Name     string `json:"name"`
-				LoginID  string `json:"loginID,omitempty"`
-				Username string `json:"username,omitempty"`
-			} `json:"logins"`
-		}
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		require.Len(t, body.Logins, 1)
-		assert.Equal(t, "mock", body.Logins[0].ID)
-		assert.Equal(t, "mock", body.Logins[0].Name)
-		assert.Equal(t, "joe", body.Logins[0].LoginID)
-		assert.Equal(t, user.Email, body.Logins[0].Username)
-	}
-}
-
 func Test_Account_DetachOauthAccount(t *testing.T) {
 	setup(t)
 	defer cleanup(t)

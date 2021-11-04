@@ -51,48 +51,6 @@ func (a *API) listLoginProviders(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
-type attachedLoginProvidersView struct {
-	Logins []attachedLoginProviderView `json:"logins"`
-}
-
-type attachedLoginProviderView struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	LoginID  string `json:"loginID,omitempty"`
-	Username string `json:"username,omitempty"`
-}
-
-// List all the login providers currently attached to the current user. Used by
-// the /account page to determine which login providers are currently attached.
-func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	view := attachedLoginProvidersView{}
-	logins, err := a.db.ListLoginsForUserIDs(ctx, currentUser.ID)
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-	for _, l := range logins {
-		p, ok := a.logins.Get(l.Provider)
-		if !ok {
-			continue
-		}
-
-		v := attachedLoginProviderView{
-			ID:      l.Provider,
-			Name:    p.Name(),
-			LoginID: l.ProviderID,
-		}
-		var err error
-		v.Username, err = p.Username(ctx, l.Session)
-		if err != nil {
-			commonuser.LogWith(ctx, logging.Global()).Warnf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
-		}
-		view.Logins = append(view.Logins, v)
-	}
-	render.JSON(w, http.StatusOK, view)
-}
-
 type attachLoginProviderView struct {
 	FirstLogin   bool              `json:"firstLogin,omitempty"`
 	UserCreated  bool              `json:"userCreated,omitempty"`
