@@ -42,6 +42,9 @@ type DB interface {
 	// Note: Must be idempotent!
 	AddLoginToUser(ctx context.Context, userID, provider, id string, session json.RawMessage) error
 
+	// GetLogin takes a login provider name and id, and returns that login object
+	GetLogin(ctx context.Context, provider, id string) (*login.Login, error)
+
 	// DetachLoginFromUser removes all entries an entry denoting this
 	// user is linked to the remote login.
 	DetachLoginFromUser(ctx context.Context, userID, provider string) error

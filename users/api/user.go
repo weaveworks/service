@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/login"
 )
 
 var stripHTML = bluemonday.StrictPolicy().Sanitize
@@ -54,23 +55,46 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
+	session, _ := a.sessions.Get(r)
+	l, err := a.db.GetLogin(r.Context(), session.Provider, session.LoginID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	update.Name = strings.TrimSpace(stripHTML(update.Name))
 	update.Company = strings.TrimSpace(stripHTML(update.Company))
 	update.FirstName = strings.TrimSpace(stripHTML(update.FirstName))
 	update.LastName = strings.TrimSpace(stripHTML(update.LastName))
 
-	user, err := a.db.UpdateUser(r.Context(), currentUser.ID, update)
+	claims := login.Claims{ID: session.LoginID}
+	// We can only update built-in fields for database backed logins
+	if session.Provider == "email" {
+		claims.Name = update.Name
+		claims.GivenName = update.FirstName
+		claims.FamilyName = update.LastName
+	}
+	// We can always update metadata
+	claims.UserMetadata.CompanyName = update.Company
+
+	err = a.logins.UpdateClaims(r.Context(), claims, l.Session)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	_, err = a.db.UpdateUser(r.Context(), currentUser.ID, update)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
 	resp := users.UserResponse{
-		Email:     user.Email,
-		Name:      user.Name,
-		Company:   user.Company,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
+		Email:     claims.Email,
+		Name:      claims.Name,
+		Company:   claims.UserMetadata.CompanyName,
+		FirstName: claims.GivenName,
+		LastName:  claims.FamilyName,
 	}
 
 	render.JSON(w, http.StatusOK, resp)

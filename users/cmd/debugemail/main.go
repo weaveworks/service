@@ -92,12 +92,6 @@ func main() {
 	ctx := context.Background()
 
 	actions := map[string]func() error{
-		"login": func() error {
-			return em.LoginEmail(ctx, dst, "secret-login-token", nil)
-		},
-		"invite": func() error {
-			return em.InviteToTeamEmail(ctx, inviter, dst, teamExternalID, teamName, "secret-invite-token")
-		},
 		"grant_access": func() error {
 			return em.GrantAccessToTeamEmail(ctx, inviter, dst, teamExternalID, teamName)
 		},

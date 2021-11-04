@@ -14,40 +14,35 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	commonuser "github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/tokens"
 )
 
 type loginProvidersView struct {
 	Logins []loginProviderView `json:"logins"`
 }
 
+type link struct {
+	Href string `json:"href"`
+}
+
 type loginProviderView struct {
-	ID   string     `json:"id"`
-	Name string     `json:"name"` // Human-readable name of this provider
-	Link login.Link `json:"link"` // HTML Attributes for the link to start this provider flow
+	ID   string `json:"id"`
+	Name string `json:"name"` // Human-readable name of this provider
+	Link link   `json:"link"`
 }
 
 func (a *API) listLoginProviders(w http.ResponseWriter, r *http.Request) {
 	view := loginProvidersView{}
-	a.logins.ForEach(func(id string, p login.Provider) {
-		v := loginProviderView{
-			ID:   id,
-			Name: p.Name(),
-		}
-		if link, ok := p.Link(r); ok {
-			v.Link = link
-		}
-		view.Logins = append(view.Logins, v)
-	})
+	view.Logins = []loginProviderView{
+		{"google", "Google", link{"/api/users/verify?connection=google"}},
+		{"github", "GitHub", link{"/api/users/verify?connection=github"}},
+	}
 	render.JSON(w, http.StatusOK, view)
 }
 
@@ -67,28 +62,26 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view := attachLoginProviderView{}
 	vars := mux.Vars(r)
 	providerID := vars["provider"]
-	provider, ok := a.logins.Get(providerID)
-	if !ok {
-		logger.Errorf("Login provider not found: %q", providerID)
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-
-	id, email, authSession, extraState, err := provider.Login(r)
+	claims, authSession, extraState, err := a.logins.Login(r)
 	view.QueryParams = extraState
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if email == "" {
+	if claims.Email == "" {
 		logger.Errorf("Login provider returned blank email: %q", providerID)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
-	if !validation.ValidateEmail(email) {
-		logger.Errorf("Login provider returned an invalid email: %q, %v", providerID, email)
+	if !validation.ValidateEmail(claims.Email) {
+		logger.Errorf("Login provider returned an invalid email: %q, %v", providerID, claims.Email)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
+	}
+	if providerID == "auth0" {
+		// auth0 proxys other federated auth - we still need the source, e.g.
+		// "can we get access to github using this login"
+		providerID = claims.ID[:strings.Index(claims.ID, "|")]
 	}
 
 	// Try and find an existing user to attach this login to.
@@ -112,11 +105,11 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		func() (*users.User, error) {
 			// If the user has already attached this provider, this is a no-op, so we
 			// can just log them in with it.
-			return a.db.FindUserByLogin(ctx, providerID, id)
+			return a.db.FindUserByLogin(ctx, providerID, claims.ID)
 		},
 		func() (*users.User, error) {
 			// Match based on the user's email
-			return a.db.FindUserByEmail(ctx, email)
+			return a.db.FindUserByEmail(ctx, claims.Email)
 		},
 	} {
 		u, err = f()
@@ -133,7 +126,14 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		// No matching user found, this must be a first-time-login with this
 		// provider, so we'll create an account for them.
 		view.UserCreated = true
-		u, err = a.db.CreateUser(ctx, email, nil)
+		givenName, familyName := getNameFromClaims(claims)
+		userUpdate := users.UserUpdate{
+			Name:      claims.Name,
+			FirstName: givenName,
+			LastName:  familyName,
+			Company:   claims.UserMetadata.CompanyName,
+		}
+		u, err = a.db.CreateUser(ctx, claims.Email, &userUpdate)
 		if err != nil {
 			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
@@ -142,7 +142,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		a.marketingQueues.UserCreated(u.Email, u.FirstName, u.LastName, u.Company, u.CreatedAt, extraState)
 	}
 
-	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
+	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, claims.ID, authSession); err != nil {
 		existing, ok := err.(*users.AlreadyAttachedError)
 		if !ok {
 			logger.Errorln(err)
@@ -159,7 +159,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
+		if err := a.db.AddLoginToUser(ctx, u.ID, providerID, claims.ID, authSession); err != nil {
 			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
@@ -167,17 +167,17 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view.FirstLogin = u.FirstLoginAt.IsZero()
-	view.Email = email
-	view.MunchkinHash = a.MunchkinHash(email)
+	view.Email = claims.Email
+	view.MunchkinHash = a.MunchkinHash(claims.Email)
 
 	if a.mixpanel != nil {
 		go func() {
 			if view.UserCreated {
-				if err := a.mixpanel.TrackSignup(email); err != nil {
+				if err := a.mixpanel.TrackSignup(claims.Email); err != nil {
 					logger.Errorln(err)
 				}
 			}
-			if err := a.mixpanel.TrackLogin(email, view.FirstLogin); err != nil {
+			if err := a.mixpanel.TrackLogin(claims.Email, view.FirstLogin); err != nil {
 				logger.Errorln(err)
 			}
 		}()
@@ -189,7 +189,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	impersonatingUserID := "" // Logging in via provider credentials => cannot be impersonating
-	if err := a.sessions.Set(w, r, providerID, id, u.ID, impersonatingUserID); err != nil {
+	if err := a.sessions.Set(w, r, providerID, claims.ID, u.ID, impersonatingUserID); err != nil {
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -197,29 +197,23 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
+func getNameFromClaims(claims *login.Claims) (string, string) {
+	var givenName, familyName string
+	if claims.GivenName != "" || claims.FamilyName != "" {
+		givenName = claims.GivenName
+		familyName = claims.FamilyName
+	} else if strings.Contains(claims.Name, " ") {
+		// Western-centric fallback - github only provides full name
+		names := strings.SplitN(claims.Name, " ", 2)
+		givenName, familyName = names[0], names[1]
+	}
+
+	return givenName, familyName
+}
+
 func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	providerID := vars["provider"]
-	provider, ok := a.logins.Get(providerID)
-	if !ok {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
-	if err != nil {
-		renderError(w, r, err)
-		return
-	}
-	for _, login := range logins {
-		if login.Provider != providerID {
-			continue
-		}
-		if err := provider.Logout(r.Context(), login.Session); err != nil {
-			renderError(w, r, err)
-			return
-		}
-	}
 
 	if err := a.db.DetachLoginFromUser(r.Context(), currentUser.ID, providerID); err != nil {
 		renderError(w, r, err)
@@ -228,8 +222,8 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// SignupRequest is the message sent to initiate a signup request
-type SignupRequest struct {
+// EmailLoginRequest is the message sent to initiate a signup request
+type EmailLoginRequest struct {
 	Email     string `json:"email,omitempty"`
 	FirstName string `json:"firstName,omitempty"`
 	LastName  string `json:"lastName,omitempty"`
@@ -238,23 +232,47 @@ type SignupRequest struct {
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
 
-// SignupResponse is the message sent as the result of a signup request
-type SignupResponse struct {
+// EmailLoginResponse is the message sent as the result of a signup request
+type EmailLoginResponse struct {
 	Email string `json:"email,omitempty"`
-	Token string `json:"token,omitempty"`
 	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
 
-func (a *API) signup(w http.ResponseWriter, r *http.Request) {
+func (a *API) emailLogin(w http.ResponseWriter, r *http.Request) {
+	logger := commonuser.LogWith(r.Context(), logging.Global())
 	defer r.Body.Close()
-	var input SignupRequest
+	var input EmailLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
 
-	resp, _, err := a.Signup(r.Context(), input)
+	if a.createAdminUsers {
+		// This path is enabled for local development only
+		u, err := makeLocalTestUser(
+			r.Context(),
+			a,
+			input.Email,
+			"local-test",
+			"Local Test Instance",
+			"local-test-token",
+			"Local Team",
+		)
+		if err != nil {
+			logger.Errorf("Error setting up local test user: %w", err)
+			renderError(w, r, err)
+			return
+		}
+		// TODO: does this make myself get logged in now?
+		a.sessions.Set(w, r, "dummy", input.Email, u.ID, "")
+		render.JSON(w, http.StatusOK, EmailLoginResponse{
+			Email: input.Email,
+		})
+		return
+	}
+
+	resp, err := a.EmailLogin(r, input)
 	if err != nil {
 		renderError(w, r, err)
 	} else {
@@ -262,85 +280,28 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Signup creates a new user (but will also allow an existing user to log in)
+// EmailLogin creates a new user (but will also allow an existing user to log in)
 // NB: this is used only for email signups, not oauth signups
-func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *users.User, error) {
+func (a *API) EmailLogin(r *http.Request, req EmailLoginRequest) (*EmailLoginResponse, error) {
 	if req.Email == "" {
-		return nil, nil, users.ValidationErrorf("Email cannot be blank")
+		return nil, users.ValidationErrorf("Email cannot be blank")
 	}
 	email := strings.TrimSpace(req.Email)
 
-	user, err := a.db.FindUserByEmail(ctx, email)
-	if err == users.ErrNotFound {
-		if !validation.ValidateEmail(email) {
-			return nil, nil, users.ValidationErrorf("Please provide a valid email")
-		}
-		if err := validateNames("", req.FirstName, req.LastName, req.Company); err != nil {
-			return nil, nil, err
-		}
-		user, err = a.db.CreateUser(ctx, email, &users.UserUpdate{
-			Name:      fmt.Sprintf("%s %s", req.FirstName, req.LastName),
-			FirstName: req.FirstName,
-			LastName:  req.LastName,
-			Company:   req.Company,
-		})
-		if err == nil {
-			a.marketingQueues.UserCreated(user.Email, user.FirstName, user.LastName, user.Company, user.CreatedAt,
-				req.QueryParams)
-			if a.mixpanel != nil {
-				go func() {
-					if err := a.mixpanel.TrackSignup(email); err != nil {
-						commonuser.LogWith(ctx, logging.Global()).Errorln(err)
-					}
-				}()
-			}
-		}
-	}
-	if err != nil {
-		return nil, nil, err
+	if !validation.ValidateEmail(email) {
+		return nil, users.ValidationErrorf("Please provide a valid email")
 	}
 
-	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := a.generateUserToken(ctx, user)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
-	}
-
-	resp := SignupResponse{
+	resp := EmailLoginResponse{
 		Email: email,
 	}
-	if a.createAdminUsers {
-		// This path is enabled for local development only
-		makeLocalTestUser(
-			ctx,
-			a,
-			user,
-			"local-test",
-			"Local Test Instance",
-			"local-test-token",
-			"Local Team",
-		)
-		resp.Token = token
-		resp.QueryParams = req.QueryParams
-	}
 
-	err = a.emailer.LoginEmail(ctx, user, token, req.QueryParams)
+	err := a.logins.PasswordlessLogin(r, email)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
+		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
-	return &resp, user, nil
-}
-
-func (a *API) generateUserToken(ctx context.Context, user *users.User) (string, error) {
-	token, err := tokens.Generate()
-	if err != nil {
-		return "", err
-	}
-	if err := a.db.SetUserToken(ctx, user.ID, token); err != nil {
-		return "", err
-	}
-	return token, nil
+	return &resp, nil
 }
 
 // healthCheck handles a very simple health check
@@ -348,22 +309,22 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-type loginResponse struct {
-	FirstLogin   bool              `json:"firstLogin,omitempty"`
-	Email        string            `json:"email"`
-	MunchkinHash string            `json:"munchkinHash"`
-	QueryParams  map[string]string `json:"queryParams,omitempty"`
-}
-
 // verify ensures that we're logged in, redirecting us to the login page if not,
 // and redirecting us back to whence we came if we are
 func (a *API) verify(w http.ResponseWriter, r *http.Request) {
-	loginURL := "/login"
+	connection := r.FormValue("connection")
 	returnURL := r.FormValue("next")
-	if returnURL != "" {
-		loginURL = loginURL + "?next=" + url.QueryEscape(returnURL)
+	var loginURL string
+	if connection != "" {
+		// FIXME: does this work with next parameter?
+		loginURL = a.logins.LoginURL(r, connection)
 	} else {
-		returnURL = "/" // the js can redirect us further
+		loginURL = "/login"
+		if returnURL != "" {
+			loginURL = loginURL + "?next=" + url.QueryEscape(returnURL)
+		} else {
+			returnURL = "/"
+		}
 	}
 
 	var finalURL string
@@ -372,6 +333,8 @@ func (a *API) verify(w http.ResponseWriter, r *http.Request) {
 		finalURL = loginURL
 	} else if session.UserID == "" {
 		finalURL = loginURL
+	} else if connection != "" && connection != session.Provider {
+		finalURL = loginURL
 	} else {
 		finalURL = returnURL
 	}
@@ -379,80 +342,17 @@ func (a *API) verify(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, finalURL, http.StatusSeeOther)
 }
 
-// login validates a login request from a link we sent the user by email
-// NB: this is used only for email signups, not oauth signups
-func (a *API) login(w http.ResponseWriter, r *http.Request) {
-	email := r.FormValue("email")
-	token := r.FormValue("token")
-	switch {
-	case email == "":
-		renderError(w, r, users.ErrEmailIsInvalid)
-		return
-	case token == "":
-		renderError(w, r, users.ValidationErrorf("token cannot be blank"))
-		return
-	}
-
-	u, err := a.db.FindUserByEmail(r.Context(), email)
-	if err == users.ErrNotFound {
-		err = nil
-	}
-	if err != nil {
-		commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-
-	// We always do this so that the timing difference can't be used to infer a user's existence.
-	if !u.CompareToken(token) {
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-
-	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
-		commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-
-	firstLogin := u.FirstLoginAt.IsZero()
-	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
-		renderError(w, r, err)
-		return
-	}
-
-	impersonatingUserID := "" // Direct login => cannot be impersonating
-	if err := a.sessions.Set(w, r, "email", u.Email, u.ID, impersonatingUserID); err != nil {
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
-	if a.mixpanel != nil {
-		go func() {
-			if err := a.mixpanel.TrackLogin(email, firstLogin); err != nil {
-				commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
-			}
-		}()
-	}
-	queryParams := common.FlattenQueryParams(r.URL.Query())
-	delete(queryParams, "email")
-	delete(queryParams, "token")
-
-	render.JSON(w, http.StatusOK, loginResponse{
-		FirstLogin:   firstLogin,
-		Email:        email,
-		MunchkinHash: a.MunchkinHash(email),
-		QueryParams:  queryParams,
-	})
-}
-
 // UpdateUserAtLogin sets u.FirstLoginAt if not already set
 func (a *API) UpdateUserAtLogin(ctx context.Context, u *users.User) error {
 	return a.db.SetUserLastLoginAt(ctx, u.ID)
 }
 
+// logs you out from weave cloud (clears cookie) and sends you to the provider
+// logout page
 func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 	a.sessions.Clear(w, r)
+
+	http.Redirect(w, r, a.logins.LogoutURL(r), http.StatusSeeOther)
 	render.JSON(w, http.StatusOK, map[string]interface{}{})
 }
 
@@ -509,15 +409,28 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	render.JSON(w, http.StatusOK, view)
 }
 
-func makeLocalTestUser(ctx context.Context, a *API, user *users.User, instanceID, instanceName, token, teamName string) {
+func makeLocalTestUser(ctx context.Context, a *API, email string, instanceID, instanceName, token, teamName string) (*users.User, error) {
+	if u, err := a.db.FindUserByEmail(ctx, email); err == nil {
+		// User already exists, just return them
+		return u, nil
+	}
+
+	user, err := a.db.CreateUser(ctx, email, &users.UserUpdate{
+		Name:      "Testy McTestface",
+		FirstName: "Testy",
+		LastName:  "McTestface",
+		Company:   "Acme Inc.",
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
-		log.Errorf("Error updating user first login at: %v", err)
-		return
+		return nil, err
 	}
 
 	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
-		log.Errorf("Error making user an admin: %v", err)
-		return
+		return nil, err
 	}
 
 	now := time.Now()
@@ -528,10 +441,12 @@ func makeLocalTestUser(ctx context.Context, a *API, user *users.User, instanceID
 		TrialExpiresAt: user.TrialExpiresAt(),
 		TeamName:       teamName,
 	}, now); err != nil {
-		log.Errorf("Error creating local test instance: %v", err)
+		return nil, err
 	}
 
 	if err := a.SetOrganizationFirstSeenConnectedAt(ctx, instanceID, &now); err != nil {
-		log.Errorf("Error onboarding local test instance: %v", err)
+		return nil, err
 	}
+
+	return user, nil
 }

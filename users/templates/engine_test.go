@@ -7,31 +7,17 @@ import (
 	"github.com/weaveworks/service/users/templates"
 )
 
-func TestEmbedHTML__Login(t *testing.T) {
+func TestEmbedHTML__GrantAccess(t *testing.T) {
 	templates := templates.MustNewEngine(".", "../../common/templates")
 	data := map[string]interface{}{
-		"LoginURL": "cloud.weave.works/login",
-		"RootURL":  "cloud.weave.works",
+		"TeamName":    "cluster",
+		"InviterName": "person@corp.com",
 	}
-	rendered := string(templates.EmbedHTML("login_email.html", "wrapper.html", "Login Title", data))
+	rendered := string(templates.EmbedHTML("grant_access_to_team_email.html", "wrapper.html", "Grant Access Title", data))
 
-	assert.Contains(t, rendered, "Login Title")
-	assert.Contains(t, rendered, "Log in to Weave Cloud")
-	assert.Contains(t, rendered, data["LoginURL"])
-}
-
-func TestEmbedHTML__Invite(t *testing.T) {
-	templates := templates.MustNewEngine(".", "../../common/templates")
-	data := map[string]interface{}{
-		"LoginURL": "cloud.weave.works/login",
-		"RootURL":  "cloud.weave.works",
-		"TeamName": "local-test-team",
-	}
-	rendered := string(templates.EmbedHTML("invite_to_team_email.html", "wrapper.html", "Invite Title", data))
-
-	assert.Contains(t, rendered, "Invite Title")
-	assert.Contains(t, rendered, "has invited you to access the \"local-test-team\"")
-	assert.Contains(t, rendered, data["LoginURL"])
+	assert.Contains(t, rendered, "Grant Access Title")
+	assert.Contains(t, rendered, "has added you to the")
+	assert.Contains(t, rendered, data["TeamName"])
 }
 
 func TestExtensionsTemplateEngine_Lookup(t *testing.T) {

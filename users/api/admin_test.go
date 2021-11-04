@@ -116,7 +116,7 @@ func TestAPI_adminGetUserToken(t *testing.T) {
 	var tok client.ProviderToken
 	err := json.NewDecoder(w.Body).Decode(&tok)
 	assert.NoError(t, err)
-	assert.Equal(t, ghToken, tok.Token)
+	assert.Equal(t, "token", tok.Token)
 }
 
 func TestAPI_adminGetUserToken_NoUser(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/login"
 )
 
 func Test_Account_AttachOauthAccount(t *testing.T) {
@@ -21,7 +22,7 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	user := getUser(t)
 
 	remoteEmail := "fran@example.com"
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		// Different remote email, to prevent auto-matching
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
@@ -72,7 +73,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 
 	// Should be associated to another user
 
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		// Different remote email, to prevent auto-matching
 		"fran": {ID: "fran", Email: fran.Email},
 	})
@@ -145,7 +146,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	assert.Len(t, userLogins, 1)
 
 	remoteEmail := "fran@example.com"
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		// Different remote email, to prevent auto-matching
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
@@ -187,8 +188,8 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 
 	user := getUser(t)
 
-	mockLoginProvider := MockLoginProvider{"joe": {ID: "joe", Email: user.Email}}
-	logins.Register("mock", mockLoginProvider)
+	mockLoginProvider := map[string]login.Claims{"joe": {ID: "joe", Email: user.Email}}
+	logins.SetUsers(mockLoginProvider)
 
 	assert.NoError(t, database.AddLoginToUser(context.Background(), user.ID, "mock", "joe", json.RawMessage(`"joe"`)))
 
@@ -203,7 +204,4 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 	userLogins, err := database.ListLoginsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, userLogins, 0)
-
-	// Provider session should have been revoked.
-	assert.Len(t, mockLoginProvider, 0)
 }

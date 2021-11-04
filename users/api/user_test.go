@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/dbtest"
+	"github.com/weaveworks/service/users/login"
 )
 
 func TestAPI_User_UpdateUser(t *testing.T) {
@@ -23,14 +25,20 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 
 	t.Run("update all fields", func(t *testing.T) {
 		user = getUser(t)
+		dbtest.AddLogin(t, database, user)
+		logins.SetUsers(map[string]login.Claims{user.Email: {Email: user.Email}})
 		w := httptest.NewRecorder()
+		r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code="+user.Email, nil)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusOK, w.Code)
+
 		body, _ := json.Marshal(map[string]string{
 			"company":   "Evil Corp",
 			"name":      "Dave DAVE",
 			"firstName": "Dave",
 			"lastName":  "DAVE",
 		})
-		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
+		r = requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
 		app.ServeHTTP(w, r)
 
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -45,6 +53,8 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 
 	t.Run("update single field", func(t *testing.T) {
 		user = getUser(t)
+		dbtest.AddLogin(t, database, user)
+		logins.SetUsers(map[string]login.Claims{user.Email: {Email: user.Email}})
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{"company": "Wayne Enterprises"})
 		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
@@ -59,6 +69,8 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 
 	t.Run("update strips HTML", func(t *testing.T) {
 		user = getUser(t)
+		dbtest.AddLogin(t, database, user)
+		logins.SetUsers(map[string]login.Claims{user.Email: {Email: user.Email}})
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{
 			"company":   "<img>Evil Corp",
@@ -80,6 +92,8 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 	})
 	t.Run("invalid name", func(t *testing.T) {
 		user = getUser(t)
+		dbtest.AddLogin(t, database, user)
+		logins.SetUsers(map[string]login.Claims{user.Email: {Email: user.Email}})
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{"company": strings.Repeat("x", 120)})
 		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))

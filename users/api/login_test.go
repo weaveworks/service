@@ -3,8 +3,6 @@ package api_test
 import (
 	"context"
 	"encoding/json"
-	"flag"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,92 +14,58 @@ import (
 )
 
 // MockLoginProvider is used in testing. It just authenticates anyone.
-type MockLoginProvider map[string]MockRemoteUser
-
-type MockRemoteUser struct {
-	ID, Email string
+type MockLoginProvider struct {
+	Users                map[string]login.Claims
+	LoggedInPasswordless []string
+	Invited              []string
 }
 
-// Flags sets the flags this provider requires on the command-line
-func (a MockLoginProvider) Flags(*flag.FlagSet) {}
+func (a *MockLoginProvider) SetUsers(users map[string]login.Claims) {
+	a.Users = users
+	a.LoggedInPasswordless = []string{}
+	a.Invited = []string{}
+}
 
-// Name is the human-readable name of the provider
-func (a MockLoginProvider) Name() string { return "mock" }
+func (a *MockLoginProvider) LoginURL(r *http.Request, connection string) string {
+	return "/mock-login/"
+}
 
-// Link we should render for this provider flow to begin.
-func (a MockLoginProvider) Link(r *http.Request) (login.Link, bool) {
-	return login.Link{}, false
+func (a *MockLoginProvider) LogoutURL(r *http.Request) string {
+	return "no escape"
 }
 
 // Login converts a user to a db ID and email
-func (a MockLoginProvider) Login(r *http.Request) (id, email string, session json.RawMessage, state map[string]string, err error) {
+func (a *MockLoginProvider) Login(r *http.Request) (*login.Claims, json.RawMessage, map[string]string, error) {
 	code := r.FormValue("code")
-	u, ok := a[code]
+	u, ok := a.Users[code]
 	if !ok {
-		return "", "", nil, nil, users.ErrInvalidAuthenticationData
+		return nil, nil, nil, users.ErrInvalidAuthenticationData
 	}
-	session, err = json.Marshal(u.ID)
+	session, err := json.Marshal(u.ID)
 	if err != nil {
-		return "", "", nil, nil, err
+		return nil, nil, nil, err
 	}
-	return u.ID, u.Email, session, make(map[string]string), nil
+	return &u, session, make(map[string]string), nil
 }
 
-// Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
-func (a MockLoginProvider) Username(_ context.Context, session json.RawMessage) (string, error) {
-	var id string
-	if err := json.Unmarshal(session, &id); err != nil {
-		return "", err
-	}
-
-	for _, u := range a {
-		if u.ID == id {
-			return u.Email, nil
-		}
-	}
-	return "", users.ErrNotFound
+func (a *MockLoginProvider) GetAccessToken(user string) (*string, error) {
+	token := "token"
+	return &token, nil
 }
 
-// Logout handles a user logout request with this provider. It should revoke
-// the remote user session, requiring the user to re-authenticate next time.
-func (a MockLoginProvider) Logout(_ context.Context, session json.RawMessage) error {
-	var id string
-	if err := json.Unmarshal(session, &id); err != nil {
-		return fmt.Errorf("Error logging out: %s, Session: %q", err.Error(), string(session))
-	}
-
-	var ks []string
-	for k, u := range a {
-		if u.ID == id {
-			ks = append(ks, k)
-		}
-	}
-	for _, k := range ks {
-		delete(a, k)
-	}
+func (a *MockLoginProvider) InviteUser(email string, inviter string, teamName string) error {
+	a.Invited = append(a.Invited, email)
 	return nil
 }
 
-func Test_Login_NoParams(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/login", nil)
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"email is not valid"}]}`)
+func (a *MockLoginProvider) UpdateClaims(ctx context.Context, claims login.Claims, session json.RawMessage) error {
+	return nil
 }
 
-func Test_Login_Unauthorized(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/login?email=joe@weave.works&token=foo", nil)
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"invalid authentication data"}]}`)
+func (a *MockLoginProvider) PasswordlessLogin(r *http.Request, email string) error {
+	a.LoggedInPasswordless = append(a.LoggedInPasswordless, email)
+	a.Users[email] = login.Claims{ID: "email|" + email, Email: email}
+	return nil
 }
 
 func Test_Verify(t *testing.T) {
@@ -138,6 +102,16 @@ func Test_Verify(t *testing.T) {
 		{
 			"/api/users/verify?next=/instances",
 			"/instances",
+			&[4]string{"email", "test@test.test", "1", ""},
+		},
+		{
+			"/api/users/verify?next=/instances&connection=email",
+			"/instances",
+			&[4]string{"email", "test@test.test", "1", ""},
+		},
+		{
+			"/api/users/verify?next=/instances&connection=google",
+			"/mock-login/",
 			&[4]string{"email", "test@test.test", "1", ""},
 		},
 	} {

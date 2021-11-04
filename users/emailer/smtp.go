@@ -103,21 +103,6 @@ func (s SMTPEmailer) WeeklyReportEmail(ctx context.Context, members []*users.Use
 	return s.SendThroughSendGrid(ctx, e, weeklyReportGroupID)
 }
 
-// LoginEmail sends the login email
-func (s SMTPEmailer) LoginEmail(ctx context.Context, u *users.User, token string, queryParams map[string]string) error {
-	e := email.NewEmail()
-	e.From = s.FromAddress
-	e.To = []string{u.Email}
-	e.Subject = "Login to Weave Cloud"
-	data := map[string]interface{}{
-		"LoginURL": loginURL(u.Email, token, s.Domain, queryParams),
-		"RootURL":  s.Domain,
-	}
-	e.Text = s.Templates.QuietBytes("login_email.text", data)
-	e.HTML = s.Templates.EmbedHTML("login_email.html", emailWrapperFilename, e.Subject, data)
-	return s.SendDirectly(ctx, e)
-}
-
 // InviteToTeamEmail sends the invite email
 func (s SMTPEmailer) InviteToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName, token string) error {
 	e := email.NewEmail()

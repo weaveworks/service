@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -714,38 +713,24 @@ func (a *API) adminGetUserToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse session information to get token
-	tok, err := parseTokenFromSession(l.Session)
+	tok, err := a.logins.GetAccessToken(*l)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 	render.JSON(w, 200, client.ProviderToken{
-		Token: tok,
+		Token: *tok,
 	})
 	return
 }
 
-func getSpecificLogin(login string, logins []*login.Login) (*login.Login, error) {
+func getSpecificLogin(login string, logins []*login.Login) (*string, error) {
 	for _, l := range logins {
 		if l.Provider == login {
-			return l, nil
+			return &l.ProviderID, nil
 		}
 	}
 	return nil, users.ErrLoginNotFound
-}
-
-func parseTokenFromSession(session json.RawMessage) (string, error) {
-	b, err := session.MarshalJSON()
-	if err != nil {
-		return "", err
-	}
-	var sess struct {
-		Token struct {
-			AccessToken string `json:"access_token"`
-		} `json:"token"`
-	}
-	err = json.Unmarshal(b, &sess)
-	return sess.Token.AccessToken, err
 }
 
 func redirectWithMessage(w http.ResponseWriter, r *http.Request, msg string) {

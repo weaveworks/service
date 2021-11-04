@@ -99,6 +99,14 @@ func (t timed) AddLoginToUser(ctx context.Context, userID, provider, id string, 
 	})
 }
 
+func (t timed) GetLogin(ctx context.Context, provider, id string) (l *login.Login, err error) {
+	t.timeRequest(ctx, "GetLogin", func(ctx context.Context) error {
+		l, err = t.d.GetLogin(ctx, provider, id)
+		return err
+	})
+	return
+}
+
 func (t timed) DetachLoginFromUser(ctx context.Context, userID, provider string) error {
 	return t.timeRequest(ctx, "DetachLoginFromUser", func(ctx context.Context) error {
 		return t.d.DetachLoginFromUser(ctx, userID, provider)

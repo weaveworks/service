@@ -29,7 +29,7 @@
   name = "github.com/ExpansiveWorlds/instrumentedsql"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "55151537c3a7c0e0ca34be1660247546570a6e2f"
+  revision = "45abb4b1947db48d8205cd4d33b3b4d83f54641f"
 
 [[projects]]
   branch = "master"
@@ -54,6 +54,14 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "a6b93000bd219143c56c16e6cb1c4b91da3f224b"
+
+[[projects]]
+  digest = "1:82bae233e6945d4a1ca49adf0f7bf4b3382ad34b71a0c87190d68d83c968ec73"
+  name = "github.com/PuerkitoBio/rehttp"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "5cd00bce20d06c31d75bcd94e870a0f48e0e86de"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -167,6 +175,14 @@
   pruneopts = "NUT"
   revision = "d2c6e5aa9fbfdd1c624e140287063c7730654115"
   version = "v2.6"
+
+[[projects]]
+  digest = "1:1c982c5d5bbe792e6dca8304d23aa38a1bd268e38607e35b14e00d688caf69a8"
+  name = "github.com/coreos/go-oidc"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "8d771559cf6e5111c9b9159810d0e4538e7cdc82"
+  version = "v2.2.1"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -540,20 +556,20 @@
   revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:7b21c7fc5551b46d1308b4ffa9e9e49b66c7a8b0ba88c0130474b0e7a20d859f"
+  digest = "1:f123010a906b00b3d47c2faec3e4bc2048ad899f3098967c73ca58b02a69ac93"
   name = "github.com/kr/pretty"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
+  revision = "a883a8422cd235c67c6c4fdcb7bbb022143e10b1"
+  version = "v0.3.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:c3a7836b5904db0f8b609595b619916a6831cb35b8b714aec39f96d00c6155d8"
   name = "github.com/kr/text"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "7cafcd837844e784b526369c9bce262804aebc60"
+  revision = "702c74938df48b97370179f33ce2107bd7ff3b3e"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -804,6 +820,17 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:17acc5af799aae46b839728af2a343aa7964f1d20ddefdc6e0227f9b22c1d352"
+  name = "github.com/pquerna/cachecontrol"
+  packages = [
+    ".",
+    "cacheobject",
+  ]
+  pruneopts = "NUT"
+  revision = "fb00f8a766ae43bf209f50299ce7d69669416dfb"
+  version = "v0.1.0"
+
+[[projects]]
   digest = "1:abf702d7344f26107bb9436fd49010bf0216db32c756726348aad605dfe9b457"
   name = "github.com/prometheus/client_golang"
   packages = [
@@ -890,6 +917,14 @@
   pruneopts = "NUT"
   revision = "b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4"
   version = "v1"
+
+[[projects]]
+  digest = "1:b8f733177a76e4f27bb137c131873a65f04c70599c212979ef4b2be5e2f6fc27"
+  name = "github.com/rogpeppe/go-internal"
+  packages = ["fmtsort"]
+  pruneopts = "NUT"
+  revision = "8ef127344c684f0eb23e5eea40f303b74de097b2"
+  version = "v1.8.0"
 
 [[projects]]
   digest = "1:cb24eec7a9478395847671abfbea162885f0be9c7ff6ef20b699dc20804ae1a4"
@@ -1189,7 +1224,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:69752bf2e6d57eba34713b95f36cfc9f6c4e98c3bffeddf372c00e95f5ac2657"
+  digest = "1:e5894059e2601c77ef02d4c5c22e41eb304098f64c8603fe253a49493436d460"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -1203,6 +1238,7 @@
     "openpgp/errors",
     "openpgp/packet",
     "openpgp/s2k",
+    "pbkdf2",
     "ssh/terminal",
   ]
   pruneopts = "NUT"
@@ -1247,11 +1283,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2f9e7eff7f9bd4467225b304c5f2dda1004a9d92d237e6035fc8ab40ab5241c7"
+  digest = "1:df8679f35ad2b2781e66568a3eeb1ced577457db9ce73ffd9675c01ebf0b0be1"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "github",
+    "clientcredentials",
     "google",
     "internal",
     "jws",
@@ -1329,7 +1365,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b61a4d0addef5435fa8724fa79246592232772c655e3a8e6e0395116c980a76c"
+  digest = "1:7e49b1f224625c307b63e12eb3c3b05c67b95908d68a883f05e954bac242a972"
   name = "google.golang.org/api"
   packages = [
     "bigquery/v2",
@@ -1343,7 +1379,6 @@
     "internal",
     "iterator",
     "option",
-    "plus/v1",
     "servicecontrol/v1",
     "support/bundler",
     "transport",
@@ -1438,6 +1473,19 @@
   revision = "2caba252f4dc53eaf6b553000885530023f54623"
 
 [[projects]]
+  digest = "1:1d1979ac40e3d1d4c0c1fed348ad7f0c65f6baf334c7fff36b4fdd7db34a40e0"
+  name = "gopkg.in/auth0.v5"
+  packages = [
+    ".",
+    "internal/client",
+    "internal/tag",
+    "management",
+  ]
+  pruneopts = "NUT"
+  revision = "bacf24e02ea68e08f01eeb6d10dd63b333c70dac"
+  version = "v5.20.0"
+
+[[projects]]
   digest = "1:18826415be302952ce1cc25623f6f0af58fc95d5f6589c51f90048ab2f405371"
   name = "gopkg.in/go-playground/webhooks.v3"
   packages = [
@@ -1480,6 +1528,18 @@
   version = "v1.3.2"
 
 [[projects]]
+  digest = "1:72f8280b0bf77357ca5a4e7e3395f6355d23e131456770212c02626da111f7c6"
+  name = "gopkg.in/square/go-jose.v2"
+  packages = [
+    ".",
+    "cipher",
+    "json",
+  ]
+  pruneopts = "NUT"
+  revision = "a10ff54e00bc6e833bf549e04ae976f0fe8ea2fd"
+  version = "v2.6.0"
+
+[[projects]]
   branch = "v2"
   digest = "1:b64b5b454cadd237f4cefca334f8286d9b1ddf895d3f2a6d9f1abfd649e36dd5"
   name = "gopkg.in/yaml.v2"
@@ -1510,6 +1570,7 @@
     "github.com/badoux/checkmail",
     "github.com/bluele/gcache",
     "github.com/certifi/gocertifi",
+    "github.com/coreos/go-oidc",
     "github.com/dgrijalva/jwt-go",
     "github.com/dlmiddlecote/sqlstats",
     "github.com/dukex/mixpanel",
@@ -1617,7 +1678,6 @@
     "golang.org/x/net/context",
     "golang.org/x/net/websocket",
     "golang.org/x/oauth2",
-    "golang.org/x/oauth2/github",
     "golang.org/x/oauth2/google",
     "golang.org/x/time/rate",
     "golang.org/x/tools/cover",
@@ -1626,13 +1686,14 @@
     "google.golang.org/api/container/v1",
     "google.golang.org/api/iterator",
     "google.golang.org/api/option",
-    "google.golang.org/api/plus/v1",
     "google.golang.org/api/servicecontrol/v1",
     "google.golang.org/grpc",
     "google.golang.org/grpc/balancer/roundrobin",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
     "google.golang.org/grpc/status",
+    "gopkg.in/auth0.v5",
+    "gopkg.in/auth0.v5/management",
     "gopkg.in/go-playground/webhooks.v3",
     "gopkg.in/go-playground/webhooks.v3/github",
     "gopkg.in/gomail.v2",

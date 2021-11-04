@@ -1,9 +1,0 @@
-{{.InviterName}} has invited you to join the ‘{{.TeamName}}’ team on Weave Cloud.
-
-Click this link to log in to Weave Cloud:
-
-    {{.LoginURL}}
-
-This single-use login link is valid for 3 days. You can generate a new one at any time by visiting {{.RootURL}}
-
-Thanks, the Weaveworks team
