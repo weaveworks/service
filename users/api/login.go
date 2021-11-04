@@ -20,6 +20,7 @@ import (
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/login"
 )
 
 type loginProvidersView struct {
@@ -125,7 +126,14 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		// No matching user found, this must be a first-time-login with this
 		// provider, so we'll create an account for them.
 		view.UserCreated = true
-		u, err = a.db.CreateUser(ctx, claims.Email, nil)
+		givenName, familyName := getNameFromClaims(claims)
+		userUpdate := users.UserUpdate{
+			Name:      claims.Name,
+			FirstName: givenName,
+			LastName:  familyName,
+			Company:   claims.UserMetadata.CompanyName,
+		}
+		u, err = a.db.CreateUser(ctx, claims.Email, &userUpdate)
 		if err != nil {
 			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
@@ -187,6 +195,20 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, http.StatusOK, view)
+}
+
+func getNameFromClaims(claims *login.Claims) (string, string) {
+	var givenName, familyName string
+	if claims.GivenName != "" || claims.FamilyName != "" {
+		givenName = claims.GivenName
+		familyName = claims.FamilyName
+	} else if strings.Contains(claims.Name, " ") {
+		// Western-centric fallback - github only provides full name
+		names := strings.SplitN(claims.Name, " ", 2)
+		givenName, familyName = names[0], names[1]
+	}
+
+	return givenName, familyName
 }
 
 func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
