@@ -15,10 +15,6 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Used by the UI to determine all available login providers
 		{"api_users_logins", "GET", "/api/users/logins", a.listLoginProviders},
 
-		// Used by the UI for /account, to determine which providers are already
-		// attached to the current user
-		{"api_users_attached_logins", "GET", "/api/users/attached_logins", a.authenticateUser(a.listAttachedLoginProviders)},
-
 		// Attaches a new login provider to the current user. If no current user is
 		// logged in, one will be looked up via email, or we will create one (if no
 		// matching email is found).
