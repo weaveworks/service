@@ -21,7 +21,6 @@ var ErrUnsupportedEmailProtocol = errors.New("unsupported email protocol")
 // Emailer is the interface which emailers implement. There should be a method
 // for each type of email we send.
 type Emailer interface {
-	LoginEmail(ctx context.Context, u *users.User, token string, queryParams map[string]string) error
 	InviteToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName, token string) error
 	GrantAccessToTeamEmail(ctx context.Context, inviter, invited *users.User, teamExternalID, teamName string) error
 	TrialExtendedEmail(ctx context.Context, members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error

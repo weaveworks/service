@@ -23,7 +23,7 @@ type API struct {
 	createAdminUsers         bool // Whether login without email confirmation is allowed. Development only!
 	sessions                 sessions.Store
 	db                       db.DB
-	logins                   *login.Providers
+	logins                   login.Provider
 	templates                templates.Engine
 	emailer                  emailer.Emailer
 	marketingQueues          marketing.Queues
@@ -52,7 +52,7 @@ func New(
 	emailer emailer.Emailer,
 	sessions sessions.Store,
 	db db.DB,
-	logins *login.Providers,
+	logins login.Provider,
 	templates templates.Engine,
 	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,

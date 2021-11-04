@@ -90,10 +90,10 @@ func main() {
 	flag.Var(&webhookTokens, "webhook-token", "Secret tokens used to validate webhooks from external services (e.g. Marketo).")
 	flag.Var(&cleanupURLs, "cleanup-url", "Endpoints for cleanup after instance deletion")
 
-	logins := login.NewProviders()
-	logins.Register(login.GithubProviderID, login.NewGithubProvider())
-	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
+	logins := login.NewAuth0Provider()
 	logins.Flags(flag.CommandLine)
+	logins.Register("google", login.NewGoogleConnection())
+	logins.Register("github", login.NewGithubConnection())
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	procurementCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
@@ -101,6 +101,10 @@ func main() {
 	marketoCfg.RegisterFlags(flag.CommandLine)
 
 	flag.Parse()
+
+	if err := logins.SetSiteDomain(*domain); err != nil {
+		log.Fatalf("Error setting up login: %v", err)
+	}
 
 	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
@@ -172,7 +176,7 @@ func main() {
 		emailer,
 		sessions,
 		db,
-		logins,
+		&logins,
 		templates,
 		marketingQueues,
 		forceFeatureFlags,

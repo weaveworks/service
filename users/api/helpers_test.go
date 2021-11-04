@@ -32,7 +32,7 @@ var (
 	sentEmails    []*email.Email
 	app           *api.API
 	database      db.DB
-	logins        *login.Providers
+	logins        MockLoginProvider
 	sessionStore  sessions.Store
 	domain        = "http://fake.scope"
 	ctrl          *gomock.Controller
@@ -52,7 +52,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
 	templates := templates.MustNewEngine("../templates", "../../common/templates")
-	logins = login.NewProviders()
+	logins = MockLoginProvider{Users: make(map[string]login.Claims)}
 	mixpanelClient := marketing.NewMixpanelClient("")
 
 	sentEmails = nil
@@ -78,7 +78,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		emailer,
 		sessionStore,
 		database,
-		logins,
+		&logins,
 		templates,
 		marketing.Queues{queue},
 		nil,
@@ -102,7 +102,6 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 
 func cleanup(t *testing.T) {
 	ctrl.Finish()
-	logins.Reset()
 	dbtest.Cleanup(t, database)
 }
 
@@ -114,7 +113,7 @@ func testEmailSendDirectly(_ context.Context, e *email.Email) error {
 // RequestAs makes a request as the given user.
 func requestAs(t *testing.T, u *users.User, method, endpoint string, body io.Reader) *http.Request {
 	impersonatingUserID := "" // this test doesn't involve impersonation
-	cookie, err := sessionStore.Cookie("", "", u.ID, impersonatingUserID)
+	cookie, err := sessionStore.Cookie("mock", u.ID, u.ID, impersonatingUserID)
 	assert.NoError(t, err)
 
 	r, err := http.NewRequest(method, endpoint, body)

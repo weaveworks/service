@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"regexp"
 	"strings"
 	"testing"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/login"
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
@@ -29,23 +29,6 @@ func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
 	require.NotEqual(t, "", matches[1])
 	require.Contains(t, string(e.HTML), matches[0], fmt.Sprintf("Could not find Login Link in html: %q", e.HTML))
 	return matches[0], matches[1]
-}
-
-func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
-	loginLink, _ := findLoginLink(t, e)
-	require.Contains(t, string(e.HTML), loginLink)
-
-	u, err := url.Parse(loginLink)
-	require.NoError(t, err)
-	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
-	fragments := strings.Split(u.Path, "/")
-	params := url.Values{}
-	params.Set("email", fragments[2])
-	params.Set("token", fragments[3])
-	path := fmt.Sprintf("/api/users/login?%s", params.Encode())
-	r, err := http.NewRequest("GET", path, nil)
-	require.NoError(t, err)
-	return r
 }
 
 // Check if a response has some named cookie
@@ -65,10 +48,7 @@ func Test_Signup(t *testing.T) {
 
 	email := "joez@weave.works"
 	data := jsonBody{
-		"email":     email,
-		"firstName": "Quincy",
-		"lastName":  "Hanley",
-		"company":   "TDE",
+		"email": email,
 	}
 
 	// -- Signup as a new user, should send login email
@@ -76,49 +56,30 @@ func Test_Signup(t *testing.T) {
 	r, _ := http.NewRequest("POST", "/api/users/signup", data.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	body := map[string]interface{}{}
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"email": email}, body)
-	require.Len(t, sentEmails, 1)
-	user, err := database.FindUserByEmail(context.Background(), email)
-	require.NoError(t, err)
-	assert.Equal(t, []string{email}, sentEmails[0].To)
-	loginLink, emailToken := findLoginLink(t, sentEmails[0])
-	assert.Contains(t, string(sentEmails[0].HTML), loginLink)
+	assert.Equal(t, []string{email}, logins.LoggedInPasswordless)
 
-	// Check the db one was hashed
-	assert.NotEqual(t, "", user.Token, "user should have a token set")
-	assert.NotEqual(t, user.Token, emailToken, "stored token should have been hashed")
-
-	// Check the email one wasn't hashed (by looking for dollar-signs)
-	assert.NotContains(t, emailToken, "$")
-	assert.NotContains(t, emailToken, "%24")
-
-	// Verify data forwarded to Marketo
-	today := time.Now().UTC().Format("2006-01-02")
-	marketoExpected := `{"programName":"test","lookupField":"email","input":[{"email":"joez@weave.works","Weave_Cloud_Created_On__c":"` + today + `","firstName":"Quincy","lastName":"Hanley","Company":"TDE"}]}`
-	assertMarketoEventually(t, marketoExpected)
-
-	// -- Login with the link
-	u, err := url.Parse(loginLink)
-	assert.NoError(t, err)
-	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
-	fragments := strings.Split(u.Path, "/")
-	params := url.Values{}
-	params.Set("email", fragments[2])
-	params.Set("token", fragments[3])
-	path := fmt.Sprintf("/api/users/login?%s", params.Encode())
+	// -- Login
+	path := "/api/users/logins/email/attach?code=" + email
 	w = httptest.NewRecorder()
 	r, _ = http.NewRequest("GET", path, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, client.AuthCookieName))
-	body = map[string]interface{}{}
+
+	// Verify data forwarded to Marketo
+	today := time.Now().UTC().Format("2006-01-02")
+	marketoExpected := `{"programName":"test","lookupField":"email","input":[{"email":"joez@weave.works","Weave_Cloud_Created_On__c":"` + today + `"}]}`
+	assertMarketoEventually(t, marketoExpected)
+
+	user, err := database.FindUserByEmail(context.Background(), email)
+	require.NoError(t, err)
+	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
 		"firstLogin":   true,
 		"email":        user.Email,
 		"munchkinHash": app.MunchkinHash(user.Email),
+		"userCreated":  true,
 	}, body)
 
 	user, err = database.FindUserByEmail(context.Background(), email)
@@ -138,10 +99,13 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("POST", "/api/users/signup", data.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	require.Len(t, sentEmails, 2)
-	assert.Equal(t, []string{email}, sentEmails[1].To)
+	require.Len(t, logins.LoggedInPasswordless, 2)
+	assert.Equal(t, email, logins.LoggedInPasswordless[1])
+
+	path = "/api/users/logins/email/attach?code=" + email
 	w = httptest.NewRecorder()
-	app.ServeHTTP(w, newLoginRequest(t, sentEmails[1]))
+	r, _ = http.NewRequest("GET", path, nil)
+	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
@@ -245,31 +209,12 @@ func Test_Signup_WithTooLongEmail(t *testing.T) {
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
-func Test_Signup_WithTooLongName(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	email := "joe@example.com"
-	firstName := "Joe"
-	lastName := "Really Long Name xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email, "firstName": firstName, "lastName": lastName}.Reader(t))
-
-	_, err := database.FindUserByEmail(context.Background(), email)
-	assert.EqualError(t, err, users.ErrNotFound.Error())
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Please provide a valid last name")
-	_, err = database.FindUserByEmail(context.Background(), email)
-	assert.EqualError(t, err, users.ErrNotFound.Error())
-}
-
 func Test_Signup_ViaOAuth(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	email := "joe@example.com"
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		"joe": {ID: "joe", Email: email},
 	})
 
@@ -313,7 +258,7 @@ func Test_Signup_ProviderBlankEmail(t *testing.T) {
 	defer cleanup(t)
 
 	email := ""
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		"joe": {ID: "joe", Email: email},
 	})
 
@@ -332,7 +277,7 @@ func Test_Signup_ProviderInvalidEmail(t *testing.T) {
 	defer cleanup(t)
 
 	email := "test@test"
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		"joe": {ID: "joe", Email: email},
 	})
 
@@ -350,7 +295,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	defer cleanup(t)
 
 	user := getUser(t)
-	logins.Register("mock", MockLoginProvider{
+	logins.SetUsers(map[string]login.Claims{
 		"joe": {ID: "joe", Email: user.Email},
 	})
 	// User should not have any logins yet.
@@ -395,16 +340,16 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 	user := getUser(t)
-	provider := MockLoginProvider{
+	provider := map[string]login.Claims{
 		"joe": {ID: "joe", Email: user.Email},
 	}
-	logins.Register("mock", provider)
+	logins.SetUsers(provider)
 
 	require.NoError(t, database.AddLoginToUser(context.Background(), user.ID, "mock", "joe", nil))
 
 	// Change the remote email
 	newEmail := "fran@example.com"
-	provider["joe"] = MockRemoteUser{ID: "joe", Email: newEmail}
+	provider["joe"] = login.Claims{ID: "joe", Email: newEmail}
 
 	// Login as an existing user with remote email changed
 	w := httptest.NewRecorder()

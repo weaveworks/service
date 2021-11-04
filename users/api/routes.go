@@ -28,18 +28,11 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 
 		// Finds/Creates a user account with a given email, and emails them a new
 		// login link
-		{"api_users_signup", "POST", "/api/users/signup", a.signup},
+		{"api_users_signup", "POST", "/api/users/signup", a.emailLogin},
 		{"api_users_update", "PUT", "/api/users/user", a.authenticateUser(a.updateUser)},
 		{"api_users_user", "GET", "/api/users/user", a.authenticateUser(a.getCurrentUser)},
 		{"api_users_gcp_subscribe", "POST", "/api/users/gcp/subscribe", a.authenticateUser(a.gcpSubscribe)},
 		{"api_users_gcp_sso_login", "GET", "/api/users/gcp/sso/login", a.authenticateUser(a.gcpSSOLogin)},
-		// The same as api_users_signup, but exempt from CRSF in authfe and authenticated via header here
-		{"api_users_signup_webhook", "POST", "/api/users/signup_webhook", a.authenticateWebhook(a.signup)},
-
-		// This is the link the UI hits when the user visits the link from the
-		// login email. Doesn't need to handle any attachment, or providers, since
-		// it *only* handles email logins.
-		{"api_users_login", "GET", "/api/users/login", a.login},
 
 		// Logs the current user out (just deletes the session cookie)
 		{"api_users_logout", "POST", "/api/users/logout", a.logout},

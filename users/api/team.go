@@ -331,15 +331,8 @@ func (a *API) inviteUserToTeam(currentUser *users.User, w http.ResponseWriter, r
 		return
 	}
 
-	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := a.generateUserToken(ctx, invitee)
-	if err != nil {
-		renderError(w, r, fmt.Errorf("cannot generate user token: %s", err))
-		return
-	}
-
 	if created {
-		err = a.emailer.InviteToTeamEmail(ctx, currentUser, invitee, teamExternalID, team.Name, token)
+		err = a.logins.InviteUser(email, currentUser.Email, team.Name)
 	} else {
 		err = a.emailer.GrantAccessToTeamEmail(ctx, currentUser, invitee, teamExternalID, team.Name)
 	}

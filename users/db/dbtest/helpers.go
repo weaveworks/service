@@ -40,6 +40,12 @@ func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
 	return user
 }
 
+// AddLogin creates a login and adds it to the user. The provider is "mock"
+func AddLogin(t *testing.T, db db.DB, user *users.User) {
+	err := db.AddLoginToUser(context.Background(), user.ID, "mock", user.ID, json.RawMessage{})
+	require.NoError(t, err)
+}
+
 // AddUserInfoToUser adds a random Name and Company name returns an updated user
 func AddUserInfoToUser(t *testing.T, db db.DB, user *users.User) *users.User {
 	random := rand.Int63()
@@ -55,15 +61,15 @@ func AddUserInfoToUser(t *testing.T, db db.DB, user *users.User) *users.User {
 
 // AddGoogleLoginToUser fakes a signup via Google OAuth
 func AddGoogleLoginToUser(t *testing.T, db db.DB, userID string) *oauth2.Token {
-	loginID := fmt.Sprintf("login_id_%v", userID)
+	loginID := fmt.Sprintf("google-oidc:login_id_%v", userID)
 	token := &oauth2.Token{
 		TokenType:   "Bearer",
 		AccessToken: fmt.Sprintf("access_token_%v", userID),
 		Expiry:      time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC),
 	}
-	session, err := json.Marshal(login.OAuthUserSession{Token: token})
+	session, err := json.Marshal(login.OIDCUserSession{Token: token})
 	require.NoError(t, err)
-	db.AddLoginToUser(context.TODO(), userID, login.GoogleProviderID, loginID, session)
+	db.AddLoginToUser(context.TODO(), userID, "auth0", loginID, session)
 	return token
 }
 
