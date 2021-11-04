@@ -9,7 +9,7 @@ IMAGE_PREFIX := weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
 GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
-GO_TEST_IMAGE := golang:1.13.5-stretch
+GO_TEST_IMAGE := golang:1.17-bullseye
 
 # Building Docker images is now automated. The convention is every directory
 # with a Dockerfile in it builds an image calls weaveworks/<dirname>.
@@ -331,7 +331,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
 		$(GO_TEST_IMAGE) \
-		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+		/bin/bash -c "GO111MODULE=off go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
@@ -344,7 +344,7 @@ users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
 		$(GO_TEST_IMAGE) \
-		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+		/bin/bash -c "GO111MODULE=off go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
@@ -356,7 +356,7 @@ pubsub-integration-test:
 		--net=host -p 127.0.0.1:1337:1337 \
 		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
 		$(GO_TEST_IMAGE) \
-		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
+		/bin/bash -c "GO111MODULE=off RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
@@ -368,7 +368,7 @@ kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/gr
 		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
 		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
 		$(GO_TEST_IMAGE) \
-		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+		/bin/bash -c "GO111MODULE=off go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
@@ -380,7 +380,7 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 		--workdir /go/src/github.com/weaveworks/service/gcp-service \
 		--link "$$SVC_CONTAINER":gcp-service.weave.local \
 		$(GO_TEST_IMAGE) \
-		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+		/bin/bash -c "GO111MODULE=off go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
