@@ -2,20 +2,17 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 
 	"github.com/weaveworks/service/common/gcp"
 	"github.com/weaveworks/service/common/gcp/procurement"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/login"
 )
 
 // We do not approve entitlements coming from this accountID as to not
@@ -167,22 +164,4 @@ func findTestEntitlement(ents []procurement.Entitlement) (*procurement.Entitleme
 		}
 	}
 	return &ents[0], nil
-}
-
-func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID string) (*oauth2.Token, error) {
-	logins, err := a.db.ListLoginsForUserIDs(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	for _, l := range logins {
-		if l.Provider == login.GoogleProviderID {
-			var session login.OAuthUserSession
-			if err := json.Unmarshal(l.Session, &session); err != nil {
-				return nil, err
-			}
-			return session.Token, nil
-		}
-	}
-	// "no active Google OAuth session, please authenticate again"
-	return nil, users.ErrInvalidAuthenticationData
 }
