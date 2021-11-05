@@ -52,23 +52,30 @@ func (p *Auth0Provider) InviteUser(email string, inviter string, teamName string
 // PasswordlessLogin initializes a passwordless login. This is pretty much the
 // same request as with a regular social login, except to a different endpoint
 func (p *Auth0Provider) PasswordlessLogin(r *http.Request, email string) error {
+	authParams := map[string]string{
+		"scope":         "openid email profile",
+		"response_type": "code",
+	}
+	if r != nil {
+		token := csrfToken(r)
+		state := common.FlattenQueryParams(r.URL.Query())
+		state["token"] = token
+		authParams["state"] = p.encodeState(state)
+	} else {
+		// Bouncing the user through the verify endpoint sends us back to auth0
+		// and makes them return with proper CSRF protection
+		verify, _ := p.siteDomain.Parse("/api/users/verify")
+		authParams["redirect_uri"] = verify.String()
+	}
 	payload := map[string]interface{}{
 		"client_id":     p.clientID,
 		"client_secret": p.clientSecret,
 		"connection":    "email",
 		"email":         email,
 		"send":          "link",
+		"authParams":    authParams,
 	}
-	if r != nil {
-		token := csrfToken(r)
-		state := common.FlattenQueryParams(r.URL.Query())
-		state["token"] = token
-		payload["authParams"] = map[string]string{
-			"state":         p.encodeState(state),
-			"scope":         "openid email",
-			"response_type": "code",
-		}
-	}
+
 	message, err := json.Marshal(payload)
 	if err != nil {
 		return err

@@ -114,6 +114,11 @@ func Test_Verify(t *testing.T) {
 			"/mock-login/",
 			&[4]string{"email", "test@test.test", "1", ""},
 		},
+		{
+			"/api/users/verify?code=1234",
+			"/mock-login/",
+			nil,
+		},
 	} {
 		w := httptest.NewRecorder()
 		r, _ := http.NewRequest("GET", testCase.requestURL, nil)

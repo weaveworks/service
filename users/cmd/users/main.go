@@ -94,6 +94,7 @@ func main() {
 	logins.Flags(flag.CommandLine)
 	logins.Register("google", login.NewGoogleConnection())
 	logins.Register("github", login.NewGithubConnection())
+	logins.Register("email", login.NewEmailConnection())
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	procurementCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
