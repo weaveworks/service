@@ -100,12 +100,26 @@ func TestAPI_adminChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
 	assert.True(t, prevExpires.Equal(newOrg.TrialExpiresAt))
 }
 
-func TestAPI_adminGetUserToken(t *testing.T) {
+func TestAPI_adminGetOldUserToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	usr, _ := database.CreateUser(ctx, "test@test", nil)
 	database.AddLoginToUser(ctx, usr.ID, "github", "12345", ghSession)
+
+	w := httptest.NewRecorder()
+	r := requestAs(t, usr, "GET",
+		fmt.Sprintf("/admin/users/users/%v/logins/github/token", usr.ID), nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestAPI_adminGetUserToken(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	usr, _ := database.CreateUser(ctx, "test@test", nil)
+	database.AddLoginToUser(ctx, usr.ID, "github", "github|12345", ghSession)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, usr, "GET",
