@@ -726,7 +726,15 @@ func (a *API) adminGetUserToken(w http.ResponseWriter, r *http.Request) {
 
 func getSpecificLogin(login string, logins []*login.Login) (*string, error) {
 	for _, l := range logins {
-		if l.Provider == login {
+		if l.Provider != login {
+			continue
+		}
+
+		// Backwards compatibility: auth0 logins are "connection|id", but
+		// pre-auth0 we just stored "id" in provider id.
+		// So consider direct access keys to be "not matching", and force
+		// user to reauthenticate through auth0 this time.
+		if strings.Contains(l.ProviderID, "|") {
 			return &l.ProviderID, nil
 		}
 	}
