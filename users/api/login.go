@@ -315,8 +315,10 @@ func (a *API) verify(w http.ResponseWriter, r *http.Request) {
 	connection := r.FormValue("connection")
 	returnURL := r.FormValue("next")
 	var loginURL string
+	if r.FormValue("code") != "" && connection == "" {
+		connection = "email"
+	}
 	if connection != "" {
-		// FIXME: does this work with next parameter?
 		loginURL = a.logins.LoginURL(r, connection)
 	} else {
 		loginURL = "/login"
