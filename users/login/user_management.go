@@ -1,8 +1,6 @@
 package login
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"bytes"
 	"context"
 	"encoding/json"
@@ -121,7 +119,6 @@ func (p *Auth0Provider) UpdateClaims(ctx context.Context, claims Claims, session
 	if claims.GivenName != "" {
 		user.GivenName = &claims.GivenName
 	}
-	log.Error("Error ", claims.ID, user, p.api)
 
 	err := p.api.User.Update(claims.ID, &user)
 
