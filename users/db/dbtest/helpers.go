@@ -61,7 +61,7 @@ func AddUserInfoToUser(t *testing.T, db db.DB, user *users.User) *users.User {
 
 // AddGoogleLoginToUser fakes a signup via Google OAuth
 func AddGoogleLoginToUser(t *testing.T, db db.DB, userID string) *oauth2.Token {
-	loginID := fmt.Sprintf("google-oidc:login_id_%v", userID)
+	loginID := fmt.Sprintf("google-oauth2:login_id_%v", userID)
 	token := &oauth2.Token{
 		TokenType:   "Bearer",
 		AccessToken: fmt.Sprintf("access_token_%v", userID),

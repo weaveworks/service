@@ -68,6 +68,47 @@ func (a *MockLoginProvider) PasswordlessLogin(r *http.Request, email string) err
 	return nil
 }
 
+func Test_ListLoginProviders(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	type TestCase struct {
+		requestURL   string
+		responseURLs []string
+	}
+
+	for _, testCase := range []TestCase{
+		{
+			"/api/users/logins",
+			[]string{"/api/users/verify?connection=github", "/api/users/verify?connection=google"},
+		},
+		{
+			"/api/users/logins?test=yes",
+			[]string{"/api/users/verify?connection=github&test=yes", "/api/users/verify?connection=google&test=yes"},
+		},
+	} {
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("GET", testCase.requestURL, nil)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var hrefs []string
+		var listLogin map[string]interface{}
+		resp := w.Result()
+		defer resp.Body.Close()
+		json.NewDecoder(resp.Body).Decode(&listLogin)
+		logins := listLogin["logins"].([]interface{})
+		for _, login := range logins {
+			link := login.(map[string]interface{})["link"].(map[string]interface{})
+			href := link["href"].(string)
+			hrefs = append(hrefs, href)
+		}
+		for _, expectedURL := range testCase.responseURLs {
+			assert.Contains(t, hrefs, expectedURL)
+		}
+	}
+}
+
 func Test_Verify(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
