@@ -39,9 +39,16 @@ type loginProviderView struct {
 
 func (a *API) listLoginProviders(w http.ResponseWriter, r *http.Request) {
 	view := loginProvidersView{}
-	view.Logins = []loginProviderView{
-		{"google", "Google", link{"/api/users/verify?connection=google"}},
-		{"github", "GitHub", link{"/api/users/verify?connection=github"}},
+	query := r.URL.Query()
+	for _, c := range []struct {
+		name  string
+		label string
+	}{
+		{"google", "Google"},
+		{"github", "GitHub"},
+	} {
+		query.Set("connection", c.name)
+		view.Logins = append(view.Logins, loginProviderView{c.name, c.label, link{"/api/users/verify?" + query.Encode()}})
 	}
 	render.JSON(w, http.StatusOK, view)
 }
@@ -63,6 +70,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	providerID := vars["provider"]
 	claims, authSession, extraState, err := a.logins.Login(r)
+	connectionName := extraState["connection"]
+	delete(extraState, "connection")
 	view.QueryParams = extraState
 	if err != nil {
 		renderError(w, r, err)
@@ -81,7 +90,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	if providerID == "auth0" {
 		// auth0 proxys other federated auth - we still need the source, e.g.
 		// "can we get access to github using this login"
-		providerID = claims.ID[:strings.Index(claims.ID, "|")]
+		providerID = connectionName
 	}
 
 	// Try and find an existing user to attach this login to.
