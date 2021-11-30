@@ -15,7 +15,6 @@ import (
 	"github.com/weaveworks/service/users"
 	users_db "github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
-	"github.com/weaveworks/service/users/marketing"
 )
 
 type MockSegment struct {
@@ -48,9 +47,8 @@ func setup(t *testing.T) (testFixtures, *AttributeSyncer) {
 	ctrl := gomock.NewController(t)
 	billingClient := billing_grpc.NewMockBillingClient(ctrl)
 	mockSegment := MockSegment{}
-	noopMarketo := marketing.NoopMarketoClient{}
 
-	attrSync := New(logger, db, billingClient, &mockSegment, &noopMarketo)
+	attrSync := New(logger, db, billingClient, &mockSegment)
 
 	return testFixtures{billingClient, ctrl, ctx, db, &mockSegment}, attrSync
 }

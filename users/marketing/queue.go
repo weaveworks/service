@@ -188,6 +188,24 @@ func (c *Queue) UserCreated(email, firstname, lastname, company string, createdA
 	c.cond.Broadcast()
 }
 
+// UserUpdated should be called when users updates their details.
+// This will trigger an 'upload' to marketo, althoughs that upload
+// will still happen in the background.
+func (c *Queue) UserUpdated(email, firstname, lastname, company string) {
+	if c == nil {
+		return
+	}
+	c.Lock()
+	defer c.Unlock()
+	c.prospects = append(c.prospects, Prospect{
+		Email:     email,
+		FirstName: firstname,
+		LastName:  lastname,
+		Company:   company,
+	})
+	c.cond.Broadcast()
+}
+
 // OrganizationBillingConfigured will be called when a subscription is configured on an Organization
 func (c *Queue) OrganizationBillingConfigured(email string, orgExternalID string, orgName string) {
 	if c == nil {
@@ -224,6 +242,13 @@ func (qs Queues) UserAccess(email string, hitAt time.Time) {
 func (qs Queues) UserCreated(email, firstname, lastname, company string, createdAt time.Time, params map[string]string) {
 	for _, q := range qs {
 		q.UserCreated(email, firstname, lastname, company, createdAt, params)
+	}
+}
+
+// UserUpdated calls UserUpdated on each Queue.
+func (qs Queues) UserUpdated(email, firstname, lastname, company string) {
+	for _, q := range qs {
+		q.UserUpdated(email, firstname, lastname, company)
 	}
 }
 

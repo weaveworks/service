@@ -5,7 +5,6 @@ import (
 	"flag"
 
 	"github.com/weaveworks/service/common/users"
-	"github.com/weaveworks/service/users/marketing"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -39,7 +38,6 @@ func main() {
 
 		dbCfg      dbconfig.Config
 		billingCfg billing_grpc.Config
-		marketoCfg marketing.MarketoConfig
 		usersCfg   users.Config
 
 		serverConfig = commonServer.Config{
@@ -53,7 +51,6 @@ func main() {
 	flag.Var(&cleanupURLs, "cleanup-url", "Endpoints for cleanup after instance deletion")
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
 	billingCfg.RegisterFlags(flag.CommandLine)
-	marketoCfg.RegisterFlags(flag.CommandLine)
 	usersCfg.RegisterFlags(flag.CommandLine)
 	serverConfig.RegisterFlags(flag.CommandLine)
 	flag.CommandLine.IntVar(&serverConfig.HTTPListenPort, "port", 80, "HTTP port to listen on")
@@ -88,15 +85,10 @@ func main() {
 	}
 	defer segmentClient.Close()
 
-	marketoClient, err := attrsync.NewMarketoClient(marketoCfg)
-	if err != nil {
-		logrus.Fatalf("Failed creating a marketo client: %v", err)
-	}
-
 	weeklyReporter := weeklyreporter.New(logger, usersClient)
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(
-		logger, db, billingClient, segmentClient, marketoClient)
+		logger, db, billingClient, segmentClient)
 	logger.Debugln("Debug logging enabled")
 
 	logger.Infof("users-sync listening on ports %d (HTTP) and %d (gRPC)", serverConfig.HTTPListenPort, serverConfig.GRPCListenPort)

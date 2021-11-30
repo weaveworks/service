@@ -15,7 +15,6 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
-	"github.com/weaveworks/service/users/marketing"
 )
 
 var attrsComputeDurationCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
@@ -46,17 +45,15 @@ type AttributeSyncer struct {
 	db                db.DB
 	billingClient     billing_grpc.BillingClient
 	segmentClient     analytics.Client
-	marketoClient     marketing.MarketoClient
 }
 
 // New creates a attributeSyncer service
-func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, segmentClient analytics.Client, marketoClient marketing.MarketoClient) *AttributeSyncer {
+func New(log logging.Interface, db db.DB, billingClient billing_grpc.BillingClient, segmentClient analytics.Client) *AttributeSyncer {
 	return &AttributeSyncer{
 		log:               log,
 		db:                db,
 		billingClient:     billingClient,
 		segmentClient:     segmentClient,
-		marketoClient:     marketoClient,
 		recentUsersTicker: time.NewTicker(recentUsersPeriod),
 		staleUsersTicker:  time.NewTicker(staleUsersPeriod),
 		work:              make(chan filter.User),
@@ -168,12 +165,7 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 
 func (c *AttributeSyncer) postUsers(ctx context.Context, users []*users.User) {
 	traits := map[string]analytics.Traits{}
-	var prospects []marketing.Prospect
 	for _, user := range users {
-		if p, ok := marketoProspect(user); ok {
-			prospects = append(prospects, p)
-		}
-
 		attrs, err := c.userOrgAttributes(ctx, user)
 		if err != nil {
 			c.log.WithField("err", err).WithField("user", user.ID).Errorln("Error getting org attributes for user")
@@ -188,13 +180,6 @@ func (c *AttributeSyncer) postUsers(ctx context.Context, users []*users.User) {
 		attrsComputeDurationCollector,
 		instrument.ErrorCode,
 		func(fCtx context.Context) error {
-			// Marketo
-			if len(prospects) > 0 {
-				if err := c.marketoClient.BatchUpsertProspect(prospects); err != nil {
-					c.log.WithField("err", err).Errorln("Error sending fields to Marketo")
-				}
-			}
-
 			// Segment
 			for email, traits := range traits {
 				err := c.segmentClient.Enqueue(analytics.Identify{

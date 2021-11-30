@@ -89,6 +89,7 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
+	a.marketingQueues.UserUpdated(claims.Email, claims.GivenName, claims.FamilyName, claims.UserMetadata.CompanyName)
 	resp := users.UserResponse{
 		Email:     claims.Email,
 		Name:      claims.Name,
