@@ -9,7 +9,7 @@ services:
     - POSTGRES_DB=notifications
 
   sqslocal:
-    image: "pakohan/elasticmq"
+    image: "softwaremill/elasticmq:0.14.7"
     expose:
      - "9324"
 
