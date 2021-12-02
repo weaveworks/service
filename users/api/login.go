@@ -149,6 +149,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.marketingQueues.UserCreated(u.Email, u.FirstName, u.LastName, u.Company, u.CreatedAt, extraState)
+	} else {
+		a.marketingQueues.UserAccess(u.Email, time.Now())
 	}
 
 	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, claims.ID, authSession); err != nil {

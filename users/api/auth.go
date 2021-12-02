@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -60,10 +59,6 @@ func (a *API) authenticateUserVia(handler func(*users.User, http.ResponseWriter,
 			if err != nil {
 				continue
 			}
-			// User actions always go through this endpoint because authfe checks the
-			// authentication endpoint every time. We use this to tell marketing about
-			// login activity.
-			a.marketingQueues.UserAccess(user.Email, time.Now())
 			handler(user, w, r)
 			return
 		}
