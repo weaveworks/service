@@ -117,6 +117,17 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			return a.db.FindUserByLogin(ctx, providerID, claims.ID)
 		},
 		func() (*users.User, error) {
+			// If the user had already attached this provider before auth0 migration,
+			// we can just log them in with it. This might be necessary if github isn't
+			// returning an email.
+			parts := strings.SplitN(claims.ID, "|", 2)
+			if len(parts) != 2 {
+				return nil, users.ErrNotFound
+			}
+			oldID := parts[1]
+			return a.db.FindUserByLogin(ctx, providerID, oldID)
+		},
+		func() (*users.User, error) {
 			// Match based on the user's email
 			return a.db.FindUserByEmail(ctx, claims.Email)
 		},
