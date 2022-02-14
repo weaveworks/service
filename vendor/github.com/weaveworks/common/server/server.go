@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // anonymous import to get the pprof handler registered
+	// _ "net/http/pprof" // anonymous import to get the pprof handler registered
 	"time"
 
 	"github.com/gorilla/mux"
@@ -212,7 +212,7 @@ func New(cfg Config) (*Server, error) {
 // RegisterInstrumentation on the given router.
 func RegisterInstrumentation(router *mux.Router) {
 	router.Handle("/metrics", promhttp.Handler())
-	router.PathPrefix("/debug/pprof").Handler(http.DefaultServeMux)
+	// router.PathPrefix("/debug/pprof").Handler(http.DefaultServeMux)
 }
 
 // Run the server; blocks until SIGTERM or an error is received.
