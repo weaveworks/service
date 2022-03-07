@@ -53,7 +53,6 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
 	templates := templates.MustNewEngine("../templates", "../../common/templates")
 	logins = MockLoginProvider{Users: make(map[string]login.Claims)}
-	mixpanelClient := marketing.NewMixpanelClient("")
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
@@ -83,10 +82,8 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		marketing.Queues{queue},
 		nil,
 		"",
-		"",
 		grpcServer,
 		make(map[string]struct{}),
-		mixpanelClient,
 		nil,
 		fluxAPI,
 		scopeAPI,

@@ -6,42 +6,28 @@ import (
 	"github.com/weaveworks/common/logging"
 
 	"github.com/weaveworks/service/users-sync/api"
-	"github.com/weaveworks/service/users-sync/attrsync"
 	"github.com/weaveworks/service/users-sync/cleaner"
 	"github.com/weaveworks/service/users-sync/weeklyreporter"
 )
 
 type usersSyncServer struct {
-	weeklyReporter  *weeklyreporter.WeeklyReporter
-	attributeSyncer *attrsync.AttributeSyncer
-	cleaner         *cleaner.OrgCleaner
-	log             logging.Interface
+	weeklyReporter *weeklyreporter.WeeklyReporter
+	cleaner        *cleaner.OrgCleaner
+	log            logging.Interface
 }
 
 // New returns a new UsersSyncServer
-func New(log logging.Interface, cleaner *cleaner.OrgCleaner, attributeSyncer *attrsync.AttributeSyncer, weeklyReporter *weeklyreporter.WeeklyReporter) api.UsersSyncServer {
+func New(log logging.Interface, cleaner *cleaner.OrgCleaner, weeklyReporter *weeklyreporter.WeeklyReporter) api.UsersSyncServer {
 	return &usersSyncServer{
 		weeklyReporter,
-		attributeSyncer,
 		cleaner,
 		log,
 	}
 }
 
-func (u *usersSyncServer) EnqueueUsersSync(ctx context.Context, req *api.EnqueueUsersSyncRequest) (*api.EnqueueUsersSyncResponse, error) {
-	err := u.attributeSyncer.EnqueueUsersSync(ctx, req.UserIDs)
-	return &api.EnqueueUsersSyncResponse{}, err
-}
-
-func (u *usersSyncServer) EnqueueOrgsSync(ctx context.Context, req *api.EnqueueOrgsSyncRequest) (*api.EnqueueOrgsSyncResponse, error) {
-	err := u.attributeSyncer.EnqueueOrgsSync(ctx, req.OrgExternalIDs)
-	return &api.EnqueueOrgsSyncResponse{}, err
-}
-
 func (u *usersSyncServer) EnqueueOrgDeletedSync(ctx context.Context, req *api.EnqueueOrgDeletedSyncRequest) (*api.EnqueueOrgDeletedSyncResponse, error) {
 	u.cleaner.Trigger()
-	err := u.attributeSyncer.EnqueueOrgsSync(ctx, []string{req.OrgExternalID})
-	return &api.EnqueueOrgDeletedSyncResponse{}, err
+	return &api.EnqueueOrgDeletedSyncResponse{}, nil
 }
 
 func (u *usersSyncServer) EnforceWeeklyReporterJob(ctx context.Context, req *api.EnforceWeeklyReporterJobRequest) (*api.EnforceWeeklyReporterJobResponse, error) {

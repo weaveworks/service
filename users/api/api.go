@@ -29,10 +29,8 @@ type API struct {
 	marketingQueues          marketing.Queues
 	forceFeatureFlags        []string // Appends flags to every organization that is returned in a GET request.
 	marketoMunchkinKey       string
-	intercomHashKey          string
 	webhookTokens            map[string]struct{}
 	grpc                     users.UsersServer
-	mixpanel                 *marketing.MixpanelClient
 	procurement              procurement.API
 	fluxStatusAPI            string
 	scopeProbesAPI           string
@@ -57,10 +55,8 @@ func New(
 	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,
 	marketoMunchkinKey string,
-	intercomHashKey string,
 	grpc users.UsersServer,
 	webhookTokens map[string]struct{},
-	mixpanelClient *marketing.MixpanelClient,
 	procurementClient procurement.API,
 	fluxStatusAPI string,
 	scopeProbesAPI string,
@@ -82,10 +78,8 @@ func New(
 		marketingQueues:          marketingQueues,
 		forceFeatureFlags:        forceFeatureFlags,
 		marketoMunchkinKey:       marketoMunchkinKey,
-		intercomHashKey:          intercomHashKey,
 		webhookTokens:            webhookTokens,
 		grpc:                     grpc,
-		mixpanel:                 mixpanelClient,
 		procurement:              procurementClient,
 		fluxStatusAPI:            fluxStatusAPI,
 		scopeProbesAPI:           scopeProbesAPI,

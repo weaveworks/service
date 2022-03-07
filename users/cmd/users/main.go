@@ -64,8 +64,6 @@ func main() {
 		netPeersAPI    = flag.String("net-peers-api", "", "Hostname and port for peer discovery. e.g. http://discovery.service-net.svc.cluster.local:80/api/net/peers")
 
 		marketoMunchkinKey = flag.String("marketo-munchkin-key", "", "Secret key for Marketo munchkin.")
-		intercomHashKey    = flag.String("intercom-hash-key", "", "Secret key for Intercom user hash.")
-		mixpanelToken      = flag.String("mixpanel-token", "", "Mixpanel project API token")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -142,11 +140,6 @@ func main() {
 		}
 	}
 
-	var mixpanelClient *marketing.MixpanelClient
-	if *mixpanelToken != "" {
-		mixpanelClient = marketing.NewMixpanelClient(*mixpanelToken)
-	}
-
 	var procurementClient procurement.API
 	if procurementCfg.ServiceAccountKeyFile != "" {
 		var err error
@@ -182,10 +175,8 @@ func main() {
 		marketingQueues,
 		forceFeatureFlags,
 		*marketoMunchkinKey,
-		*intercomHashKey,
 		grpcServer,
 		webhookTokenMap,
-		mixpanelClient,
 		procurementClient,
 		*fluxStatusAPI,
 		*scopeProbesAPI,

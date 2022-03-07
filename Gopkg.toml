@@ -48,9 +48,6 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   name = "github.com/weaveworks/billing-client"
 
 # The master branch is stuck on an old version for compatibility
-[[override]]
-  branch = "v3.0"
-  name = "github.com/segmentio/analytics-go"
 [[constraint]]
   name = "github.com/microcosm-cc/bluemonday"
   version = "1.0.1"
