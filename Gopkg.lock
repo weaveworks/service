@@ -241,14 +241,6 @@
   revision = "aabc10ec26b754e797f9028f4589c5b7bd90dc20"
 
 [[projects]]
-  branch = "master"
-  digest = "1:8fc9530c5636e8956803373de55408e94f748596629924ea8056b3835457a34e"
-  name = "github.com/dukex/mixpanel"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "53bfdf679eecb9731ac23f01a89d8a6904f09037"
-
-[[projects]]
   digest = "1:bb7d57887e4d5eeb6479ffd0cd4f4eefe387ea6fe5e710c1bcfbbaa211cd2710"
   name = "github.com/fluent/fluent-logger-golang"
   packages = ["fluent"]
@@ -943,22 +935,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "v3.0"
-  digest = "1:cb363cb91901bb784bd225b25c6510be722f25be01e1f0e1ca189e6b9c80e477"
-  name = "github.com/segmentio/analytics-go"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "c541109ba0656ac1a8a90aaf4fa8bc8042811223"
-
-[[projects]]
-  branch = "master"
-  digest = "1:4c39453563e71f7cb6c62c69a94b99910861abfb9f3b904516a171eb558f1c60"
-  name = "github.com/segmentio/backo-go"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "204274ad699c0983a70203a566887f17a717fef4"
-
-[[projects]]
   digest = "1:5cdaecf64c8b5bbc6212499e2194fa4febfb4de29dca3fe9de21c72ef0e67527"
   name = "github.com/sendgrid/rest"
   packages = ["."]
@@ -1205,14 +1181,6 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "31bac0d230fa29f36ed1b3279c2343752e7196c0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:2f9538da7381bb981fb8451b2b0fb304c2bc7f1724228dc336a8f002e6fec704"
-  name = "github.com/xtgo/uuid"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 
 [[projects]]
   digest = "1:f0635c284d572c51bf57b5e8b2d66ad7c46ea474fc6deb0061f996dc28f97d13"
@@ -1573,7 +1541,6 @@
     "github.com/coreos/go-oidc",
     "github.com/dgrijalva/jwt-go",
     "github.com/dlmiddlecote/sqlstats",
-    "github.com/dukex/mixpanel",
     "github.com/fluent/fluent-logger-golang/fluent",
     "github.com/go-kit/kit/endpoint",
     "github.com/go-kit/kit/log",
@@ -1619,7 +1586,6 @@
     "github.com/prometheus/prometheus/promql",
     "github.com/robfig/cron",
     "github.com/satori/go.uuid",
-    "github.com/segmentio/analytics-go",
     "github.com/sendgrid/sendgrid-go",
     "github.com/sendgrid/sendgrid-go/helpers/mail",
     "github.com/sercand/kuberesolver",

@@ -2,9 +2,7 @@ package api
 
 import (
 	"context"
-	"crypto/hmac"
 	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -192,19 +190,6 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view.Email = claims.Email
 	view.MunchkinHash = a.MunchkinHash(claims.Email)
 
-	if a.mixpanel != nil {
-		go func() {
-			if view.UserCreated {
-				if err := a.mixpanel.TrackSignup(claims.Email); err != nil {
-					logger.Errorln(err)
-				}
-			}
-			if err := a.mixpanel.TrackLogin(claims.Email, view.FirstLogin); err != nil {
-				logger.Errorln(err)
-			}
-		}()
-	}
-
 	if err := a.UpdateUserAtLogin(ctx, u); err != nil {
 		renderError(w, r, err)
 		return
@@ -389,7 +374,6 @@ type publicLookupView struct {
 	FirstLoginAt  string    `json:"firstLoginAt,omitempty"`
 	Organizations []OrgView `json:"organizations"`
 	MunchkinHash  string    `json:"munchkinHash"`
-	IntercomHash  string    `json:"intercomHash"`
 }
 
 // MunchkinHash caclulates the hash for Marketo's Munchkin tracking code.
@@ -398,14 +382,6 @@ type publicLookupView struct {
 func (a *API) MunchkinHash(email string) string {
 	h := sha1.New()
 	h.Write([]byte(a.marketoMunchkinKey))
-	h.Write([]byte(email))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-// IntercomHash caclulates the hash for Intercom's user verification.
-// See https://docs.intercom.com/configure-intercom-for-your-product-or-site/staying-secure/enable-identity-verification-on-your-web-product for details.
-func (a *API) IntercomHash(email string) string {
-	h := hmac.New(sha256.New, []byte(a.intercomHashKey))
 	h.Write([]byte(email))
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -424,7 +400,6 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		Company:       currentUser.Company,
 		FirstLoginAt:  currentUser.FormatFirstLoginAt(),
 		MunchkinHash:  a.MunchkinHash(currentUser.Email),
-		IntercomHash:  a.IntercomHash(currentUser.Email),
 		Organizations: make([]OrgView, 0),
 	}
 	for _, org := range organizations {
