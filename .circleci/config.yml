@@ -1,6 +1,7 @@
 version: 2
 defaults: &defaults
   machine:
+    image: ubuntu-2004:202201-02
     docker_layer_caching: true
   working_directory: /home/circleci/src/github.com/weaveworks/service
   environment:
@@ -62,13 +63,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: go get github.com/mattn/goveralls
-      - run: COVERDIR=./coverage make RM= test
-      - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
-      - run: ~/bin/goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
-      - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
-      - store_artifacts:
-          path: /tmp/coverage
+      - run: make RM= test
 
   integration-test:
     <<: *defaults
@@ -119,7 +114,7 @@ jobs:
             echo Last successful build was commit $LAST_BUILD_COMMIT
             mkdir ~/.aws
             echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
-            $(aws ecr get-login --no-include-email --region us-east-1)
+            aws ecr get-login-password  --region us-east-1 | docker login -u AWS --password-stdin 664268111851.dkr.ecr.us-east-1.amazonaws.com
             IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --if-changed-since $LAST_BUILD_COMMIT
 
   dry-run-upload:
@@ -137,7 +132,7 @@ jobs:
             echo Last successful build was commit $LAST_BUILD_COMMIT
             mkdir ~/.aws
             echo $AWS_ECR_CREDENTIALS | base64 -d > ~/.aws/credentials
-            $(aws ecr get-login --no-include-email --region us-east-1)
+            aws ecr get-login-password  --region us-east-1 | docker login -u AWS --password-stdin 664268111851.dkr.ecr.us-east-1.amazonaws.com
             IMAGE_REPOSITORY=664268111851.dkr.ecr.us-east-1.amazonaws.com ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
 
 workflows:
