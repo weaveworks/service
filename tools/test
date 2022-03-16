@@ -69,14 +69,6 @@ fi
 if [ -n "$SLOW" ]; then
     GO_TEST_ARGS=("${GO_TEST_ARGS[@]}" ${RACE})
 
-    # shellcheck disable=SC2153
-    if [ -n "$COVERDIR" ]; then
-        coverdir="$COVERDIR"
-    else
-        coverdir=$(mktemp -d coverage.XXXXXXXXXX)
-    fi
-
-    mkdir -p "$coverdir"
 fi
 
 fail=0
@@ -107,16 +99,6 @@ run_test() {
     fi
 
     local GO_TEST_ARGS_RUN=("${GO_TEST_ARGS[@]}")
-    if [ -n "$SLOW" ]; then
-        local COVERPKGS
-        COVERPKGS=$( (
-            go list "$dir"
-            go list -f '{{join .Deps "\n"}}' "$dir" | grep -v "vendor" | grep "^$PACKAGE_BASE/"
-        ) | paste -s -d, -)
-        local output
-        output=$(mktemp "$coverdir/unit.XXXXXXXXXX")
-        local GO_TEST_ARGS_RUN=("${GO_TEST_ARGS[@]}" "-coverprofile=$output" "-coverpkg=$COVERPKGS")
-    fi
 
     local START
     START=$(date +%s)
@@ -143,14 +125,6 @@ done
 
 if [ -n "$PARALLEL" ]; then
     wait
-fi
-
-if [ -n "$SLOW" ] && [ -z "$COVERDIR" ]; then
-    go get github.com/weaveworks/tools/cover
-    cover "$coverdir"/* >profile.cov
-    rm -rf "$coverdir"
-    go tool cover -html=profile.cov -o=coverage.html
-    go tool cover -func=profile.cov | tail -n1
 fi
 
 exit $fail

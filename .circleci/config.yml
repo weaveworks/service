@@ -63,13 +63,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: go get github.com/mattn/goveralls
-      - run: COVERDIR=./coverage make RM= test
-      - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
-      - run: ~/bin/goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
-      - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
-      - store_artifacts:
-          path: /tmp/coverage
+      - run: make RM= test
 
   integration-test:
     <<: *defaults
