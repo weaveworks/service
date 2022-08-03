@@ -240,21 +240,6 @@ $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 		-e TESTDIRS=${TESTDIRS} \
 		$(IMAGE_PREFIX)/build $@
 
-billing-integration-test: build/$(UPTODATE)
-	@mkdir -p $(shell pwd)/.pkg
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:10.6)"; \
-	$(SUDO) docker run $(RM) -ti \
-		-v $(shell pwd)/.pkg:/go/pkg \
-		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-v $(shell pwd)/billing-api/db/migrations:/migrations \
-		-e ZUORA_USERNAME=$(ZUORA_USERNAME) -e ZUORA_PASSWORD=$(ZUORA_PASSWORD) -e ZUORA_SUBSCRIPTIONPLANID=$(ZUORA_SUBSCRIPTIONPLANID) \
-		--workdir /go/src/github.com/weaveworks/service \
-		--link "$$DB_CONTAINER":billing-db.weave.local \
-		$(IMAGE_PREFIX)/build $@; \
-	status=$$?; \
-	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
-	exit $$status
-
 flux-integration-test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	NATS_CONTAINER="$$(docker run -d nats)"; \
