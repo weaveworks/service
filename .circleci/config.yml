@@ -92,7 +92,6 @@ jobs:
       - run: docker run -d -p 4222:4222 nats
       - run: make notebooks-integration-test
       - run: make users-integration-test
-      - run: make billing-integration-test
       - run: make pubsub-integration-test
       - run: make flux-integration-test
       - run: make kubectl-service-integration-test

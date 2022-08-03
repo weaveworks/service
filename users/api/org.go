@@ -174,31 +174,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 	if err := verifyTeamParams(view.TeamExternalID, view.TeamName); err != nil {
 		return err
 	}
-	org, err := a.db.CreateOrganizationWithTeam(
-		ctx,
-		currentUser.ID,
-		view.ExternalID,
-		view.Name,
-		view.ProbeToken,
-		view.TeamExternalID,
-		view.TeamName,
-		view.TrialExpiresAt,
-	)
-	if err != nil {
-		return err
-	}
-
-	if err := a.refreshOrganizationRestrictions(ctx, currentUser, org, now); err != nil {
-		return err
-	}
-
-	if err := a.createEmailReceiver(ctx, currentUser.Email, org.ID); err != nil {
-		// Just warning because it's ok to create org without email receiver
-		// by default browser receiver will be created for all orgs
-		log.Warnf("cannot create email receiver with address %s, error: %s", currentUser.Email, err)
-	}
-
-	return nil
+	return errors.New("Attaching new clusters has been disabled")
 }
 
 // SetOrganizationFirstSeenConnectedAt Marks an Org as onboarded

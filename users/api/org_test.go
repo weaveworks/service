@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/lib/pq"
@@ -17,7 +16,6 @@ import (
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db/dbtest"
 )
 
@@ -418,65 +416,6 @@ func Test_UpdateOrganization_Validation(t *testing.T) {
 	}
 }
 
-func Test_CustomExternalIDOrganization(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&grpc.BillingAccount{}, nil)
-
-	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-		"id":       "my-organization",
-		"name":     "my organization",
-		"teamName": "crew",
-	}.Reader(t))
-
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	if assert.Len(t, organizations, 1) {
-		assert.NotEqual(t, "", organizations[0].ID)
-		assert.Equal(t, "my-organization", organizations[0].ExternalID)
-		assert.Equal(t, "my organization", organizations[0].Name)
-	}
-}
-
-func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, otherOrg := getOrg(t)
-
-	for id, errMsg := range map[string]string{
-		"":                             "ID cannot be blank",
-		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
-		otherOrg.ExternalID:            "ID is already taken",
-	} {
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-			"id":       id,
-			"name":     "my organization",
-			"teamName": "crew",
-		}.Reader(t))
-
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
-
-		organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-		require.NoError(t, err)
-		if assert.Len(t, organizations, 1) {
-			assert.Equal(t, otherOrg.ID, organizations[0].ID)
-			assert.Equal(t, otherOrg.ExternalID, organizations[0].ExternalID)
-		}
-	}
-}
-
 func Test_Organization_GenerateOrgExternalID(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -535,92 +474,6 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
-}
-
-func Test_Organization_CreateMultiple(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&grpc.BillingAccount{}, nil)
-
-	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "name": "my first org", "teamName": "crew"}.Reader(t))
-
-	w := httptest.NewRecorder()
-	app.ServeHTTP(w, r1)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "name": "my second org", "teamName": "squad"}.Reader(t))
-
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, r2)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	if assert.Len(t, organizations, 2) {
-		assert.NotEqual(t, "", organizations[0].ID)
-		assert.Equal(t, "my-second-org", organizations[0].ExternalID)
-		assert.Equal(t, "my second org", organizations[0].Name)
-		assert.NotEqual(t, "", organizations[1].ID)
-		assert.Equal(t, "my-first-org", organizations[1].ExternalID)
-		assert.Equal(t, "my first org", organizations[1].Name)
-	}
-}
-
-func Test_Organization_CreateOrg_delinquent(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	now := time.Date(2022, 6, 27, 0, 0, 0, 0, time.UTC)
-	user := getUser(t)
-	eid := "delinquent-refuse-12"
-
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&grpc.BillingAccount{}, nil)
-	err := app.CreateOrg(context.TODO(), user, api.OrgView{
-		ExternalID:     eid,
-		Name:           "name",
-		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to trigger upload refusal
-		TeamName:       "crew",
-	}, now)
-	assert.NoError(t, err)
-
-	org, err := database.FindOrganizationByID(context.TODO(), eid)
-	if assert.NoError(t, err) {
-		assert.True(t, org.RefuseDataAccess)
-		assert.True(t, org.RefuseDataUpload)
-	}
-}
-
-func Test_Organization_CreateOrg_never_delinquent_for_weaver(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	now := time.Date(2022, 6, 27, 0, 0, 0, 0, time.UTC)
-	user := getUserWithDomain(t, "weave.works")
-	eid := "delinquent-accept-12"
-
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
-		AnyTimes().
-		Return(&grpc.BillingAccount{}, nil)
-	err := app.CreateOrg(context.TODO(), user, api.OrgView{
-		ExternalID:     eid,
-		Name:           "name",
-		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to (normally) trigger upload refusal
-		TeamName:       "crew",
-	}, now)
-	assert.NoError(t, err)
-
-	org, err := database.FindOrganizationByID(context.TODO(), eid)
-	assert.NoError(t, err)
-	assert.Contains(t, org.FeatureFlags, featureflag.NoBilling)
-	assert.Contains(t, org.FeatureFlags, featureflag.WeaveworksInternal)
-	assert.False(t, org.RefuseDataAccess)
-	assert.False(t, org.RefuseDataUpload)
 }
 
 func Test_Organization_Delete(t *testing.T) {
@@ -734,42 +587,6 @@ func Test_Organization_Overlong_Name(t *testing.T) {
 	}
 }
 
-func Test_Organization_CreateTeam(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).Return(&grpc.BillingAccount{}, nil)
-
-	teamName := "my-team-name"
-	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-org-id", "name": "my-org-name", "teamName": teamName}.Reader(t))
-
-	w := httptest.NewRecorder()
-	app.ServeHTTP(w, r1)
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	assert.Len(t, organizations, 1)
-	assert.NotEqual(t, "", organizations[0].ID)
-	assert.Equal(t, "my-org-id", organizations[0].ExternalID)
-	assert.Equal(t, "my-org-name", organizations[0].Name)
-	assert.NotEqual(t, "", organizations[0].TeamID)
-	assert.NotEqual(t, "", organizations[0].TeamExternalID)
-
-	r2 := requestAs(t, user, "GET", "/api/users/teams", nil)
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, r2)
-	assert.Equal(t, http.StatusOK, w.Code)
-	body := api.TeamsView{}
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-
-	assert.Len(t, body.Teams, 1)
-	assert.Equal(t, body.Teams[0].ExternalID, organizations[0].TeamExternalID)
-	assert.Equal(t, body.Teams[0].Name, teamName)
-}
-
 func Test_Organization_Lookup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -789,84 +606,6 @@ func Test_Organization_Lookup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, org.ExternalID, body["externalID"])
 	assert.Equal(t, org.Name, body["name"])
-}
-
-func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAbleToAccessOrganization(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-
-	// Create a team, and simulate the fact that team is marked as "billed externally":
-	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, users.AdminRoleID)
-	assert.NoError(t, err)
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
-		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
-
-	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
-	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
-
-	err = app.CreateOrg(context.Background(), user, api.OrgView{
-		ExternalID:     "my-org-id",
-		Name:           "my-org-name",
-		TeamExternalID: team.ExternalID,
-		TrialExpiresAt: trialExpiresAt,
-	}, time.Now())
-	assert.NoError(t, err)
-
-	orgs, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	assert.Len(t, orgs, 1)
-	org := orgs[0]
-	assert.NotEqual(t, "", org.ID)
-	assert.Equal(t, "my-org-id", org.ExternalID)
-	assert.Equal(t, "my-org-name", org.Name)
-	assert.NotEqual(t, "", org.TeamID)
-	assert.NotEqual(t, "", org.TeamExternalID)
-	assert.NotContains(t, org.FeatureFlags, featureflag.Billing)
-	assert.Contains(t, org.FeatureFlags, featureflag.NoBilling)
-	assert.False(t, org.RefuseDataAccess)
-	assert.False(t, org.RefuseDataUpload)
-}
-
-func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNotBeAbleToAccessOrganization(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user := getUser(t)
-
-	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
-	team := getTeam(t)
-	err := database.AddUserToTeam(context.Background(), user.ID, team.ID, users.AdminRoleID)
-	assert.NoError(t, err)
-	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
-		Return(&grpc.BillingAccount{}, nil)
-
-	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
-	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
-
-	err = app.CreateOrg(context.Background(), user, api.OrgView{
-		ExternalID:     "my-org-id",
-		Name:           "my-org-name",
-		TeamExternalID: team.ExternalID,
-		TrialExpiresAt: trialExpiresAt,
-	}, time.Now())
-	assert.NoError(t, err)
-
-	orgs, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
-	require.NoError(t, err)
-	assert.Len(t, orgs, 1)
-	org := orgs[0]
-	assert.NotEqual(t, "", org.ID)
-	assert.Equal(t, "my-org-id", org.ExternalID)
-	assert.Equal(t, "my-org-name", org.Name)
-	assert.NotEqual(t, "", org.TeamID)
-	assert.NotEqual(t, "", org.TeamExternalID)
-	assert.NotContains(t, org.FeatureFlags, featureflag.NoBilling)
-	assert.Contains(t, org.FeatureFlags, featureflag.Billing)
-	assert.True(t, org.RefuseDataAccess)
-	assert.True(t, org.RefuseDataUpload)
 }
 
 func Test_Organization_UpdatePlatformVersion(t *testing.T) {
